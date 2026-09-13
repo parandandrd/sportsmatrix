@@ -50,9 +50,9 @@ func testCanvas(t testing.TB, numActuals int, w int, h int) *ScrollCanvas {
 	return c
 }
 
-// referenceActualPixel is the straightforward version of getActualPixel: scan
-// every subcanvas in order and use image.Image.At. getActualPixel replaces it
-// with a binary search and direct pixel access, and must agree with it exactly.
+// referenceActualPixel is how master resolved a scroll pixel: scan every
+// subcanvas in order and use image.Image.At. The span-based frame fill has to
+// agree with it exactly, so it stays here as the definition of correct.
 func (c *ScrollCanvas) referenceActualPixel(virtualX int, virtualY int) color.Color {
 	for _, sub := range c.subCanvases {
 		if sub == nil {
@@ -67,7 +67,10 @@ func (c *ScrollCanvas) referenceActualPixel(virtualX int, virtualY int) color.Co
 	return color.Black
 }
 
-func TestGetActualPixelMatchesReference(t *testing.T) {
+// The span decomposition must reproduce master's per-pixel lookup exactly, for
+// every column of every frame, including the frames that run off the end of the
+// content.
+func TestFillHorizontalFrameMatchesReference(t *testing.T) {
 	t.Parallel()
 
 	c := testCanvas(t, 4, 32, 16)
@@ -76,18 +79,25 @@ func TestGetActualPixelMatchesReference(t *testing.T) {
 	last := c.subCanvases[len(c.subCanvases)-1]
 	require.NotNil(t, last, "last subcanvas must never be nil")
 
-	// Walk past both ends of the virtual range as well as through it.
-	for virtualX := -5; virtualX <= last.virtualEndX+5; virtualX++ {
-		for y := -2; y < c.h+2; y++ {
-			wantR, wantG, wantB, wantA := c.referenceActualPixel(virtualX, y).RGBA()
-			got := c.getActualPixel(virtualX, y)
-			gotR, gotG, gotB, gotA := got.RGBA()
+	buf := &preloadBuf{points: make([]matrix.MatrixPoint, c.w*c.h)}
 
-			require.Equal(t,
-				[]uint32{wantR, wantG, wantB, wantA},
-				[]uint32{gotR, gotG, gotB, gotA},
-				"pixel mismatch at virtualX=%d y=%d", virtualX, y,
-			)
+	for virtualXStart := 0; virtualXStart <= last.virtualEndX; virtualXStart++ {
+		c.fillHorizontalFrame(buf, virtualXStart)
+
+		for y := 0; y < c.h; y++ {
+			for x := 0; x < c.w; x++ {
+				wantR, wantG, wantB, wantA := c.referenceActualPixel(x+virtualXStart, y).RGBA()
+				got := buf.points[y*c.w+x]
+				gotR, gotG, gotB, gotA := got.Color.RGBA()
+
+				require.Equal(t, matrix.MatrixPoint{X: x, Y: y, Color: got.Color}, got,
+					"point coordinates wrong at frame %d, x=%d y=%d", virtualXStart, x, y)
+				require.Equal(t,
+					[]uint32{wantR, wantG, wantB, wantA},
+					[]uint32{gotR, gotG, gotB, gotA},
+					"pixel mismatch at frame %d, x=%d y=%d", virtualXStart, x, y,
+				)
+			}
 		}
 	}
 }
@@ -171,6 +181,26 @@ func BenchmarkHorizontalPrep(b *testing.B) {
 		b.StartTimer()
 
 		if err := c.horizontalPrep(ctx); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkVerticalPrep(b *testing.B) {
+	ctx := context.Background()
+	l := zap.NewNop()
+	b.ReportAllocs()
+
+	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		c, err := NewScrollCanvas(matrix.NewConsoleMatrix(128, 32, io.Discard, l), l,
+			WithScrollDirection(BottomToTop))
+		require.NoError(b, err)
+		c.SetPadding(160)
+		draw.Draw(c.actual, image.Rect(0, 0, 128, 32), testActual(0, 128, 32), image.Point{}, draw.Src)
+		b.StartTimer()
+
+		if err := c.verticalPrep(ctx); err != nil {
 			b.Fatal(err)
 		}
 	}

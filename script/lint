@@ -30,16 +30,29 @@ fi
 
 ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
 
+# One trap, not two. bash replaces an EXIT trap when a second one is installed,
+# so the earlier "clean up the matrix library" trap used to be silently
+# discarded by the "clean up the dummy assets" trap below. That left the library
+# sitting in the workspace, where the test step then picked it up instead of
+# building its own.
+cleanup() {
+  rm -rf "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
+  rm -rf "${ROOT}/internal/sportsmatrix/assets"
+}
+trap cleanup EXIT
+
+# Linting only needs the headers to typecheck the cgo package, so a prebuilt
+# copy is fine here. Dockerfile.pibuilder installs it to /sportsmatrix_lib,
+# which is where script/build takes it from; /sportslibs is an older location
+# some builder images still carry. Fall back to the vendored source if neither
+# is present.
 if [ ! -d ${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix ]; then
-  # Dockerfile.pibuilder installs the built library to /sportsmatrix_lib, which
-  # is where script/build takes it from. /sportslibs is an older location that
-  # can still be present in a builder image, holding an archive built against a
-  # different glibc -- linking that one fails with undefined references to
-  # __isoc23_sscanf and friends. Prefer the current path, fall back to the old.
-  for libdir in /sportsmatrix_lib/rpi-rgb-led-matrix /sportslibs/rpi-rgb-led-matrix; do
+  for libdir in \
+    /sportsmatrix_lib/rpi-rgb-led-matrix \
+    /sportslibs/rpi-rgb-led-matrix \
+    "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix.BASE"; do
     if [ -d "${libdir}" ]; then
-      cp -r "${libdir}" ${ROOT}/internal/rgbmatrix-rpi/lib/
-      trap "rm -rf ${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix" EXIT
+      cp -r "${libdir}" "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
       break
     fi
   done
@@ -52,7 +65,6 @@ if [ ! -n "${GITHUB_ACTIONS}" ]; then
 fi
 
 # Put some dummy assets here
-trap "rm -rf ${ROOT}/internal/sportsmatrix/assets" EXIT
 mkdir -p "${ROOT}/internal/sportsmatrix/assets/web"
 touch "${ROOT}/internal/sportsmatrix/assets/web/foo"
 

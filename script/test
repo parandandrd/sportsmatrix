@@ -29,21 +29,29 @@ export GOCACHE=/src/.cache
 set -x
 ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
 
+# One trap, not two. bash replaces an EXIT trap when a second one is installed,
+# so the earlier "clean up the matrix library" trap used to be silently
+# discarded by the "clean up the dummy assets" trap below, leaving the library
+# behind in the workspace for whatever step ran next.
+cleanup() {
+  rm -rf "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
+  rm -rf "${ROOT}/internal/sportsmatrix/assets"
+}
+trap cleanup EXIT
+
 # Build the matrix library from the vendored source rather than reusing a
 # prebuilt archive from the builder image. The archives shipped in those images
 # were compiled against a newer glibc and libstdc++ than the image itself links
 # against, so linking the test binary fails on symbols like __isoc23_sscanf,
 # __isoc23_strtol and std::__throw_bad_array_new_length. Compiling it here costs
 # a couple of minutes and guarantees it matches the toolchain doing the link.
-if [ ! -d ${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix ]; then
-  cp -r "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix.BASE" \
-    "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
-  trap "rm -rf ${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix" EXIT
-  make -C "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix/lib"
-fi
+# Any copy left over from an earlier step is discarded for the same reason.
+rm -rf "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
+cp -r "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix.BASE" \
+  "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
+make -C "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix/lib"
 
 # Put some dummy assets here
-trap "rm -rf ${ROOT}/internal/sportsmatrix/assets" EXIT
 mkdir -p "${ROOT}/internal/sportsmatrix/assets/web"
 touch "${ROOT}/internal/sportsmatrix/assets/web/foo"
 

@@ -65,16 +65,16 @@ func TestMaxChars(t *testing.T) {
 	w, canvas := testWriter(t)
 
 	for _, pixWidth := range []int{0, 1, 10, 32, 64, 128} {
-		max, err := w.MaxChars(canvas, pixWidth)
+		maxChars, err := w.MaxChars(canvas, pixWidth)
 		require.NoError(t, err)
 
-		if max > 0 {
-			fits, err := w.MeasureStrings(canvas, []string{string(bytes.Repeat([]byte("M"), max))})
+		if maxChars > 0 {
+			fits, err := w.MeasureStrings(canvas, []string{string(bytes.Repeat([]byte("M"), maxChars))})
 			require.NoError(t, err)
-			require.LessOrEqual(t, fits[0], pixWidth, "reported max of %d does not fit %d px", max, pixWidth)
+			require.LessOrEqual(t, fits[0], pixWidth, "reported max of %d does not fit %d px", maxChars, pixWidth)
 		}
 
-		tooMany, err := w.MeasureStrings(canvas, []string{string(bytes.Repeat([]byte("M"), max+1))})
+		tooMany, err := w.MeasureStrings(canvas, []string{string(bytes.Repeat([]byte("M"), maxChars+1))})
 		require.NoError(t, err)
 		require.Greater(t, tooMany[0], pixWidth, "one more than max should not fit %d px", pixWidth)
 	}

@@ -29,19 +29,17 @@ export GOCACHE=/src/.cache
 set -x
 ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
 
+# Build the matrix library from the vendored source rather than reusing a
+# prebuilt archive from the builder image. The archives shipped in those images
+# were compiled against a newer glibc and libstdc++ than the image itself links
+# against, so linking the test binary fails on symbols like __isoc23_sscanf,
+# __isoc23_strtol and std::__throw_bad_array_new_length. Compiling it here costs
+# a couple of minutes and guarantees it matches the toolchain doing the link.
 if [ ! -d ${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix ]; then
-  # Dockerfile.pibuilder installs the built library to /sportsmatrix_lib, which
-  # is where script/build takes it from. /sportslibs is an older location that
-  # can still be present in a builder image, holding an archive built against a
-  # different glibc -- linking that one fails with undefined references to
-  # __isoc23_sscanf and friends. Prefer the current path, fall back to the old.
-  for libdir in /sportsmatrix_lib/rpi-rgb-led-matrix /sportslibs/rpi-rgb-led-matrix; do
-    if [ -d "${libdir}" ]; then
-      cp -r "${libdir}" ${ROOT}/internal/rgbmatrix-rpi/lib/
-      trap "rm -rf ${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix" EXIT
-      break
-    fi
-  done
+  cp -r "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix.BASE" \
+    "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
+  trap "rm -rf ${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix" EXIT
+  make -C "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix/lib"
 fi
 
 # Put some dummy assets here

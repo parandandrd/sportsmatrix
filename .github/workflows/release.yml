@@ -3,9 +3,21 @@ on:
   push:
     tags:
     - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, including the leading v (e.g. v0.0.1-beta.1)"
+        required: true
+        type: string
 
+# On a tag push the version is the tag. On a manual run there is no tag yet, so
+# it comes from the input and the release step creates the tag at the commit
+# that was built.
 env:
-  VERSION: ${{ github.ref_name }}
+  VERSION: ${{ inputs.version || github.ref_name }}
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -44,4 +56,6 @@ jobs:
       with:
         artifacts: "*.deb"
         generateReleaseNotes: true
-        prerelease: ${{ contains(github.ref_name, 'beta') }}
+        tag: ${{ inputs.version || github.ref_name }}
+        commit: ${{ github.sha }}
+        prerelease: ${{ contains(inputs.version || github.ref_name, 'beta') }}

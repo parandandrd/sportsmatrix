@@ -51,6 +51,7 @@ type SportBoard struct {
 	teamInfoWidths       map[string]map[string]int
 	watchTeams           []string
 	teamInfoLock         sync.RWMutex
+	writerLock           sync.Mutex
 	drawLock             sync.RWMutex
 	logoLock             sync.RWMutex
 	cancelBoard          chan struct{}

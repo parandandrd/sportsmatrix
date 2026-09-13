@@ -50,11 +50,14 @@ func (s *SportBoard) getLogoDrawCache(logoKey string) (image.Image, error) {
 	l, ok := s.logoDrawCache[logoKey]
 	if ok {
 		if l == nil {
+			// Deliberately not deleting the entry here: this only holds a read
+			// lock, and writing to the map while another reader holds it is a
+			// fatal runtime throw. Reporting a miss is enough -- the caller
+			// re-renders and setLogoDrawCache overwrites the nil entry.
 			s.log.Warn("logo draw cache was nil",
 				zap.String("league", s.api.League()),
 				zap.String("key", logoKey),
 			)
-			delete(s.logoDrawCache, logoKey)
 			return nil, fmt.Errorf("no cache for %s", logoKey)
 		}
 		return l, nil
@@ -92,11 +95,11 @@ func (s *SportBoard) getLogoCache(logoKey string) (*logo.Logo, error) {
 	l, ok := s.logos[logoKey]
 	if ok {
 		if l == nil {
+			// See getLogoDrawCache: no map write under the read lock.
 			s.log.Warn("logo cache was nil",
 				zap.String("league", s.api.League()),
 				zap.String("key", logoKey),
 			)
-			delete(s.logos, logoKey)
 			return nil, fmt.Errorf("no cache for %s", logoKey)
 		}
 		return l, nil

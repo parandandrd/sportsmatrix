@@ -26,7 +26,7 @@ type Grid struct {
 	cellY       []int
 	padRatio    float64
 	padding     int
-	paddedPix   map[string]image.Point
+	paddedPix   map[image.Point]struct{}
 	colStyleSet bool
 	rowStyleSet bool
 }
@@ -54,7 +54,7 @@ func NewGrid(canvas board.Canvas, numCols int, numRows int, log *zap.Logger, opt
 		log:        log,
 		cols:       numCols,
 		rows:       numRows,
-		paddedPix:  make(map[string]image.Point),
+		paddedPix:  make(map[image.Point]struct{}),
 		cellX:      make([]int, numCols),
 		cellY:      make([]int, numRows),
 	}
@@ -142,7 +142,9 @@ func (g *Grid) generateCells() error {
 						continue
 					}
 					if x < startX || y < startY || x > endX || y > endY {
-						g.paddedPix[fmt.Sprintf("%dx%d", x, y)] = image.Pt(x, y)
+						// image.Point is comparable, so it works as a map key
+						// directly -- no need to format a string per pixel.
+						g.paddedPix[image.Pt(x, y)] = struct{}{}
 					}
 				}
 			}
@@ -226,7 +228,7 @@ func (g *Grid) GetCol(col int) []*Cell {
 
 // FillPadded fills the cell padding with a color
 func (g *Grid) FillPadded(canvas board.Canvas, clr color.Color) {
-	for _, pt := range g.paddedPix {
+	for pt := range g.paddedPix {
 		canvas.Set(pt.X, pt.Y, clr)
 	}
 }

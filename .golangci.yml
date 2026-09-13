@@ -12,7 +12,7 @@ linters:
   - durationcheck
   - errcheck
   - errorlint
-  - exportloopref
+  - copyloopvar
   - importas
   - ineffassign
   - gofumpt

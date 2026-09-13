@@ -35,8 +35,8 @@ type (
 	Write func(canvas board.Canvas, writer *TextWriter, text []string) error
 )
 
-// LayerDrawer draws layers on a board.Canvas. It prepares layers simultaneously, then
-// draws each priority simultaneously.
+// LayerDrawer draws layers on a board.Canvas. It prepares layers simultaneously,
+// then draws them in priority order.
 type LayerDrawer struct {
 	drawTimeout     time.Duration
 	layerPriorities map[int]struct{}
@@ -252,7 +252,20 @@ ERR:
 	return nil
 }
 
-// Draw draws each layer. It does each priority level concurrently
+// Draw draws each layer, in priority order.
+//
+// Layers at the same priority are drawn one after another rather than
+// concurrently. They share one canvas, and drawing with draw.Over is a
+// read-modify-write of every destination pixel, so any two layers whose
+// destination rectangles touch race on the pixels they share -- corrupting the
+// blend, and on a weakly ordered core the visibility of it too. There is no way
+// to keep the concurrency and be correct here short of locking each pixel,
+// which would serialize the writes anyway at a much higher price.
+//
+// The cost is small either way: drawing is a blit over at most a panel's worth
+// of pixels, measured at well under a millisecond for a full scoreboard, against
+// board delays of seconds. The expensive part of a layer, prepare(), still runs
+// concurrently.
 func (l *LayerDrawer) Draw(ctx context.Context, canvas board.Canvas) error {
 	if !l.prepared {
 		if err := l.Prepare(ctx); err != nil {
@@ -260,15 +273,17 @@ func (l *LayerDrawer) Draw(ctx context.Context, canvas board.Canvas) error {
 		}
 	}
 
-	errs := make(chan error, len(l.layers)+len(l.textLayers))
-
 	l.log.Debug("layer priorities",
 		zap.Ints("priorities", l.priorities()),
 	)
 
+	deadline := time.Now().Add(l.drawTimeout)
+
 	for _, priority := range l.priorities() {
-		wg := &sync.WaitGroup{}
 		l.log.Debug("drawing priority", zap.Int("priority", priority))
+
+		var drawErr error
+
 	LAYER:
 		for _, layer := range l.layers {
 			if layer.priority != priority {
@@ -277,17 +292,23 @@ func (l *LayerDrawer) Draw(ctx context.Context, canvas board.Canvas) error {
 			if layer.draw == nil {
 				return fmt.Errorf("draw func not defined for layer")
 			}
-			l.log.Debug("drawing layer",
-				zap.Int("priority", priority),
-			)
-			wg.Add(1)
-			go func(layer *Layer) {
-				defer wg.Done()
-				if err := layer.draw(canvas, layer.prepared); err != nil {
-					errs <- err
-				}
-			}(layer)
+
+			select {
+			case <-ctx.Done():
+				return context.Canceled
+			default:
+			}
+			if time.Now().After(deadline) {
+				return fmt.Errorf("timed out LayerDrawer")
+			}
+
+			l.log.Debug("drawing layer", zap.Int("priority", priority))
+
+			if err := layer.draw(canvas, layer.prepared); err != nil && drawErr == nil {
+				drawErr = err
+			}
 		}
+
 	TEXT:
 		for _, layer := range l.textLayers {
 			if layer.priority != priority {
@@ -296,42 +317,25 @@ func (l *LayerDrawer) Draw(ctx context.Context, canvas board.Canvas) error {
 			if layer.write == nil {
 				return fmt.Errorf("draw func not defined for layer")
 			}
-			l.log.Debug("drawing text layer", zap.Int("priority", priority))
-			wg.Add(1)
-			go func(layer *TextLayer) {
-				defer wg.Done()
-				if err := layer.write(canvas, layer.prepared, layer.preparedText); err != nil {
-					errs <- err
-				}
-			}(layer)
-		}
 
-		drawDone := make(chan struct{})
-
-		go func() {
-			defer close(drawDone)
-			wg.Wait()
-		}()
-
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case <-drawDone:
-		case <-time.After(l.drawTimeout):
-			return fmt.Errorf("timed out LayerDrawer")
-		}
-
-	ERR:
-		for {
 			select {
-			case err := <-errs:
-				if err != nil {
-					return err
-				}
-				continue ERR
+			case <-ctx.Done():
+				return context.Canceled
 			default:
-				break ERR
 			}
+			if time.Now().After(deadline) {
+				return fmt.Errorf("timed out LayerDrawer")
+			}
+
+			l.log.Debug("drawing text layer", zap.Int("priority", priority))
+
+			if err := layer.write(canvas, layer.prepared, layer.preparedText); err != nil && drawErr == nil {
+				drawErr = err
+			}
+		}
+
+		if drawErr != nil {
+			return drawErr
 		}
 	}
 

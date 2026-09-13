@@ -6,7 +6,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"sort"
 	"sync"
 	"time"
 
@@ -21,8 +20,8 @@ import (
 
 var (
 	black = color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0x0}
-	// opaqueBlack is the RGBA equivalent of color.Black, which is what
-	// getActualPixel falls back to when no subcanvas covers a coordinate.
+	// opaqueBlack is the RGBA equivalent of color.Black, which is what a
+	// scroll falls back to when no subcanvas covers a coordinate.
 	opaqueBlack = color.RGBA{A: 0xff}
 	// transparent is what (*image.RGBA).At returns outside its bounds.
 	transparent        = color.RGBA{}
@@ -77,27 +76,47 @@ type subCanvasHorizontal struct {
 
 type ScrollCanvasOption func(*ScrollCanvas) error
 
-// loaderPool recycles the per-frame MatrixPoint buffers used during preload.
-// A scroll builds one buffer per frame and hands it straight to Matrix.PreLoad,
-// which copies out of it synchronously, so the buffer can go right back in the
-// pool. Without this, a single scroll of a few boards churns hundreds of
-// megabytes -- which matters a lot on a Pi.
-var loaderPool sync.Pool
-
-func getLoader(size int) []matrix.MatrixPoint {
-	if l, ok := loaderPool.Get().(*[]matrix.MatrixPoint); ok {
-		buf := *l
-		if cap(buf) >= size {
-			return buf[:size]
-		}
-	}
-
-	return make([]matrix.MatrixPoint, size)
+// preloadSpan is a run of matrix columns that all come from one subcanvas at a
+// constant source offset, so the whole run can be copied without re-resolving
+// which subcanvas each column belongs to. A nil img means the run is off the
+// end of the content and should be filled with black.
+type preloadSpan struct {
+	img     *image.RGBA
+	xStart  int
+	xEnd    int
+	actualX int
 }
 
-func putLoader(l []matrix.MatrixPoint) {
-	buf := l[:0]
-	loaderPool.Put(&buf)
+// preloadBuf is the scratch a single preload frame needs.
+type preloadBuf struct {
+	points []matrix.MatrixPoint
+	spans  []preloadSpan
+}
+
+// loaderPool recycles preload scratch. A scroll builds one buffer per frame and
+// hands it straight to Matrix.PreLoad, which copies out of it synchronously, so
+// the buffer can go right back in the pool. Without this, a single scroll of a
+// few boards churns hundreds of megabytes -- which matters a lot on a Pi.
+var loaderPool sync.Pool
+
+func getLoader(size int) *preloadBuf {
+	buf, ok := loaderPool.Get().(*preloadBuf)
+	if !ok {
+		buf = &preloadBuf{}
+	}
+
+	if cap(buf.points) >= size {
+		buf.points = buf.points[:size]
+	} else {
+		buf.points = make([]matrix.MatrixPoint, size)
+	}
+	buf.spans = buf.spans[:0]
+
+	return buf
+}
+
+func putLoader(buf *preloadBuf) {
+	loaderPool.Put(buf)
 }
 
 func NewScrollCanvas(m matrix.Matrix, logger *zap.Logger, opts ...ScrollCanvasOption) (*ScrollCanvas, error) {
@@ -448,26 +467,14 @@ OUTER:
 		mySceneIndex, myThisY := sceneIndex, thisY
 
 		wg.Go(func() error {
-			loader := getLoader(c.w * c.h)
-			defer putLoader(loader)
+			buf := getLoader(c.w * c.h)
+			defer putLoader(buf)
 
-			index := 0
-			for x := c.actual.Bounds().Min.X; x <= c.actual.Bounds().Max.X; x++ {
-				for y := c.actual.Bounds().Min.Y; y <= c.actual.Bounds().Max.Y; y++ {
-					shiftY := y + myThisY
-					if shiftY > 0 && shiftY < c.h && x > 0 && x < c.w {
-						loader[index] = matrix.MatrixPoint{
-							X:     x,
-							Y:     shiftY,
-							Color: rgbaAt(c.actual, x, y),
-						}
-						index++
-					}
-				}
-			}
+			points := c.fillVerticalFrame(buf, myThisY)
+
 			c.Matrix.PreLoad(&matrix.MatrixScene{
 				Index:  mySceneIndex,
-				Points: loader[:index],
+				Points: points,
 			})
 			return nil
 		})
@@ -478,34 +485,134 @@ OUTER:
 	return wg.Wait()
 }
 
-// getActualPixel returns the pixel color at virtual coordinates in unmerged canvas list.
+// frameSpans splits the matrix columns of one scroll frame into runs that each
+// come from a single subcanvas.
 //
-// This runs once per pixel per scroll frame, so it avoids both the linear scan
-// over subcanvases (they're ordered by virtualStartX, so binary search works)
-// and image.Image.At, which boxes its return into an interface and therefore
-// heap-allocates on every call.
-func (c *ScrollCanvas) getActualPixel(virtualX int, virtualY int) color.RGBA {
-	if len(c.subCanvases) < 1 {
-		c.PrepareSubCanvases()
+// Which subcanvas a column belongs to depends only on x, so resolving it per
+// pixel -- as this used to -- repeats the same lookup once per row. Worse, the
+// subcanvases are contiguous and the frame walks them in order, so a cursor
+// that only moves forward resolves the whole frame in one pass with branches a
+// simple in-order predictor gets right every time. That matters on the Cortex-A53
+// this runs on, which has no out-of-order execution to hide a mispredict.
+func (c *ScrollCanvas) frameSpans(buf *preloadBuf, virtualXStart int) []preloadSpan {
+	spans := buf.spans[:0]
+
+	i := 0
+	for x := 0; x < c.w; x++ {
+		virtualX := virtualXStart + x
+
+		for i < len(c.subCanvases) && c.subCanvases[i] != nil && c.subCanvases[i].virtualEndX < virtualX {
+			i++
+		}
+
+		var img *image.RGBA
+		actualX := 0
+		if i < len(c.subCanvases) {
+			if sub := c.subCanvases[i]; sub != nil && virtualX >= sub.virtualStartX {
+				img = sub.img
+				actualX = (virtualX - sub.virtualStartX) + sub.actualStartX
+			}
+		}
+
+		// Extend the run in progress when this column continues it.
+		if n := len(spans); n > 0 {
+			if last := &spans[n-1]; last.img == img &&
+				(img == nil || last.actualX+(x-last.xStart) == actualX) {
+				last.xEnd = x + 1
+				continue
+			}
+		}
+
+		spans = append(spans, preloadSpan{img: img, xStart: x, xEnd: x + 1, actualX: actualX})
 	}
 
-	i := sort.Search(len(c.subCanvases), func(i int) bool {
-		sub := c.subCanvases[i]
-		return sub != nil && virtualX <= sub.virtualEndX
-	})
+	buf.spans = spans
 
-	if i >= len(c.subCanvases) {
-		return opaqueBlack
+	return spans
+}
+
+// fillHorizontalFrame writes one scroll frame into buf.points.
+//
+// Rows are the outer loop so that both the source pixels and the destination
+// points are walked in address order. Going down a column instead steps through
+// the source image one stride at a time -- 512 bytes apart on a 128-wide canvas,
+// so a separate cache line every pixel, which the A53's stride prefetcher can't
+// help with.
+func (c *ScrollCanvas) fillHorizontalFrame(buf *preloadBuf, virtualXStart int) {
+	spans := c.frameSpans(buf, virtualXStart)
+	points := buf.points
+
+	for _, span := range spans {
+		for y := 0; y < c.h; y++ {
+			row := y * c.w
+
+			if span.img == nil {
+				for x := span.xStart; x < span.xEnd; x++ {
+					points[row+x] = matrix.MatrixPoint{X: x, Y: y, Color: opaqueBlack}
+				}
+
+				continue
+			}
+
+			for x := span.xStart; x < span.xEnd; x++ {
+				points[row+x] = matrix.MatrixPoint{
+					X:     x,
+					Y:     y,
+					Color: rgbaAt(span.img, span.actualX+(x-span.xStart), y),
+				}
+			}
+		}
+	}
+}
+
+// fillVerticalFrame writes one vertical scroll frame into buf.points and returns
+// the points actually used.
+//
+// Only a window of the padded canvas can land on the matrix for a given offset,
+// so the bounds are computed up front. Scanning the whole padded canvas and
+// testing every pixel -- as this used to -- costs about 40x more iterations than
+// it produces points on a 128x32 board.
+func (c *ScrollCanvas) fillVerticalFrame(buf *preloadBuf, yShift int) []matrix.MatrixPoint {
+	bounds := c.actual.Bounds()
+	points := buf.points
+
+	// Keep only what satisfies the original filter:
+	// 0 < x < c.w and 0 < y+yShift < c.h.
+	xLo := maxInt(bounds.Min.X, 1)
+	xHi := minInt(bounds.Max.X, c.w-1)
+	yLo := maxInt(bounds.Min.Y, 1-yShift)
+	yHi := minInt(bounds.Max.Y, c.h-1-yShift)
+
+	index := 0
+	for y := yLo; y <= yHi; y++ {
+		shiftY := y + yShift
+		for x := xLo; x <= xHi; x++ {
+			points[index] = matrix.MatrixPoint{
+				X:     x,
+				Y:     shiftY,
+				Color: rgbaAt(c.actual, x, y),
+			}
+			index++
+		}
 	}
 
-	sub := c.subCanvases[i]
-	if sub == nil || virtualX < sub.virtualStartX {
-		return opaqueBlack
+	return points[:index]
+}
+
+func minInt(a int, b int) int {
+	if a < b {
+		return a
 	}
 
-	actualX := (virtualX - sub.virtualStartX) + sub.actualStartX
+	return b
+}
 
-	return rgbaAt(sub.img, actualX, virtualY)
+func maxInt(a int, b int) int {
+	if a > b {
+		return a
+	}
+
+	return b
 }
 
 // rgbaAt is (*image.RGBA).At without the boxing into a color.Color interface,
@@ -674,25 +781,14 @@ func (c *ScrollCanvas) horizontalPrep(ctx context.Context) error {
 		mySceneIndex, myVirtualX := sceneIndex, virtualX
 
 		wg.Go(func() error {
-			loader := getLoader(c.w * c.h)
-			defer putLoader(loader)
+			buf := getLoader(c.w * c.h)
+			defer putLoader(buf)
 
-			index := 0
-			for x := 0; x < c.w; x++ {
-				for y := 0; y < c.h; y++ {
-					thisVirtualX := x + myVirtualX
+			c.fillHorizontalFrame(buf, myVirtualX)
 
-					loader[index] = matrix.MatrixPoint{
-						X:     x,
-						Y:     y,
-						Color: c.getActualPixel(thisVirtualX, y),
-					}
-					index++
-				}
-			}
 			c.Matrix.PreLoad(&matrix.MatrixScene{
 				Index:  mySceneIndex,
-				Points: loader[:index],
+				Points: buf.points,
 			})
 			return nil
 		})

@@ -14,6 +14,32 @@ install_go
 export CGO_ENABLED=1
 export GOCACHE=${ROOT}/.cache
 
+# The binary embeds internal/sportsmatrix/assets, so that directory has to
+# exist or the build fails with "pattern assets: no matching files found".
+# script/build populates it from web/build inside docker; do the same here,
+# and fall back to a placeholder so a Pi without a built web UI can still
+# build a working board.
+if [ ! -d "${ROOT}/internal/sportsmatrix/assets/web" ]; then
+  mkdir -p "${ROOT}/internal/sportsmatrix/assets"
+  if [ -d "${ROOT}/web/build" ]; then
+    echo "=> Bundling web UI from web/build"
+    cp -r "${ROOT}/web/build" "${ROOT}/internal/sportsmatrix/assets/web"
+  else
+    echo "=> WARNING: web/build not found, building without the web UI."
+    echo "=>          The board and the API still work; only the browser"
+    echo "=>          frontend is missing. To include it, run 'npm ci &&"
+    echo "=>          npm run build' in web/ (node $(cat "${ROOT}/.nvmrc")) and build again."
+    mkdir -p "${ROOT}/internal/sportsmatrix/assets/web"
+    cat <<'PLACEHOLDER' > "${ROOT}/internal/sportsmatrix/assets/web/index.html"
+<!doctype html>
+<title>sportsmatrix</title>
+<p>This build does not include the web UI. The API is still served on this
+port; see /docs. To bundle the UI, run <code>npm ci &amp;&amp; npm run build</code>
+in <code>web/</code> and rebuild.</p>
+PLACEHOLDER
+  fi
+fi
+
 if [ ! -d "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix" ]; then
   cp -r "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix.BASE" "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
 fi

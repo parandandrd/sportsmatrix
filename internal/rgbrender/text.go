@@ -9,6 +9,7 @@ import (
 	"math"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/golang/freetype"
 	"github.com/golang/freetype/truetype"
@@ -34,12 +35,20 @@ var BuiltinFonts = []string{
 
 // TextWriter ...
 type TextWriter struct {
-	context          *freetype.Context
 	font             *truetype.Font
 	XStartCorrection int
 	YStartCorrection int
 	FontSize         float64
 	LineSpace        float64
+
+	// lock guards the cached drawing state below. A font.Face carries an
+	// internal glyph cache that isn't safe for concurrent use, and a single
+	// TextWriter is shared by the goroutines a LayerDrawer spawns per layer.
+	lock     sync.Mutex
+	face     font.Face
+	faceSize float64
+	uniform  *image.Uniform
+	drawer   *font.Drawer
 }
 
 // ColorChar is used to define text for writing in different colors
@@ -69,49 +78,88 @@ func DefaultTextWriter() (*TextWriter, error) {
 
 // NewTextWriter ...
 func NewTextWriter(font *truetype.Font, fontSize float64) *TextWriter {
-	cntx := freetype.NewContext()
-	cntx.SetFont(font)
-	cntx.SetFontSize(fontSize)
-
 	return &TextWriter{
-		context:   cntx,
 		font:      font,
 		FontSize:  fontSize,
 		LineSpace: 0.5,
 	}
 }
 
+// fontCache holds the parsed builtin fonts. A *truetype.Font is read-only
+// once parsed, so it's safe to hand the same one to every caller.
+var fontCache sync.Map
+
 // GetFont gets a builtin font by the given name
 func GetFont(name string) (*truetype.Font, error) {
 	if !strings.HasPrefix("assets/fonts", name) {
 		name = filepath.Join("assets/fonts", name)
 	}
+
+	if cached, ok := fontCache.Load(name); ok {
+		return cached.(*truetype.Font), nil
+	}
+
 	f, err := fontDir.ReadFile(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return freetype.ParseFont(f)
+	fnt, err := freetype.ParseFont(f)
+	if err != nil {
+		return nil, err
+	}
+
+	actual, _ := fontCache.LoadOrStore(name, fnt)
+
+	return actual.(*truetype.Font), nil
 }
 
+// getDrawer returns this writer's drawer, rebuilding the underlying font.Face
+// only when FontSize has changed since the last call. Building a face is
+// expensive and it carries a glyph cache worth hanging on to.
+//
+// The returned drawer is owned by the TextWriter and is only valid while
+// t.lock is held, so callers must hold the lock for as long as they use it.
 func (t *TextWriter) getDrawer(canvas draw.Image, clr color.Color) (*font.Drawer, error) {
 	if t.font == nil {
 		return nil, fmt.Errorf("font is not set")
 	}
-	return &font.Drawer{
-		Dst: canvas,
-		Src: image.NewUniform(clr),
-		Face: truetype.NewFace(t.font,
+
+	if t.face == nil || t.faceSize != t.FontSize {
+		if t.face != nil {
+			_ = t.face.Close()
+		}
+		t.face = truetype.NewFace(t.font,
 			&truetype.Options{
 				Size:    t.FontSize,
 				Hinting: font.HintingFull,
 			},
-		),
-	}, nil
+		)
+		t.faceSize = t.FontSize
+	}
+
+	if t.uniform == nil {
+		t.uniform = image.NewUniform(clr)
+	} else {
+		t.uniform.C = clr
+	}
+
+	if t.drawer == nil {
+		t.drawer = &font.Drawer{}
+	}
+	t.drawer.Dst = canvas
+	t.drawer.Src = t.uniform
+	t.drawer.Face = t.face
+	t.drawer.Dot = fixed.Point26_6{}
+
+	return t.drawer, nil
 }
 
 // Write ...
 func (t *TextWriter) Write(canvas draw.Image, bounds image.Rectangle, str []string, clr color.Color) error {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
 	drawer, err := t.getDrawer(canvas, clr)
 	if err != nil {
 		return err
@@ -135,6 +183,9 @@ func (t *TextWriter) Write(canvas draw.Image, bounds image.Rectangle, str []stri
 
 // WriteAligned writes text aligned within a given bounds
 func (t *TextWriter) WriteAligned(align Align, canvas draw.Image, bounds image.Rectangle, str []string, clr color.Color) error {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
 	drawer, err := t.getDrawer(canvas, clr)
 	if err != nil {
 		return err
@@ -172,6 +223,9 @@ func (t *TextWriter) WriteAligned(align Align, canvas draw.Image, bounds image.R
 
 // MeasureStrings measures the pixel width of a list of strings
 func (t *TextWriter) MeasureStrings(canvas draw.Image, str []string) ([]int, error) {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
 	lengths := make([]int, len(str))
 	drawer, err := t.getDrawer(canvas, color.White)
 	if err != nil {
@@ -187,26 +241,36 @@ func (t *TextWriter) MeasureStrings(canvas draw.Image, str []string) ([]int, err
 
 // MaxChars returns the maximum number of characters that can fit a given pixel width
 func (t *TextWriter) MaxChars(canvas draw.Image, pixWidth int) (int, error) {
-	s := "M"
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	drawer, err := t.getDrawer(canvas, color.White)
+	if err != nil {
+		return 0, err
+	}
+
+	// Grow a run of "M" one character at a time until it no longer fits,
+	// reusing a single builder rather than reallocating the string each pass.
+	// The cap guards against a font that reports a zero advance for 'M', which
+	// would otherwise loop forever.
+	var s strings.Builder
 	num := 0
-	for {
-		l, err := t.MeasureStrings(canvas, []string{s})
-		if err != nil {
-			return 0, err
-		}
-		if len(l) < 1 {
-			return 0, fmt.Errorf("unexpected MeaureStrings return")
-		}
-		if l[0] > pixWidth {
+	for num <= pixWidth {
+		s.WriteByte('M')
+		if drawer.MeasureString(s.String()).Ceil() > pixWidth {
 			return num, nil
 		}
 		num++
-		s += "M"
 	}
+
+	return num, nil
 }
 
 // WriteAlignedBoxed writes text aligned within a given bounds and draws a box sized to the text width
 func (t *TextWriter) WriteAlignedBoxed(align Align, canvas draw.Image, bounds image.Rectangle, str []string, clr color.Color, boxColor color.Color) error {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
 	drawer, err := t.getDrawer(canvas, clr)
 	if err != nil {
 		return err
@@ -254,6 +318,9 @@ func (t *TextWriter) WriteAlignedColorCodes(align Align, canvas draw.Image, boun
 		return err
 	}
 
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
 	drawer, err := t.getDrawer(canvas, color.White)
 	if err != nil {
 		return err
@@ -282,24 +349,23 @@ func (t *TextWriter) WriteAlignedColorCodes(align Align, canvas draw.Image, boun
 	y := int(math.Floor(t.FontSize)) + writeBox.Min.Y + t.YStartCorrection
 
 	pt := fixed.P(startX, y)
-	prev := []string{}
+	var prev strings.Builder
 	for _, line := range colorChars.Lines {
+		prev.Reset()
 		for i, char := range line.Chars {
 			clr := line.Clrs[i]
 			drawer, err := t.getDrawer(canvas, clr)
 			if err != nil {
 				return err
 			}
-			str := strings.Join(prev, "")
-			prevWidth := drawer.MeasureString(str)
+			prevWidth := drawer.MeasureString(prev.String())
 			drawer.Dot = pt
 			drawer.Dot.X = prevWidth + drawer.Dot.X
 			drawer.DrawString(char)
-			prev = append(prev, char)
+			prev.WriteString(char)
 		}
 		y += lineY + t.YStartCorrection
 		pt = fixed.P(startX, y)
-		prev = []string{}
 	}
 
 	return nil
@@ -310,6 +376,9 @@ func (t *TextWriter) WriteColorCodes(canvas draw.Image, bounds image.Rectangle, 
 	if err := colorChars.validate(); err != nil {
 		return err
 	}
+
+	t.lock.Lock()
+	defer t.lock.Unlock()
 
 	if colorChars.BoxClr != nil {
 		draw.Draw(canvas, bounds, image.NewUniform(colorChars.BoxClr), image.Point{}, draw.Over)
@@ -322,24 +391,23 @@ func (t *TextWriter) WriteColorCodes(canvas draw.Image, bounds image.Rectangle, 
 	y := int(math.Floor(t.FontSize)) + bounds.Min.Y + t.YStartCorrection
 
 	pt := fixed.P(startX, y)
-	prev := []string{}
+	var prev strings.Builder
 	for _, line := range colorChars.Lines {
+		prev.Reset()
 		for i, char := range line.Chars {
 			clr := line.Clrs[i]
 			drawer, err := t.getDrawer(canvas, clr)
 			if err != nil {
 				return err
 			}
-			str := strings.Join(prev, "")
-			prevWidth := drawer.MeasureString(str)
+			prevWidth := drawer.MeasureString(prev.String())
 			drawer.Dot = pt
 			drawer.Dot.X = prevWidth + drawer.Dot.X
 			drawer.DrawString(char)
-			prev = append(prev, char)
+			prev.WriteString(char)
 		}
 		y += lineY + t.YStartCorrection
 		pt = fixed.P(startX, y)
-		prev = []string{}
 	}
 
 	return nil

@@ -110,12 +110,15 @@ func (s *SysBoard) InBetween() bool {
 }
 
 func (s *SysBoard) textWriter(canvasHeight int) (*rgbrender.TextWriter, error) {
+	// The lookup has to be under the same lock as the populate below: an
+	// unsynchronized map read racing a map write is a fatal runtime throw.
+	s.Lock()
+	defer s.Unlock()
+
 	if w, ok := s.textWriters[canvasHeight]; ok {
 		return w, nil
 	}
 
-	s.Lock()
-	defer s.Unlock()
 	var err error
 	s.textWriters[canvasHeight], err = rgbrender.DefaultTextWriter()
 	if err != nil {

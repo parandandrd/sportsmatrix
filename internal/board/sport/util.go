@@ -51,6 +51,13 @@ func (s *SportBoard) logCanvas(canvas board.Canvas, msg string) {
 }
 
 func (s *SportBoard) getTimeWriter(canvasBounds image.Rectangle) (*rgbrender.TextWriter, error) {
+	// These caches are read and written from the goroutines a LayerDrawer
+	// spawns per text layer, so the lookup and the populate have to happen
+	// under one lock. An unsynchronized read racing a write is a fatal
+	// runtime throw, not something recover can catch.
+	s.writerLock.Lock()
+	defer s.writerLock.Unlock()
+
 	bounds := rgbrender.ZeroedBounds(canvasBounds)
 
 	s.log.Debug("time writer bounds",
@@ -100,14 +107,15 @@ func (s *SportBoard) getTimeWriter(canvasBounds image.Rectangle) (*rgbrender.Tex
 		zap.Int("Y correction", timeWriter.YStartCorrection),
 	)
 
-	s.Lock()
-	defer s.Unlock()
 	s.timeWriters[k] = timeWriter
 
 	return timeWriter, nil
 }
 
 func (s *SportBoard) getScoreWriter(canvasBounds image.Rectangle) (*rgbrender.TextWriter, error) {
+	s.writerLock.Lock()
+	defer s.writerLock.Unlock()
+
 	bounds := rgbrender.ZeroedBounds(canvasBounds)
 
 	k := fmt.Sprintf("%dx%d", bounds.Dx(), bounds.Dy())
@@ -150,9 +158,8 @@ func (s *SportBoard) getScoreWriter(canvasBounds image.Rectangle) (*rgbrender.Te
 		zap.Int("Y correction", scoreWriter.YStartCorrection),
 	)
 
-	s.Lock()
-	defer s.Unlock()
 	s.scoreWriters[k] = scoreWriter
+
 	return scoreWriter, nil
 }
 

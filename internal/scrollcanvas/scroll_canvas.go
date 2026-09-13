@@ -6,6 +6,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"sort"
 	"sync"
 	"time"
 
@@ -19,7 +20,12 @@ import (
 )
 
 var (
-	black              = color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0x0}
+	black = color.RGBA{R: 0x0, G: 0x0, B: 0x0, A: 0x0}
+	// opaqueBlack is the RGBA equivalent of color.Black, which is what
+	// getActualPixel falls back to when no subcanvas covers a coordinate.
+	opaqueBlack = color.RGBA{A: 0xff}
+	// transparent is what (*image.RGBA).At returns outside its bounds.
+	transparent        = color.RGBA{}
 	DefaultScrollDelay = 50 * time.Millisecond
 )
 
@@ -70,6 +76,29 @@ type subCanvasHorizontal struct {
 }
 
 type ScrollCanvasOption func(*ScrollCanvas) error
+
+// loaderPool recycles the per-frame MatrixPoint buffers used during preload.
+// A scroll builds one buffer per frame and hands it straight to Matrix.PreLoad,
+// which copies out of it synchronously, so the buffer can go right back in the
+// pool. Without this, a single scroll of a few boards churns hundreds of
+// megabytes -- which matters a lot on a Pi.
+var loaderPool sync.Pool
+
+func getLoader(size int) []matrix.MatrixPoint {
+	if l, ok := loaderPool.Get().(*[]matrix.MatrixPoint); ok {
+		buf := *l
+		if cap(buf) >= size {
+			return buf[:size]
+		}
+	}
+
+	return make([]matrix.MatrixPoint, size)
+}
+
+func putLoader(l []matrix.MatrixPoint) {
+	buf := l[:0]
+	loaderPool.Put(&buf)
+}
 
 func NewScrollCanvas(m matrix.Matrix, logger *zap.Logger, opts ...ScrollCanvasOption) (*ScrollCanvas, error) {
 	w, h := m.Geometry()
@@ -419,7 +448,9 @@ OUTER:
 		mySceneIndex, myThisY := sceneIndex, thisY
 
 		wg.Go(func() error {
-			loader := make([]matrix.MatrixPoint, c.w*c.h)
+			loader := getLoader(c.w * c.h)
+			defer putLoader(loader)
+
 			index := 0
 			for x := c.actual.Bounds().Min.X; x <= c.actual.Bounds().Max.X; x++ {
 				for y := c.actual.Bounds().Min.Y; y <= c.actual.Bounds().Max.Y; y++ {
@@ -428,7 +459,7 @@ OUTER:
 						loader[index] = matrix.MatrixPoint{
 							X:     x,
 							Y:     shiftY,
-							Color: c.actual.At(x, y),
+							Color: rgbaAt(c.actual, x, y),
 						}
 						index++
 					}
@@ -436,7 +467,7 @@ OUTER:
 			}
 			c.Matrix.PreLoad(&matrix.MatrixScene{
 				Index:  mySceneIndex,
-				Points: loader,
+				Points: loader[:index],
 			})
 			return nil
 		})
@@ -447,20 +478,47 @@ OUTER:
 	return wg.Wait()
 }
 
-// getActualPixel returns the pixel color at virtual coordinates in unmerged canvas list
-func (c *ScrollCanvas) getActualPixel(virtualX int, virtualY int) color.Color {
+// getActualPixel returns the pixel color at virtual coordinates in unmerged canvas list.
+//
+// This runs once per pixel per scroll frame, so it avoids both the linear scan
+// over subcanvases (they're ordered by virtualStartX, so binary search works)
+// and image.Image.At, which boxes its return into an interface and therefore
+// heap-allocates on every call.
+func (c *ScrollCanvas) getActualPixel(virtualX int, virtualY int) color.RGBA {
 	if len(c.subCanvases) < 1 {
 		c.PrepareSubCanvases()
 	}
 
-	for _, sub := range c.subCanvases {
-		if virtualX >= sub.virtualStartX && virtualX <= sub.virtualEndX {
-			actualX := (virtualX - sub.virtualStartX) + sub.actualStartX
-			return sub.img.At(actualX, virtualY)
-		}
+	i := sort.Search(len(c.subCanvases), func(i int) bool {
+		sub := c.subCanvases[i]
+		return sub != nil && virtualX <= sub.virtualEndX
+	})
+
+	if i >= len(c.subCanvases) {
+		return opaqueBlack
 	}
 
-	return color.Black
+	sub := c.subCanvases[i]
+	if sub == nil || virtualX < sub.virtualStartX {
+		return opaqueBlack
+	}
+
+	actualX := (virtualX - sub.virtualStartX) + sub.actualStartX
+
+	return rgbaAt(sub.img, actualX, virtualY)
+}
+
+// rgbaAt is (*image.RGBA).At without the boxing into a color.Color interface,
+// which is a heap allocation per pixel in the preload loop. It matches At's
+// behavior outside the image bounds, returning the zero (transparent) pixel.
+func rgbaAt(img *image.RGBA, x int, y int) color.RGBA {
+	if !(image.Point{X: x, Y: y}.In(img.Rect)) {
+		return transparent
+	}
+	i := img.PixOffset(x, y)
+	pix := img.Pix[i : i+4 : i+4]
+
+	return color.RGBA{R: pix[0], G: pix[1], B: pix[2], A: pix[3]}
 }
 
 // PrepareSubCanvases
@@ -473,20 +531,28 @@ func (c *ScrollCanvas) PrepareSubCanvases() {
 		zap.Int("num actuals", len(c.actuals)),
 	)
 
-	c.subCanvases = make([]*subCanvasHorizontal, (len(c.actuals)*2)+1)
-	subIndex := 0
+	// Built with append rather than a fixed-size slice with an index: a nil
+	// entry in c.actuals used to leave trailing nils in here, which made the
+	// last element nil and aborted horizontalPrep outright.
+	c.subCanvases = make([]*subCanvasHorizontal, 0, (len(c.actuals)*2)+1)
+
+	add := func(sub *subCanvasHorizontal) {
+		if len(c.subCanvases) > 0 {
+			sub.previous = c.subCanvases[len(c.subCanvases)-1]
+		}
+		c.subCanvases = append(c.subCanvases, sub)
+	}
 
 	// Add a matrix-width empty subcanvas so that we start
 	// scrolling with a totally blank screen
-	c.subCanvases[subIndex] = &subCanvasHorizontal{
+	add(&subCanvasHorizontal{
 		actualStartX:  0,
 		actualEndX:    c.w,
 		virtualStartX: 0,
 		virtualEndX:   c.w,
 		img:           image.NewRGBA(image.Rect(0, 0, c.w, c.h)),
 		previous:      nil,
-	}
-	subIndex++
+	})
 
 ACTUALS:
 	for i, actual := range c.actuals {
@@ -494,33 +560,29 @@ ACTUALS:
 			continue ACTUALS
 		}
 		// Add the actual subcanvas
-		c.subCanvases[subIndex] = &subCanvasHorizontal{
-			actualStartX: firstNonBlankX(actual),
-			actualEndX:   lastNonBlankX(actual),
+		first, last := nonBlankXRange(actual)
+		add(&subCanvasHorizontal{
+			actualStartX: first,
+			actualEndX:   last,
 			img:          actual,
-			previous:     c.subCanvases[subIndex-1],
-		}
-		subIndex++
+		})
 
 		if i != len(c.actuals)-1 {
 			// Add a subcanvas for padding between
-			c.subCanvases[subIndex] = &subCanvasHorizontal{
+			add(&subCanvasHorizontal{
 				actualStartX: 0,
 				actualEndX:   c.mergePad,
 				img:          image.NewRGBA(image.Rect(0, 0, c.mergePad, c.h)),
-				previous:     c.subCanvases[subIndex-1],
-			}
-			subIndex++
+			})
 		}
 	}
 
 	// Add another matrix-width empty subcanvas
-	c.subCanvases[subIndex] = &subCanvasHorizontal{
+	add(&subCanvasHorizontal{
 		actualStartX: 0,
 		actualEndX:   c.w,
 		img:          image.NewRGBA(image.Rect(0, 0, c.w, c.h)),
-		previous:     c.subCanvases[subIndex-1],
-	}
+	})
 
 	c.log.Debug("done initializing sub canvases",
 		zap.Int("num", len(c.subCanvases)),
@@ -612,7 +674,8 @@ func (c *ScrollCanvas) horizontalPrep(ctx context.Context) error {
 		mySceneIndex, myVirtualX := sceneIndex, virtualX
 
 		wg.Go(func() error {
-			loader := make([]matrix.MatrixPoint, c.w*c.h)
+			loader := getLoader(c.w * c.h)
+			defer putLoader(loader)
 
 			index := 0
 			for x := 0; x < c.w; x++ {
@@ -629,7 +692,7 @@ func (c *ScrollCanvas) horizontalPrep(ctx context.Context) error {
 			}
 			c.Matrix.PreLoad(&matrix.MatrixScene{
 				Index:  mySceneIndex,
-				Points: loader,
+				Points: loader[:index],
 			})
 			return nil
 		})

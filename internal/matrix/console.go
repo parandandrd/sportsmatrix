@@ -84,7 +84,7 @@ func (c *ConsoleMatrix) PreLoad(scene *MatrixScene) {
 
 	for _, pt := range scene.Points {
 		position := c.position(pt.X, pt.Y)
-		prep[position] = colorToUint32(pt.Color)
+		prep[position] = rgbaToUint32(pt.Color)
 	}
 
 	if len(c.preload) < scene.Index+1 {

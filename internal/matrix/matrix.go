@@ -27,7 +27,10 @@ type MatrixScene struct {
 }
 
 type MatrixPoint struct {
-	X     int
-	Y     int
-	Color color.Color
+	X int
+	Y int
+	// Color is a concrete color.RGBA rather than a color.Color interface on
+	// purpose: a scroll preloads one MatrixPoint per pixel per frame, and
+	// boxing a 4-byte RGBA into an interface heap-allocates every single one.
+	Color color.RGBA
 }

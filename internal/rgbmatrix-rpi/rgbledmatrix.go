@@ -321,17 +321,33 @@ func (c *RGBLedMatrix) Geometry() (int, int) {
 
 // Render update the display with the data from the LED buffer
 func (c *RGBLedMatrix) Render() error {
-	defer func() {
-		w, h := c.Config.geometry()
-		c.leds = make([]C.uint32_t, w*h)
-	}()
-	return c.render(c.leds)
+	c.Lock()
+	defer c.Unlock()
+
+	if err := c.renderLocked(c.leds); err != nil {
+		return err
+	}
+
+	// Reset the buffer for the next frame in place rather than allocating a
+	// fresh one. This runs on every frame, and on a 128x64 panel a new buffer
+	// each time is 32KB of garbage per render. The compiler turns this range
+	// into a memclr.
+	for i := range c.leds {
+		c.leds[i] = 0
+	}
+
+	return nil
 }
 
 func (c *RGBLedMatrix) render(leds []C.uint32_t) error {
 	c.Lock()
 	defer c.Unlock()
 
+	return c.renderLocked(leds)
+}
+
+// renderLocked expects the caller to hold c's lock.
+func (c *RGBLedMatrix) renderLocked(leds []C.uint32_t) error {
 	if c.closed.Load() {
 		return nil
 	}
@@ -341,13 +357,11 @@ func (c *RGBLedMatrix) render(leds []C.uint32_t) error {
 		return fmt.Errorf("led buffer is empty")
 	}
 
-	w, h := c.Config.geometry()
-
 	C.led_matrix_swap(
 		c.matrix,
 		c.buffer,
-		C.int(w),
-		C.int(h),
+		C.int(c.width),
+		C.int(c.height),
 		(*C.uint32_t)(unsafe.Pointer(&leds[0])),
 	)
 
@@ -357,7 +371,12 @@ func (c *RGBLedMatrix) render(leds []C.uint32_t) error {
 // At return an Color which allows access to the LED display data as
 // if it were a sequence of 24-bit RGB values.
 func (c *RGBLedMatrix) At(x int, y int) color.Color {
-	return uint32ToColor(c.leds[c.position(x, y)])
+	position := c.position(x, y)
+	if position > len(c.leds)-1 || position < 0 {
+		return color.Black
+	}
+
+	return uint32ToColor(c.leds[position])
 }
 
 // Set set LED at position x,y to the provided 24-bit color value.
@@ -373,12 +392,11 @@ func (c *RGBLedMatrix) PreLoad(scene *matrix.MatrixScene) {
 	c.preloadLock.Lock()
 	defer c.preloadLock.Unlock()
 
-	w, h := c.Config.geometry()
-	prep := make([]C.uint32_t, w*h)
+	prep := make([]C.uint32_t, c.width*c.height)
 
 	for _, pt := range scene.Points {
 		position := c.position(pt.X, pt.Y)
-		prep[position] = C.uint32_t(colorToUint32(pt.Color))
+		prep[position] = C.uint32_t(rgbaToUint32(pt.Color))
 	}
 
 	if len(c.preload) < scene.Index+1 {
@@ -458,6 +476,12 @@ func colorToUint32(c color.Color) uint32 {
 	// A color's RGBA method returns values in the range [0, 65535]
 	red, green, blue, _ := c.RGBA()
 	return (red>>8)<<16 | (green>>8)<<8 | blue>>8
+}
+
+// rgbaToUint32 is colorToUint32 without the interface dispatch, for the
+// preload path where the color is already concrete.
+func rgbaToUint32(c color.RGBA) uint32 {
+	return uint32(c.R)<<16 | uint32(c.G)<<8 | uint32(c.B)
 }
 
 func uint32ToColor(u C.uint32_t) color.Color {

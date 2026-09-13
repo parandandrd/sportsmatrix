@@ -94,6 +94,46 @@ Run the following command in a Terminal on your Pi
 curl https://raw.githubusercontent.com/robbydyer/sports/master/script/install.sh | sudo bash
 ```
 
+## Building your own
+
+The install script above pulls a prebuilt release. If you've changed the code,
+you need to build it yourself. Two ways:
+
+**On the Pi itself.** Slowest to compile but needs nothing but the Pi:
+
+```shell
+git clone <your fork> sportsmatrix && cd sportsmatrix
+./script/build.local
+```
+
+That produces `sportsmatrix.bin`. To include the web UI, run
+`npm ci && npm run build` in `web/` first (needs the node version in `.nvmrc`,
+which is happier on a real computer than on a Pi); without it the board and API
+work fine and only the browser frontend is missing.
+
+**With GitHub Actions.** Push a tag matching `v*` to your fork and the release
+workflow builds `.deb` packages for aarch64 and armv7l and attaches them to a
+release. Download the one matching `dpkg --print-architecture` on your Pi.
+
+### Installing your build
+
+If you built a `.deb`:
+
+```shell
+sudo dpkg -i sportsmatrix-*.deb
+```
+
+If you built a bare binary, drop it over the installed one:
+
+```shell
+sudo systemctl stop sportsmatrix
+sudo cp sportsmatrix.bin /usr/local/bin/sportsmatrix
+sudo systemctl start sportsmatrix
+```
+
+Your config at `/etc/sportsmatrix.conf` is preserved across `.deb` upgrades.
+Logs are at `/var/log/sportsmatrix.log`, or `journalctl -u sportsmatrix -f`.
+
 ## Configuration
 
 You can run the app without passing any configuration, it will just use some sane defaults. Currently it only defaults to showing the NHL board. Each board that is enabled will be rotated through. The default location for the config file is `/etc/sportsmatrix.conf`

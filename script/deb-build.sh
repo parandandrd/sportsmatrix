@@ -78,6 +78,10 @@ EOF
 cat <<EOF > DEBIAN/postinst
 sudo systemctl daemon-reload
 sudo rm -rf /tmp/sportsmatrix*
+# The unit's [Install] section only takes effect once enable has created the
+# multi-user.target.wants symlink. Without this the service runs after install
+# but does not come back after a reboot.
+sudo systemctl enable sportsmatrix
 sudo systemctl restart sportsmatrix
 EOF
 

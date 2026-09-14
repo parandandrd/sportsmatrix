@@ -94,6 +94,30 @@ Run the following command in a Terminal on your Pi
 curl https://raw.githubusercontent.com/robbydyer/sports/master/script/install.sh | sudo bash
 ```
 
+### Raspberry Pi setup
+
+The matrix library needs two things on the Pi that installing the package does
+not do by itself, so `dpkg -i` alone will usually leave you with a dark panel:
+
+- **The onboard sound has to be off.** The Pi drives analog audio with the same
+  PWM peripheral the matrix uses, and the library refuses to start while the
+  `snd_bcm2835` module is loaded.
+- **The GPIO mapping has to match your wiring.** An Adafruit RGB Matrix
+  HAT/Bonnet uses `adafruit-hat`, or `adafruit-hat-pwm` if you have soldered the
+  anti-flicker wire between GPIO 4 and GPIO 18. Directly wired panels use
+  `regular`.
+
+`script/install.sh` does both, installs the latest release for your
+architecture, and enables the service so it survives a reboot:
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/robbydyer/sports/master/script/install.sh | sudo bash -s -- --adafruit-hat
+```
+
+Pass `--adafruit-hat-pwm`, `--regular`, or `--mapping <name>` to suit your
+board, or no flag at all to leave the mapping alone. It is safe to re-run; it
+only changes what is not already correct. Reboot afterwards if it tells you to.
+
 ## Building your own
 
 The install script above pulls a prebuilt release. If you've changed the code,

@@ -698,6 +698,28 @@ mlsConfig:
   # Number of columns in a grid layout. Default 1
   #gridCols: 3
 
+# National Women's Soccer League
+nwslConfig:
+  enabled: false
+
+  # Headline news from ESPN
+  headlines:
+    enabled: false
+
+    # Shows the league logo before each headline
+    useLogos: true
+
+    # Max number of headlines to show for this league
+    max: 3
+
+  # Shows the league logo at the start of each board cycle
+  showLeagueLogo: false
+
+  boardDelay: "10s"
+
+  # Number of columns in a grid layout. Default 1
+  #gridCols: 3
+
   # Number of rows in a grid layout. Default 1
   #gridRows: 2
 

@@ -49,6 +49,8 @@ func GetLeaguer(league string) (Leaguer, error) {
 		return &laliga{}, nil
 	case "xfl":
 		return &xfl{}, nil
+	case "nwsl":
+		return &nwsl{}, nil
 	}
 
 	return nil, fmt.Errorf("invalid league '%s'", league)
@@ -192,6 +194,40 @@ func (n *mls) SetScoreboardQuery(v url.Values) {
 // NewMLS ...
 func NewMLS(ctx context.Context, logger *zap.Logger) (*ESPNBoard, error) {
 	return New(ctx, &mls{}, logger, defaultRankSetter, defaultRankSetter)
+}
+
+type nwsl struct{}
+
+func (n *nwsl) League() string {
+	return "NWSL"
+}
+
+func (n *nwsl) APIPath() string {
+	return "soccer/usa.nwsl"
+}
+
+func (n *nwsl) TeamEndpoints() []string {
+	return []string{filepath.Join(n.APIPath(), "teams")}
+}
+
+func (n *nwsl) HTTPPathPrefix() string {
+	return "nwsl"
+}
+
+func (n *nwsl) HeadlinePath() string {
+	return fmt.Sprintf("%s/news", n.APIPath())
+}
+
+func (n *nwsl) HomeSideSwap() bool {
+	return true
+}
+
+func (n *nwsl) SetScoreboardQuery(v url.Values) {
+}
+
+// NewNWSL ...
+func NewNWSL(ctx context.Context, logger *zap.Logger) (*ESPNBoard, error) {
+	return New(ctx, &nwsl{}, logger, defaultRankSetter, defaultRankSetter)
 }
 
 type nhl struct{}

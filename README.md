@@ -111,7 +111,15 @@ not do by itself, so `dpkg -i` alone will usually leave you with a dark panel:
 architecture, and enables the service so it survives a reboot:
 
 ```shell
-curl -fsSL https://raw.githubusercontent.com/robbydyer/sports/master/script/install.sh | sudo bash -s -- --adafruit-hat
+git clone https://github.com/parandandrd/sportsmatrix
+sudo ./sportsmatrix/script/install.sh --adafruit-hat
+```
+
+Or, without cloning, against whichever repo you want it to pull releases from:
+
+```shell
+curl -fsSL https://raw.githubusercontent.com/parandandrd/sportsmatrix/master/script/install.sh \
+  | sudo bash -s -- --adafruit-hat
 ```
 
 Pass `--adafruit-hat-pwm`, `--regular`, or `--mapping <name>` to suit your

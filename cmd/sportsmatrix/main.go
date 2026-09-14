@@ -298,6 +298,19 @@ func (r *rootArgs) setConfigDefaults() {
 	r.config.MLSConfig.SetDefaults()
 	r.config.MLSConfig.Headlines.SetDefaults()
 
+	if r.config.NWSLConfig == nil {
+		r.config.NWSLConfig = &sportboard.Config{
+			StartEnabled: atomic.NewBool(false),
+		}
+	}
+	if r.config.NWSLConfig.Headlines == nil {
+		r.config.NWSLConfig.Headlines = &textboard.Config{
+			StartEnabled: atomic.NewBool(false),
+		}
+	}
+	r.config.NWSLConfig.SetDefaults()
+	r.config.NWSLConfig.Headlines.SetDefaults()
+
 	if r.config.EPLConfig == nil {
 		r.config.EPLConfig = &sportboard.Config{
 			StartEnabled: atomic.NewBool(false),
@@ -761,6 +774,33 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 		boards = append(boards, b)
 		if r.config.MLSConfig.Headlines != nil {
 			b, err := textboard.New(headlineAPI, r.config.MLSConfig.Headlines, logger, textboard.WithHalfSizeLogo())
+			if err != nil {
+				return nil, err
+			}
+			boards = append(boards, b)
+		}
+	}
+	if r.config.NWSLConfig != nil {
+		api, err := espnboard.NewNWSL(ctx, logger)
+		if err != nil {
+			return nil, err
+		}
+
+		l, err := espnboard.GetLeaguer("nwsl")
+		if err != nil {
+			return nil, err
+		}
+		headlineAPI := espnboard.NewHeadlines(l, logger)
+		b, err := sportboard.New(ctx, api, bounds, r.todayT, logger, r.config.NWSLConfig,
+			sportboard.WithLeagueLogoGetter(headlineAPI.GetLogo),
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		boards = append(boards, b)
+		if r.config.NWSLConfig.Headlines != nil {
+			b, err := textboard.New(headlineAPI, r.config.NWSLConfig.Headlines, logger, textboard.WithHalfSizeLogo())
 			if err != nil {
 				return nil, err
 			}

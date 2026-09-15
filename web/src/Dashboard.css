@@ -8,6 +8,17 @@
     --sm-on: #34d399;
     --sm-off: #4a5468;
     --sm-accent: #5b9dff;
+
+    /* bootstrap renders its own surfaces from these */
+    --bs-body-bg: var(--sm-bg);
+    --bs-body-color: var(--sm-text);
+    --bs-border-color: var(--sm-line);
+}
+
+html,
+body {
+    background-color: var(--sm-bg);
+    color: var(--sm-text);
 }
 
 .dash {
@@ -263,4 +274,54 @@
 .board-settings .form-check-input:checked {
     background-color: var(--sm-on);
     border-color: var(--sm-on);
+}
+
+.back {
+    margin: 4px 2px 12px;
+    font-size: 14px;
+}
+
+.back a {
+    color: var(--sm-dim);
+    text-decoration: none;
+}
+
+.back a:hover {
+    color: var(--sm-text);
+}
+
+/* Swagger paints its own surfaces and its stylesheet loads after this one, so
+   these need the extra specificity to land. */
+body .swagger-ui .scheme-container {
+    background: var(--sm-panel);
+    box-shadow: none;
+}
+
+body .swagger-ui .info .title,
+body .swagger-ui .info li,
+body .swagger-ui .info p,
+body .swagger-ui .info table,
+body .swagger-ui .opblock-tag,
+body .swagger-ui .opblock .opblock-summary-path,
+body .swagger-ui .opblock .opblock-summary-description,
+body .swagger-ui label,
+body .swagger-ui .tab li,
+body .swagger-ui .parameter__name,
+body .swagger-ui .parameter__type,
+body .swagger-ui table thead tr th,
+body .swagger-ui .response-col_status,
+body .swagger-ui .model-title,
+body .swagger-ui .model {
+    color: var(--sm-text);
+}
+
+body .swagger-ui .opblock .opblock-section-header {
+    background: var(--sm-panel-hi);
+}
+
+body .swagger-ui select,
+body .swagger-ui input[type=text] {
+    background: var(--sm-panel);
+    color: var(--sm-text);
+    border-color: var(--sm-line);
 }

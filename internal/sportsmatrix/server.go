@@ -12,9 +12,9 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	"github.com/robbydyer/sports/internal/board"
-	sportboard "github.com/robbydyer/sports/internal/board/sport"
-	pb "github.com/robbydyer/sports/internal/proto/sportsmatrix"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	sportboard "github.com/parandandrd/sportsmatrix/internal/board/sport"
+	pb "github.com/parandandrd/sportsmatrix/internal/proto/sportsmatrix"
 )
 
 // Server ...

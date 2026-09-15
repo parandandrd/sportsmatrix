@@ -7,7 +7,7 @@ import (
 	"math"
 	"strconv"
 
-	cnvs "github.com/robbydyer/sports/internal/canvas"
+	cnvs "github.com/parandandrd/sportsmatrix/internal/canvas"
 )
 
 // Align represents alignment vertically and horizontally

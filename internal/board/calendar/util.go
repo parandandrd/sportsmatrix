@@ -3,7 +3,7 @@ package calendarboard
 import (
 	"image"
 
-	"github.com/robbydyer/sports/internal/rgbrender"
+	"github.com/parandandrd/sportsmatrix/internal/rgbrender"
 )
 
 func (s *CalendarBoard) getScheduleWriter(bounds image.Rectangle) (*rgbrender.TextWriter, error) {

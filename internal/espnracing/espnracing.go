@@ -12,7 +12,7 @@ import (
 	"github.com/disintegration/imaging"
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/logo"
 )
 
 //go:embed assets

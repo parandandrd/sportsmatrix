@@ -12,14 +12,14 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
-	sportboard "github.com/robbydyer/sports/internal/board/sport"
-	cnvs "github.com/robbydyer/sports/internal/canvas"
-	"github.com/robbydyer/sports/internal/espnboard"
-	"github.com/robbydyer/sports/internal/logo"
-	"github.com/robbydyer/sports/internal/matrix"
-	"github.com/robbydyer/sports/internal/mlblive"
-	"github.com/robbydyer/sports/internal/sportsmatrix"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	sportboard "github.com/parandandrd/sportsmatrix/internal/board/sport"
+	cnvs "github.com/parandandrd/sportsmatrix/internal/canvas"
+	"github.com/parandandrd/sportsmatrix/internal/espnboard"
+	"github.com/parandandrd/sportsmatrix/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/matrix"
+	"github.com/parandandrd/sportsmatrix/internal/mlblive"
+	"github.com/parandandrd/sportsmatrix/internal/sportsmatrix"
 )
 
 //go:embed assets

@@ -13,9 +13,9 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 
-	"github.com/robbydyer/sports/internal/logo"
-	"github.com/robbydyer/sports/internal/rgbrender"
-	"github.com/robbydyer/sports/internal/util"
+	"github.com/parandandrd/sportsmatrix/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/rgbrender"
+	"github.com/parandandrd/sportsmatrix/internal/util"
 )
 
 const (

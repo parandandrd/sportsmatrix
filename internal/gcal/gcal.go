@@ -12,9 +12,9 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/robbydyer/sports/internal/assetlogo"
-	calendarboard "github.com/robbydyer/sports/internal/board/calendar"
-	"github.com/robbydyer/sports/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/assetlogo"
+	calendarboard "github.com/parandandrd/sportsmatrix/internal/board/calendar"
+	"github.com/parandandrd/sportsmatrix/internal/logo"
 
 	google_oauth2 "golang.org/x/oauth2/google"
 	calendar "google.golang.org/api/calendar/v3"

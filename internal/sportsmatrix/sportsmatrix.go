@@ -14,9 +14,9 @@ import (
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
-	"github.com/robbydyer/sports/internal/imgcanvas"
-	rgb "github.com/robbydyer/sports/internal/rgbmatrix-rpi"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	"github.com/parandandrd/sportsmatrix/internal/imgcanvas"
+	rgb "github.com/parandandrd/sportsmatrix/internal/rgbmatrix-rpi"
 )
 
 var version = "noversion"

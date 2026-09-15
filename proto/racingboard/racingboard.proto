@@ -1,6 +1,6 @@
 syntax = "proto3";
 package racing.v1;
-option go_package = "github.com/robbydyer/sports/internal/proto/racingboard";
+option go_package = "github.com/parandandrd/sportsmatrix/internal/proto/racingboard";
 import "google/protobuf/empty.proto";
 
 service Racing {

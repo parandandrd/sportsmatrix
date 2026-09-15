@@ -10,7 +10,7 @@ import (
 
 	"github.com/twitchtv/twirp"
 
-	pb "github.com/robbydyer/sports/internal/proto/imageboard"
+	pb "github.com/parandandrd/sportsmatrix/internal/proto/imageboard"
 )
 
 // Server ...

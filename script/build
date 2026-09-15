@@ -49,7 +49,7 @@ export GOCACHE=/app/.cache
 
 cp -r /sportsmatrix_lib/rpi-rgb-led-matrix /src/internal/rgbmatrix-rpi/lib/
 
-go build -o /app/sportsmatrix.${BUILDARCH} -ldflags="-X github.com/robbydyer/sports/internal/sportsmatrix.version=${VERSION}" ./cmd/sportsmatrix
+go build -o /app/sportsmatrix.${BUILDARCH} -ldflags="-X github.com/parandandrd/sportsmatrix/internal/sportsmatrix.version=${VERSION}" ./cmd/sportsmatrix
 
 echo "=> DONE created ${ROOT}/sportsmatrix.${BUILDARCH}"
 

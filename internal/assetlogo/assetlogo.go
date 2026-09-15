@@ -9,7 +9,7 @@ import (
 
 	"github.com/disintegration/imaging"
 
-	"github.com/robbydyer/sports/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/logo"
 )
 
 //go:embed assets

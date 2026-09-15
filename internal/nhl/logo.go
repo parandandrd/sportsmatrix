@@ -6,7 +6,7 @@ import (
 	"image"
 	"strings"
 
-	"github.com/robbydyer/sports/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/logo"
 )
 
 func (n *NHL) getLogoCache(logoKey string) (*logo.Logo, error) {

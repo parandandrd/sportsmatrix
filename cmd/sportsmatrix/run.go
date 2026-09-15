@@ -11,11 +11,11 @@ import (
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
-	imageboard "github.com/robbydyer/sports/internal/board/image"
-	cnvs "github.com/robbydyer/sports/internal/canvas"
-	"github.com/robbydyer/sports/internal/matrix"
-	"github.com/robbydyer/sports/internal/sportsmatrix"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	imageboard "github.com/parandandrd/sportsmatrix/internal/board/image"
+	cnvs "github.com/parandandrd/sportsmatrix/internal/canvas"
+	"github.com/parandandrd/sportsmatrix/internal/matrix"
+	"github.com/parandandrd/sportsmatrix/internal/sportsmatrix"
 )
 
 type runCmd struct {

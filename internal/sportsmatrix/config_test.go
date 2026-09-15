@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	rgb "github.com/robbydyer/sports/internal/rgbmatrix-rpi"
+	rgb "github.com/parandandrd/sportsmatrix/internal/rgbmatrix-rpi"
 )
 
 // Defaults used to point every Config at the package-level default structs and

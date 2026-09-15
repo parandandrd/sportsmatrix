@@ -1,6 +1,6 @@
 syntax = "proto3";
 package matrix.v1;
-option go_package = "github.com/robbydyer/sports/internal/proto/sportsmatrix";
+option go_package = "github.com/parandandrd/sportsmatrix/internal/proto/sportsmatrix";
 import "google/protobuf/empty.proto";
 
 service Sportsmatrix {

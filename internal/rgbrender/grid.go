@@ -9,7 +9,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
+	"github.com/parandandrd/sportsmatrix/internal/board"
 )
 
 // GridOption is an option for a Grid

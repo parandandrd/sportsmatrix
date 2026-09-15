@@ -15,8 +15,8 @@ import (
 
 	"go.uber.org/zap"
 
-	sportboard "github.com/robbydyer/sports/internal/board/sport"
-	"github.com/robbydyer/sports/internal/rgbrender"
+	sportboard "github.com/parandandrd/sportsmatrix/internal/board/sport"
+	"github.com/parandandrd/sportsmatrix/internal/rgbrender"
 )
 
 var (

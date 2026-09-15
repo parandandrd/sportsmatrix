@@ -6,7 +6,7 @@ import (
 	"github.com/twitchtv/twirp"
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
+	"github.com/parandandrd/sportsmatrix/internal/board"
 )
 
 // GetDefaultHooks returns default custom twirp.ServerHooks

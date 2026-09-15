@@ -1,6 +1,6 @@
 syntax = "proto3";
 package board.v1;
-option go_package = "github.com/robbydyer/sports/internal/proto/basicboard";
+option go_package = "github.com/parandandrd/sportsmatrix/internal/proto/basicboard";
 import "google/protobuf/empty.proto";
 
 service BasicBoard {

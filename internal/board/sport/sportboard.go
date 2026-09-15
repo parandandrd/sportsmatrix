@@ -15,15 +15,15 @@ import (
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
-	statboard "github.com/robbydyer/sports/internal/board/stat"
-	textboard "github.com/robbydyer/sports/internal/board/text"
-	"github.com/robbydyer/sports/internal/enabler"
-	"github.com/robbydyer/sports/internal/logo"
-	pb "github.com/robbydyer/sports/internal/proto/sportboard"
-	"github.com/robbydyer/sports/internal/rgbrender"
-	"github.com/robbydyer/sports/internal/twirphelpers"
-	"github.com/robbydyer/sports/internal/util"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	statboard "github.com/parandandrd/sportsmatrix/internal/board/stat"
+	textboard "github.com/parandandrd/sportsmatrix/internal/board/text"
+	"github.com/parandandrd/sportsmatrix/internal/enabler"
+	"github.com/parandandrd/sportsmatrix/internal/logo"
+	pb "github.com/parandandrd/sportsmatrix/internal/proto/sportboard"
+	"github.com/parandandrd/sportsmatrix/internal/rgbrender"
+	"github.com/parandandrd/sportsmatrix/internal/twirphelpers"
+	"github.com/parandandrd/sportsmatrix/internal/util"
 )
 
 type side int

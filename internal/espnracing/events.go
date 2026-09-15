@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	racingboard "github.com/robbydyer/sports/internal/board/racing"
+	racingboard "github.com/parandandrd/sportsmatrix/internal/board/racing"
 )
 
 const baseURL = "http://site.api.espn.com/apis/site/v2/sports"

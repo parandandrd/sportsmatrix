@@ -6,7 +6,7 @@ import (
 	"github.com/twitchtv/twirp"
 	"google.golang.org/protobuf/types/known/emptypb"
 
-	pb "github.com/robbydyer/sports/internal/proto/racingboard"
+	pb "github.com/parandandrd/sportsmatrix/internal/proto/racingboard"
 )
 
 // Server ...

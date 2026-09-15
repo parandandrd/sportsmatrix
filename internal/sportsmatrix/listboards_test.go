@@ -16,9 +16,9 @@ import (
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/robbydyer/sports/internal/board"
-	textboard "github.com/robbydyer/sports/internal/board/text"
-	"github.com/robbydyer/sports/internal/enabler"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	textboard "github.com/parandandrd/sportsmatrix/internal/board/text"
+	"github.com/parandandrd/sportsmatrix/internal/enabler"
 )
 
 // namedBoard is a TestBoard that reports a given name, so ListBoards has

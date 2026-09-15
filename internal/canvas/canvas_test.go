@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/robbydyer/sports/internal/matrix"
+	"github.com/parandandrd/sportsmatrix/internal/matrix"
 )
 
 func TestNewCanvas(t *testing.T) {

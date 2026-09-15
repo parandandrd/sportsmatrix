@@ -8,8 +8,8 @@ import (
 
 	"go.uber.org/atomic"
 
-	"github.com/robbydyer/sports/internal/board"
-	"github.com/robbydyer/sports/internal/matrix"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	"github.com/parandandrd/sportsmatrix/internal/matrix"
 )
 
 // Canvas is a image.Image representation of a WS281x matrix, it implements

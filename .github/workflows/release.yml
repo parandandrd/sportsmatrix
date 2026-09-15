@@ -24,12 +24,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+
+    # Still needed here, unlike the Go workflow: release-all cross-builds the
+    # aarch64 binary in a foreign-architecture container.
     - name: Set up QEMU
       id: qemu
       uses: docker/setup-qemu-action@v3
       with:
         image: tonistiigi/binfmt:latest
         platforms: all
+
+    # script/lint and script/test run directly on the runner now, so they need
+    # the toolchain the builder image used to supply.
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: go.mod
+        cache-dependency-path: go.sum
+
+    - name: Install golangci-lint
+      run: |
+        source script/common
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+          | sh -s -- -b "$(go env GOPATH)/bin" "v${GOLANGCI_VERSION}"
+        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
     - name: Lint
       run: ./script/lint

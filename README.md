@@ -7,7 +7,7 @@ Go-based software to control a raspberry pi LED matrix.
 #### Table of Contents
 
 - [Getting Help](#getting-help)<br>
-- [Donations/Beer Money](#donations-and-beer-money)<br>
+- [About this fork](#about-this-fork)<br>
 - [Board Types](#current-board-types)<br>
 - [Installation](#installation)<br>
 - [Configuration](#configuration)<br>
@@ -19,24 +19,34 @@ Go-based software to control a raspberry pi LED matrix.
 
 ## Getting Help
 
-There's a public Discord channel, "RGB Sportsmatrix Help" <https://discord.gg/8vPp4xfdtV>
+The upstream project runs a public Discord channel, "RGB Sportsmatrix Help"
+<https://discord.gg/8vPp4xfdtV>. It is a good place for questions about the
+hardware and the matrix library. Please do not take issues with *this* fork's
+changes there -- open them here instead.
 
-## Premium Version
-This repo contains the FREE version of this app. The free version is no longer receiving new features- it will only get bug fixes and dependency updates. To get the latest and greatest features, check out the Premium version.
+## About this fork
 
-The new PREMIUM version of this app that adds the following features:
-- **Scroll mode** - enable scrolling for the entire board or on a per-board basis
-- **Weather Board**
-- **Spotify Now-Playing**
-- **MLB Live View** - shows baserunners, outs, pitch count, inning
-- **Stock Ticker**
-- **Gambling Odds** - shows gambling odds overlaid on each game's scoreboard (where available)
-- **Additional Sports** 
-  - FIFA Women's World Cup
-  - More to Come!
+The original -- and the one you probably want -- is
+[robbydyer/sports](https://github.com/robbydyer/sports) by Rob Dyer. Essentially
+all of this code is his, it is an ongoing project, and he also develops a
+premium edition with features this one does not have. If you want a supported
+LED scoreboard, start there.
 
-Visit the [Patreon Page](https://patreon.com/RGBLEDMatrixTickerSoftware?utm_medium=clipboard_copy&utm_source=copyLink&utm_campaign=creatorshare_creator&utm_content=join_link) to get a membership.
-Visit the [PREMIUM Version Installation Instructions](https://github.com/robbydyer/rgb-led-matrix-sports-premium)
+This is a personal fork, modified from that project since September 2026. It
+exists to run one scoreboard in one house and is changed to suit that. It is not
+a distribution, there is no roadmap, and nothing here is promised to anyone. Any
+bugs you find are far more likely to be mine than Rob's.
+
+It is [GPL v3](LICENSE), the same licence it was given upstream, and it stays
+that way.
+
+The panel itself is driven by [hzeller/rpi-rgb-led-matrix](https://github.com/hzeller/rpi-rgb-led-matrix)
+(GPL v2), vendored under `internal/rgbmatrix-rpi/lib/`. That library does all
+the real-time work -- the software PWM and GPIO timing that actually lights the
+LEDs -- and none of this would exist without it.
+
+Sports data comes from ESPN's public endpoints. This project is not affiliated
+with, endorsed by, or supported by ESPN or any league.
 
 
 ## Current Board Types
@@ -74,24 +84,14 @@ Visit the [PREMIUM Version Installation Instructions](https://github.com/robbydy
 
 ### Supported Pi
 
-This project currently supports all Raspberry Pi's with an armv7l or aarch64 architecture. This includes Pi 3b, 4, Zero 2. Pi's with the armv6 architecture are no longer supported,
-but those can run version v0.0.83 and older- this would include the original Pi Zero.
+64-bit (`arm64`) only: a Pi 3, 4, or Zero 2 W running the 64-bit Raspberry Pi OS.
 
-You can check your Pi's architecture by running the following command:
+The Pi 5 is not supported -- the matrix library does not drive its GPIO.
+
+Check what your Pi is running:
 
 ```shell
 dpkg --print-architecture
-```
-
-### Install script
-
-There's a helper install script that pulls the latest release's .deb package and installs it and starts the service. Obviously, piping a
-remote script to `sudo bash` is risky, so please take a look at `script/install.sh` to verify nothing nefarious is going on. You can always manually download the .deb package in the [Releases Section](https://github.com/robbydyer/sports/releases/latest). Just make sure to pick the correct one for your architecture.
-
-Run the following command in a Terminal on your Pi
-
-```shell
-curl https://raw.githubusercontent.com/robbydyer/sports/master/script/install.sh | sudo bash
 ```
 
 ### Raspberry Pi setup
@@ -126,6 +126,11 @@ Pass `--adafruit-hat-pwm`, `--regular`, or `--mapping <name>` to suit your
 board, or no flag at all to leave the mapping alone. It is safe to re-run; it
 only changes what is not already correct. Reboot afterwards if it tells you to.
 
+Piping a remote script into `sudo bash` is worth being suspicious of, so read
+[`script/install.sh`](script/install.sh) first. You can also skip it and take
+the `.deb` straight from the
+[releases page](https://github.com/parandandrd/sportsmatrix/releases/latest).
+
 ## Building your own
 
 The install script above pulls a prebuilt release. If you've changed the code,
@@ -144,8 +149,7 @@ which is happier on a real computer than on a Pi); without it the board and API
 work fine and only the browser frontend is missing.
 
 **With GitHub Actions.** Push a tag matching `v*` to your fork and the release
-workflow builds `.deb` packages for aarch64 and armv7l and attaches them to a
-release. Download the one matching `dpkg --print-architecture` on your Pi.
+workflow builds an aarch64 `.deb` and attaches it to a release.
 
 ### Installing your build
 

@@ -5,5 +5,7 @@ ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd 
 set -x
 VERSION="${VERSION/v/}"
 
+# 64-bit only. The armv7l build existed for 32-bit Pis, which in practice means
+# a Pi 2 -- a 900MHz Cortex-A7 that this does not render comfortably on. Its
+# build image was also the one pinned to Debian buster, long past end of life.
 BUILDARCH=aarch64 DEB_BUILD=yes VERSION="${VERSION}" "${ROOT}/script/build"
-BUILDARCH=armv7l DEB_BUILD=yes VERSION="${VERSION}" "${ROOT}/script/build"

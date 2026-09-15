@@ -1190,7 +1190,7 @@ irlConfig:
   #- 00 02 * * *
 
 # Google Calendar
-# See https://github.com/robbydyer/sports/blob/master/GCAL.md for auth setup
+# See https://github.com/parandandrd/sportsmatrix/blob/master/GCAL.md for auth setup
 calendarConfig:
   enabled: false
 

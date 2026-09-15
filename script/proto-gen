@@ -4,24 +4,60 @@ set -euo pipefail
 ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
 cd "${ROOT}"
 
-source "${ROOT}/script/common"
-buildprotoc
+# Codegen used to run inside a Docker image that was built and pushed to a
+# Docker Hub namespace this repo cannot write to, which made it unbuildable
+# here. Every plugin it carried is vendored, so build those and use whatever
+# protoc is installed.
+#
+# Note that the vendored protoc-gen-go may be newer than whatever generated the
+# committed files, in which case the first run rewrites all of them. That is
+# expected: vendor/ is the source of truth for the version.
 
+if ! command -v protoc >/dev/null 2>&1; then
+  cat >&2 <<'MSG'
+protoc not found. Install the protobuf compiler:
+
+  apt-get install -y protobuf-compiler   # Debian/Ubuntu
+  brew install protobuf                  # macOS
+MSG
+  exit 1
+fi
+
+BIN="$(mktemp -d)"
+trap 'rm -rf "${BIN}"' EXIT
+
+echo "=> building vendored protoc plugins"
+go build -mod=vendor -o "${BIN}/protoc-gen-go" ./vendor/google.golang.org/protobuf/cmd/protoc-gen-go
+go build -mod=vendor -o "${BIN}/protoc-gen-twirp" ./vendor/github.com/twitchtv/twirp/protoc-gen-twirp
+
+export PATH="${BIN}:${PATH}"
+
+# protoc-gen-js is not vendored -- it is a separate bazel build -- so the
+# JavaScript stubs are only regenerated when it happens to be installed. The
+# web UI talks to these services over Twirp's JSON encoding with plain fetch,
+# so a stale _pb.js does not stop a new method being used.
+JS_OUT=()
+if command -v protoc-gen-js >/dev/null 2>&1; then
+  JS_OUT=(--js_out=import_style=commonjs,binary:./web/src)
+else
+  echo "=> protoc-gen-js not on PATH, leaving web/src/**/*_pb.js alone"
+fi
+
+echo "=> using $(protoc --version)"
+
+# Only clear the output once the tools above are known good, so a missing
+# dependency cannot leave the tree with no generated code in it.
 rm -rf "${ROOT}"/internal/proto/*
 
 for dir in $(find proto -name '*.proto' -print0 | xargs -0 -n1 dirname | sort | uniq | grep -v ^proto/google); do
   set -x
-  docker run --rm \
-    -u $(id -u):$(id -g) \
-    -v ${ROOT}:/src:delegated \
-    -w /src \
-    $(latestprotoc) \
-    protoc \
-      --proto_path=./proto \
-      --go_out=./internal/proto \
-      --twirp_out=./internal/proto \
-      --js_out=import_style=commonjs,binary:./web/src \
-      "${dir}"/*.proto
+  protoc \
+    --proto_path=./proto \
+    --go_out=./internal/proto \
+    --twirp_out=./internal/proto \
+    ${JS_OUT[@]+"${JS_OUT[@]}"} \
+    "${dir}"/*.proto
+  set +x
 done
 
 module=$(awk '/module/ {print $2}' go.mod)

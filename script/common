@@ -33,32 +33,12 @@ latestlinter() {
   echo "robbydyer/rgbmatrixlint:$(getsha "${ROOT}/Dockerfile.lint")"
 }
 
-latestprotoc() {
-  echo "robbydyer/protoc:$(getsha "${ROOT}/Dockerfile.protoc")"
-}
-
 dockerlogin() {
   if [ -d "${DOCKERCONF}" ]; then
     return
   fi
   echo "Enter docker hub credentials:"
   echo "${DOCKERHUB_PASS}" | docker --config="${DOCKERCONF}" login -u robbydyer --password-stdin
-}
-
-buildprotoc() {
-  cd "${ROOT}"
-  dockerlogin
-  img=$(latestprotoc)
-
-  if [ "$(docker images -q ${img})" = "" ]; then
-    docker --config="${DOCKERCONF}" buildx create --use --name=build --node=build
-    docker --config="${DOCKERCONF}" buildx build -t "${img}" -t robbydyer/protoc:latest \
-      --builder=build \
-      -f Dockerfile.protoc \
-      --platform=linux/arm64/v8 \
-      --push \
-      .
-  fi
 }
 
 install_go() {

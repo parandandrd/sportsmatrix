@@ -17,12 +17,21 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up QEMU
-      id: qemu
-      uses: docker/setup-qemu-action@v3
+    # Lint, test and the amd64 build all run directly on the runner now. They
+    # used to run inside images pulled from a Docker Hub namespace this repo
+    # cannot publish to, which meant editing a Dockerfile broke CI with no way
+    # to build a replacement.
+    - uses: actions/setup-go@v5
       with:
-        image: tonistiigi/binfmt:latest
-        platforms: all
+        go-version-file: go.mod
+        cache-dependency-path: go.sum
+
+    - name: Install golangci-lint
+      run: |
+        source script/common
+        curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+          | sh -s -- -b "$(go env GOPATH)/bin" "v${GOLANGCI_VERSION}"
+        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
     - name: Lint
       run: ./script/lint

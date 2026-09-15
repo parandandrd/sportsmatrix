@@ -1,69 +1,39 @@
-# 2025-02-26 16:16
-ARG BASE=multiarch/debian-debootstrap:arm64-bullseye-slim
+# Cross-build environment for the aarch64 release binary. Nothing else uses it:
+# lint, test and the amd64 build all run directly on the runner now.
+#
+# The official debian image is multi-arch, so buildx picks the right variant per
+# --platform. The old base, multiarch/debian-debootstrap, was last published in
+# 2020 and sat on Debian releases that are now past end of life.
+ARG BASE=debian:trixie-slim
 
 FROM $BASE
-# Replace shell with bash so we can source files
-SHELL ["/bin/bash", "--login", "-ce"]
 
 ARG GOVERSION=1.25.3
-ARG PROTOC_VER=30.0
-
-RUN apt-get update --allow-unauthenticated --allow-insecure-repositories && \
-    apt-get install --allow-unauthenticated -y debian-archive-keyring && \
-    apt-get clean
 
 RUN apt-get update && \
-    apt-get install -y \
-    automake \
-    build-essential \
-    ca-certificates \
-    curl \
-    gcc \
-    g++ \
-    pkg-config \
-    portaudio19-dev \
-    unzip
+    apt-get install -y --no-install-recommends \
+      build-essential \
+      ca-certificates \
+      curl \
+      g++ \
+      gcc \
+      make \
+      pkg-config && \
+    rm -rf /var/lib/apt/lists/*
 
-ENV PB_REL="https://github.com/protocolbuffers/protobuf/releases"
-RUN a="$(dpkg --print-architecture)" && \
-    case "${a##*-}" in \
-        arm64|aarch64)  \
-            arch="aarch_64" && \
-            curl -LO "$PB_REL/download/v${PROTOC_VER}/protoc-${PROTOC_VER}-linux-${arch}.zip" && \
-            unzip protoc-${PROTOC_VER}-linux-${arch}.zip -d /usr/local && \
-            protoc --version \
-            ;; \
-        amd64) \
-            arch="x86_64" && \
-            curl -LO "$PB_REL/download/v${PROTOC_VER}/protoc-${PROTOC_VER}-linux-${arch}.zip" && \
-            unzip protoc-${PROTOC_VER}-linux-${arch}.zip -d /usr/local && \
-            protoc --version \
-            ;; \
-    esac
-
-RUN update-ca-certificates -f
-ENV CURL_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-RUN GOIMG= && a="$(dpkg --print-architecture)" && \
-    case "${a##*-}" in \
-      arm64|aarch64) GOIMG="go${GOVERSION}.linux-arm64.tar.gz";; \
-      amd64) GOIMG="go${GOVERSION}.linux-amd64.tar.gz";; \
-      armv7l|armv6l|armhf) GOIMG="go${GOVERSION}.linux-armv6l.tar.gz";; \
-      *) echo "unsupported arch ${a}"; exit 1 ;;\
-    esac && \
-    curl -k -L https://go.dev/dl/${GOIMG} -o /tmp/${GOIMG} && \
-    tar -C /usr/local -xzf /tmp/${GOIMG} && \
+RUN set -eux; \
+    case "$(dpkg --print-architecture)" in \
+      arm64) goimg="go${GOVERSION}.linux-arm64.tar.gz" ;; \
+      amd64) goimg="go${GOVERSION}.linux-amd64.tar.gz" ;; \
+      *) echo "unsupported architecture $(dpkg --print-architecture)"; exit 1 ;; \
+    esac; \
+    curl -fsSL "https://go.dev/dl/${goimg}" -o "/tmp/${goimg}"; \
+    tar -C /usr/local -xzf "/tmp/${goimg}"; \
+    rm -f "/tmp/${goimg}"; \
     /usr/local/go/bin/go version
 
 ENV PATH="/usr/local/go/bin:${PATH}"
 
-COPY .nvmrc /root/.nvmrc
-RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-RUN cd /root && nvm install && nvm install 18.16.0 && nvm install 20.11.0
-
+# Compiled here so the archive matches the toolchain that will link against it.
 COPY ./internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix.BASE /sportsmatrix_lib/rpi-rgb-led-matrix
-
-RUN cd /sportsmatrix_lib/rpi-rgb-led-matrix && \
-    make
-
-RUN apt-get remove -y curl && \
-    apt-get autoremove -y && apt-get clean
+RUN make -C /sportsmatrix_lib/rpi-rgb-led-matrix

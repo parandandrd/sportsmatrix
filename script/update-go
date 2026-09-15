@@ -10,4 +10,4 @@ echo "Updating Go to ${go_ver}, Linter ${lint_ver}"
 
 gsed -i "s,GOVERSION=.*,GOVERSION=${go_ver},g" Dockerfile.pibuilder
 gsed -i "s,GO_VERSION=.*,GO_VERSION=\"${go_ver}\",g" script/common
-gsed -i "s,golangci/golangci-lint:.*,golangci/golangci-lint:${lint_ver},g" Dockerfile.lint
+gsed -i "s,GOLANGCI_VERSION=.*,GOLANGCI_VERSION=\"${lint_ver#v}\",g" script/common

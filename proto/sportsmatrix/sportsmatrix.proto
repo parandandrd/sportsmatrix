@@ -14,6 +14,7 @@ service Sportsmatrix {
        rpc NextBoard(google.protobuf.Empty) returns (google.protobuf.Empty);
        rpc RestartService(google.protobuf.Empty) returns (google.protobuf.Empty);
        rpc SetLiveOnly(LiveOnlyReq) returns (google.protobuf.Empty);
+       rpc ListBoards(google.protobuf.Empty) returns (ListBoardsResp);
 }
 
 message VersionResp {
@@ -36,4 +37,21 @@ message JumpReq {
 
 message LiveOnlyReq {
     bool live_only = 1;
+}
+
+// Board describes a board that this instance was configured with. Boards are
+// only constructed when their config section is present, so this is the set
+// that actually exists, not everything the binary knows how to render.
+message BoardInfo {
+    // name as the board reports it, which is what Jump expects
+    string name = 1;
+    // enabled is the board's current state, which the API can change at runtime
+    bool enabled = 2;
+    // in_between marks boards that render between the others rather than
+    // taking their own turn in the rotation
+    bool in_between = 3;
+}
+
+message ListBoardsResp {
+    repeated BoardInfo boards = 1;
 }

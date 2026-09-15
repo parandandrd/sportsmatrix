@@ -133,7 +133,7 @@ class Sport extends React.Component {
     doJump = async () => {
         await JumpToBoard(this.props.sport);
         console.log("Syncing from sport")
-        this.props.doSync();
+        this.props.doSync?.();
     }
 
     render() {

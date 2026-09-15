@@ -24,7 +24,7 @@ class Board extends React.Component {
             method: "GET",
             mode: "cors",
         });
-        document.body.style.backgroundColor = "white"
+        document.body.style.backgroundColor = ""
     }
     render() {
         return (

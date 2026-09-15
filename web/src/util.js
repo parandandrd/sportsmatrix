@@ -43,3 +43,60 @@ export async function JumpToBoard(board) {
     console.log("Board Jump", "matrix.v1.Sportsmatrix/Jump", r);
     await MatrixPostRet("matrix.v1.Sportsmatrix/Jump", r);
 }
+// Board kinds, keyed by the twirp service a board mounts. The service name is
+// the only reliable signal of what a board is: Name is a display name, and for
+// sport boards it is the league's full name ("NCAA Basketball"), not its slug.
+const boardKinds = {
+    'sport.v1.Sport': 'sport',
+    'racing.v1.Racing': 'racing',
+    'board.v1.BasicBoard': 'basic',
+    'imageboard.v1.ImageBoard': 'image',
+};
+
+// DescribeBoard turns one ListBoards entry into what the UI needs: which
+// component drives it, and the path prefix that component posts to.
+//
+//   "/nhl/sport.v1.Sport/"               -> kind sport, path "nhl"
+//   "/headlines/nhl/board.v1.BasicBoard/" -> kind basic, path "headlines/nhl"
+//   "/imageboard.v1.ImageBoard/"          -> kind image, path ""
+export function DescribeBoard(info) {
+    const board = {
+        name: info.name,
+        enabled: Boolean(info.enabled),
+        inBetween: Boolean(info.in_between),
+        rpcPath: info.rpc_path || "",
+        kind: "",
+        path: "",
+    };
+
+    const parts = board.rpcPath.split('/').filter((p) => p !== "");
+    if (parts.length > 0) {
+        const kind = boardKinds[parts[parts.length - 1]];
+        if (kind) {
+            board.kind = kind;
+            board.path = parts.slice(0, -1).join('/');
+        }
+    }
+
+    return board;
+}
+
+// ListBoards reports the boards this instance was actually configured with.
+export async function ListBoards() {
+    const resp = await MatrixPostRet("matrix.v1.Sportsmatrix/ListBoards", '{}');
+    if (!resp.ok) {
+        throw new Error(`ListBoards failed: ${resp.status}`);
+    }
+
+    const data = await resp.json();
+    return (data.boards || []).map(DescribeBoard);
+}
+
+// SetBoardEnabled turns one board on or off by the name ListBoards reported.
+export async function SetBoardEnabled(name, enabled) {
+    const resp = await MatrixPostRet("matrix.v1.Sportsmatrix/SetBoardEnabled",
+        JSON.stringify({ name: name, enabled: Boolean(enabled) }));
+    if (!resp.ok) {
+        throw new Error(`SetBoardEnabled(${name}) failed: ${resp.status}`);
+    }
+}

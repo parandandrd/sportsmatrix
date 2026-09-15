@@ -49,7 +49,7 @@ class BasicBoard extends React.Component {
 
     doJump = async () => {
         await JumpToBoard(this.props.name);
-        this.props.doSync();
+        this.props.doSync?.();
     }
 
     render() {

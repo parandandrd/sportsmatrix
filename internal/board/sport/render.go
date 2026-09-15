@@ -2,10 +2,12 @@ package sportboard
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
+	"io/fs"
 	"strings"
 	"time"
 
@@ -884,6 +886,15 @@ func (s *SportBoard) renderLeagueLogo(ctx context.Context, canvas board.Canvas) 
 	zeroed := rgbrender.ZeroedBounds(canvas.Bounds())
 	img, err := l.GetThumbnail(ctx, zeroed)
 	if err != nil {
+		// Not every league ships a logo asset. One that does not should draw
+		// its scoreboard without the logo rather than fail the whole board on
+		// every cycle.
+		if errors.Is(err, fs.ErrNotExist) {
+			s.log.Warn("no league logo asset, rendering without it",
+				zap.String("league", s.api.League()),
+			)
+			return nil
+		}
 		return err
 	}
 

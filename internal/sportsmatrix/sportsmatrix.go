@@ -77,7 +77,11 @@ type Config struct {
 // Defaults sets some sane config defaults
 func (c *Config) Defaults() {
 	if c.RuntimeOptions == nil {
-		c.RuntimeOptions = &rgb.DefaultRuntimeOptions
+		// copy, don't alias: taking the address of the package-level default
+		// hands every Config the same struct, and the writes below then edit
+		// the defaults themselves.
+		opts := rgb.DefaultRuntimeOptions
+		c.RuntimeOptions = &opts
 	}
 	c.RuntimeOptions.Daemon = 0
 	c.RuntimeOptions.DoGPIOInit = true
@@ -90,7 +94,8 @@ func (c *Config) Defaults() {
 	}
 
 	if c.HardwareConfig == nil {
-		c.HardwareConfig = &rgb.DefaultConfig
+		hw := rgb.DefaultConfig
+		c.HardwareConfig = &hw
 		c.HardwareConfig.Cols = 64
 		c.HardwareConfig.Rows = 32
 	}

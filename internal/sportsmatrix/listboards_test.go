@@ -30,6 +30,8 @@ func (b *namedBoard) Name() string { return b.name }
 // ListBoards has to report the boards this instance was actually built with,
 // and track their enabled state as it changes at runtime.
 func TestListBoardsOverHTTP(t *testing.T) {
+	t.Parallel()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -68,8 +70,12 @@ func TestListBoardsOverHTTP(t *testing.T) {
 
 	list := func() map[string]bool {
 		t.Helper()
-		resp, err := http.Post("http://localhost:8099/matrix.v1.Sportsmatrix/ListBoards",
-			"application/json", strings.NewReader("{}"))
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost,
+			"http://localhost:8099/matrix.v1.Sportsmatrix/ListBoards", strings.NewReader("{}"))
+		require.NoError(t, err)
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 		require.Equal(t, http.StatusOK, resp.StatusCode)

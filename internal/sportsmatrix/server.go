@@ -42,6 +42,36 @@ func (s *Server) ScreenOff(ctx context.Context, req *emptypb.Empty) (*emptypb.Em
 	return &emptypb.Empty{}, nil
 }
 
+// ListBoards returns the boards this instance was configured with, and whether
+// each is currently enabled. Boards are only constructed when their config
+// section is present, so this is what actually exists rather than everything
+// the binary can render.
+func (s *Server) ListBoards(ctx context.Context, req *emptypb.Empty) (*pb.ListBoardsResp, error) {
+	s.sm.Lock()
+	defer s.sm.Unlock()
+
+	resp := &pb.ListBoardsResp{
+		Boards: make([]*pb.BoardInfo, 0, len(s.sm.boards)+len(s.sm.betweenBoards)),
+	}
+
+	for _, b := range s.sm.boards {
+		resp.Boards = append(resp.Boards, &pb.BoardInfo{
+			Name:    b.Name(),
+			Enabled: b.Enabler().Enabled(),
+		})
+	}
+
+	for _, b := range s.sm.betweenBoards {
+		resp.Boards = append(resp.Boards, &pb.BoardInfo{
+			Name:      b.Name(),
+			Enabled:   b.Enabler().Enabled(),
+			InBetween: true,
+		})
+	}
+
+	return resp, nil
+}
+
 // SetAll ...
 func (s *Server) SetAll(ctx context.Context, req *pb.SetAllReq) (*emptypb.Empty, error) {
 	s.sm.Lock()

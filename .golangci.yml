@@ -1,6 +1,4 @@
 run:
-  # Until https://github.com/golangci/golangci-lint/issues/2649
-  go: 1.20
   tests: true
   modules-download-mode: vendor
   timeout: 5m

@@ -38,7 +38,6 @@ func (n *ncaaf) setRecords(ctx context.Context, e *ESPNBoard, season string, tea
 	wg, _ := errgroup.WithContext(ctx)
 	wg.SetLimit(10)
 	for _, t := range teams {
-		t := t
 		wg.Go(func() error {
 			if err := t.setDetails(ctx, season, n.APIPath(), e.log); err != nil {
 				e.log.Error("failed to set team details",

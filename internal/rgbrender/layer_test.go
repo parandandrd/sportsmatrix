@@ -63,8 +63,6 @@ func TestSetForegroundPriority(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
-
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			l, err := NewLayerDrawer(1*time.Second, nil)
@@ -142,8 +140,6 @@ func TestPriorities(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
-
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			l, err := NewLayerDrawer(1*time.Second, nil)

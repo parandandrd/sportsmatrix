@@ -12,7 +12,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/util"
+	"github.com/parandandrd/sportsmatrix/internal/util"
 )
 
 //go:embed assets/divisions.json

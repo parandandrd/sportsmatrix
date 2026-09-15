@@ -40,7 +40,7 @@ linters-settings:
     disable:
       - fieldalignment
   goimports:
-    local-prefixes: github.com/robbydyer/sports
+    local-prefixes: github.com/parandandrd/sportsmatrix
   revive:
     rules:
     - name: exported

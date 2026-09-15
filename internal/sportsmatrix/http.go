@@ -15,9 +15,9 @@ import (
 	"github.com/twitchtv/twirp"
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
-	pb "github.com/robbydyer/sports/internal/proto/sportsmatrix"
-	"github.com/robbydyer/sports/internal/twirphelpers"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	pb "github.com/parandandrd/sportsmatrix/internal/proto/sportsmatrix"
+	"github.com/parandandrd/sportsmatrix/internal/twirphelpers"
 )
 
 //go:embed assets

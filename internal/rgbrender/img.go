@@ -14,7 +14,7 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/nfnt/resize"
 
-	"github.com/robbydyer/sports/internal/board"
+	"github.com/parandandrd/sportsmatrix/internal/board"
 )
 
 // ResizeImage ...

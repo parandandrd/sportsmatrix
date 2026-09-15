@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
+	"github.com/parandandrd/sportsmatrix/internal/board"
 )
 
 func TestGridLayout(t *testing.T) {

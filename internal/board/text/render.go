@@ -10,9 +10,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
-	"github.com/robbydyer/sports/internal/logo"
-	"github.com/robbydyer/sports/internal/rgbrender"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	"github.com/parandandrd/sportsmatrix/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/rgbrender"
 )
 
 const logoCacheDir = "/tmp/sportsmatrix_logos/newslogos"

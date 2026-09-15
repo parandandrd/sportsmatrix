@@ -48,7 +48,7 @@ import (
 	"time"
 	"unsafe"
 
-	"github.com/robbydyer/sports/internal/matrix"
+	"github.com/parandandrd/sportsmatrix/internal/matrix"
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 )

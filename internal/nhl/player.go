@@ -14,8 +14,8 @@ import (
 
 	"go.uber.org/zap"
 
-	statboard "github.com/robbydyer/sports/internal/board/stat"
-	"github.com/robbydyer/sports/internal/util"
+	statboard "github.com/parandandrd/sportsmatrix/internal/board/stat"
+	"github.com/parandandrd/sportsmatrix/internal/util"
 )
 
 const (

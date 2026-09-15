@@ -8,7 +8,7 @@ import (
 
 	"github.com/twitchtv/twirp"
 
-	pb "github.com/robbydyer/sports/internal/proto/basicboard"
+	pb "github.com/parandandrd/sportsmatrix/internal/proto/basicboard"
 )
 
 // Server ...

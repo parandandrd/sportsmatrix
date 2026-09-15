@@ -11,7 +11,7 @@ import (
 	google_oauth2 "golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
 
-	"github.com/robbydyer/sports/internal/gcal"
+	"github.com/parandandrd/sportsmatrix/internal/gcal"
 )
 
 const gcaldesc = `

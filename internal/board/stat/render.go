@@ -9,8 +9,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
-	"github.com/robbydyer/sports/internal/rgbrender"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	"github.com/parandandrd/sportsmatrix/internal/rgbrender"
 )
 
 func (s *StatBoard) enablerCancel(ctx context.Context, cancel context.CancelFunc) {

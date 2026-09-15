@@ -1,6 +1,6 @@
 syntax = "proto3";
 package imageboard.v1;
-option go_package = "github.com/robbydyer/sports/internal/proto/imageboard";
+option go_package = "github.com/parandandrd/sportsmatrix/internal/proto/imageboard";
 import "google/protobuf/empty.proto";
 
 service ImageBoard {

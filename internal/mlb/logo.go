@@ -9,7 +9,7 @@ import (
 
 	yaml "github.com/ghodss/yaml"
 
-	"github.com/robbydyer/sports/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/logo"
 )
 
 //go:embed assets

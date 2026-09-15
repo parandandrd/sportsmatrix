@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/robbydyer/sports/internal/mlblive"
+	"github.com/parandandrd/sportsmatrix/internal/mlblive"
 )
 
 func (g *Game) GetRunners(ctx context.Context) (*mlblive.Runners, error) {

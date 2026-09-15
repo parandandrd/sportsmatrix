@@ -6,7 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/robbydyer/sports/internal/nhl"
+	"github.com/parandandrd/sportsmatrix/internal/nhl"
 )
 
 type nhlPlayersCmd struct {

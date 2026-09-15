@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/robbydyer/sports/internal/matrix"
+	"github.com/parandandrd/sportsmatrix/internal/matrix"
 )
 
 // testActual builds a canvas with deterministic pixel content and blank

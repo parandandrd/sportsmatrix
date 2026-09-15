@@ -1,4 +1,4 @@
-module github.com/robbydyer/sports
+module github.com/parandandrd/sportsmatrix
 
 go 1.23
 

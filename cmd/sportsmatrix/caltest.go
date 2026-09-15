@@ -7,13 +7,13 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/robbydyer/sports/internal/assetlogo"
-	"github.com/robbydyer/sports/internal/board"
-	calendarboard "github.com/robbydyer/sports/internal/board/calendar"
-	cnvs "github.com/robbydyer/sports/internal/canvas"
-	"github.com/robbydyer/sports/internal/logo"
-	"github.com/robbydyer/sports/internal/matrix"
-	"github.com/robbydyer/sports/internal/sportsmatrix"
+	"github.com/parandandrd/sportsmatrix/internal/assetlogo"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	calendarboard "github.com/parandandrd/sportsmatrix/internal/board/calendar"
+	cnvs "github.com/parandandrd/sportsmatrix/internal/canvas"
+	"github.com/parandandrd/sportsmatrix/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/matrix"
+	"github.com/parandandrd/sportsmatrix/internal/sportsmatrix"
 )
 
 type calCmd struct {

@@ -7,7 +7,7 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
+	"github.com/parandandrd/sportsmatrix/internal/board"
 )
 
 //go:embed assets/loading.gif

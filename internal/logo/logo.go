@@ -12,7 +12,7 @@ import (
 
 	"github.com/disintegration/imaging"
 
-	"github.com/robbydyer/sports/internal/rgbrender"
+	"github.com/parandandrd/sportsmatrix/internal/rgbrender"
 )
 
 // SourceGetter is a func type that retrieves a source logo image.Image

@@ -1,6 +1,6 @@
 syntax = "proto3";
 package sport.v1;
-option go_package = "github.com/robbydyer/sports/internal/proto/sportboard";
+option go_package = "github.com/parandandrd/sportsmatrix/internal/proto/sportboard";
 import "google/protobuf/empty.proto";
 
 service Sport {

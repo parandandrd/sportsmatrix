@@ -11,9 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
-	"github.com/robbydyer/sports/internal/canvas"
-	"github.com/robbydyer/sports/internal/matrix"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	"github.com/parandandrd/sportsmatrix/internal/canvas"
+	"github.com/parandandrd/sportsmatrix/internal/matrix"
 )
 
 func overlappingLayer(clr color.Color, region image.Rectangle) *Layer {

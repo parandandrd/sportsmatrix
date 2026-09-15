@@ -19,12 +19,12 @@ import (
 	"go.uber.org/atomic"
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/board"
-	"github.com/robbydyer/sports/internal/enabler"
-	pb "github.com/robbydyer/sports/internal/proto/imageboard"
-	"github.com/robbydyer/sports/internal/rgbrender"
-	"github.com/robbydyer/sports/internal/twirphelpers"
-	"github.com/robbydyer/sports/internal/util"
+	"github.com/parandandrd/sportsmatrix/internal/board"
+	"github.com/parandandrd/sportsmatrix/internal/enabler"
+	pb "github.com/parandandrd/sportsmatrix/internal/proto/imageboard"
+	"github.com/parandandrd/sportsmatrix/internal/rgbrender"
+	"github.com/parandandrd/sportsmatrix/internal/twirphelpers"
+	"github.com/parandandrd/sportsmatrix/internal/util"
 )
 
 const (

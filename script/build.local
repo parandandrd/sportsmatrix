@@ -51,4 +51,4 @@ fi
 
 cd "${ROOT}"
 set -x
-go build -mod=vendor -o sportsmatrix.${SUFFIX} -ldflags="-X github.com/robbydyer/sports/internal/sportsmatrix.version=${VERSION}" ./cmd/sportsmatrix
+go build -mod=vendor -o sportsmatrix.${SUFFIX} -ldflags="-X github.com/parandandrd/sportsmatrix/internal/sportsmatrix.version=${VERSION}" ./cmd/sportsmatrix

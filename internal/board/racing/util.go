@@ -3,7 +3,7 @@ package racingboard
 import (
 	"image"
 
-	"github.com/robbydyer/sports/internal/rgbrender"
+	"github.com/parandandrd/sportsmatrix/internal/rgbrender"
 )
 
 func (s *RacingBoard) getScheduleWriter(bounds image.Rectangle) (*rgbrender.TextWriter, error) {

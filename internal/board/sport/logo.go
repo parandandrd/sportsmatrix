@@ -7,8 +7,8 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/robbydyer/sports/internal/logo"
-	"github.com/robbydyer/sports/internal/rgbrender"
+	"github.com/parandandrd/sportsmatrix/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/rgbrender"
 )
 
 func (s *SportBoard) logoConfig(logoKey string, bounds image.Rectangle) *logo.Config {

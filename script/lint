@@ -2,71 +2,61 @@
 set -euo pipefail
 
 ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
-IN_DOCKER="${IN_DOCKER:-no}"
+cd "${ROOT}"
 source "${ROOT}/script/common"
-IMG=$(latestlinter)
 
-if [ "${IN_DOCKER}" = "no" ]; then
-  MOUNTOPTION=""
-  if [ "$(uname -s)" = "Darwin" ]; then
-    MOUNTOPTION=":delegated"
-  fi
+# Was a Docker image from a registry this repo cannot publish to. The only
+# thing it supplied that a plain checkout does not is golangci-lint itself and
+# a C++ compiler for the cgo package's headers.
 
-  set -x
-  exec docker run -t --rm \
-      -e IN_DOCKER=yes \
-      -u $(id -u):$(id -g) \
-      -v "${ROOT}":/src${MOUNTOPTION} \
-      -w /src \
-      -e GOCACHE="/src/.cache" \
-      -e GOFLAGS="-buildvcs=false" \
-      -e GOLANGCI_LINT_CACHE="/src/.cache" \
-      -e GO111MODULE=on \
-      -e CGO_ENABLED=1 \
-      -e GITHUB_ACTIONS="${GITHUB_ACTIONS:-}" \
-      "${IMG}" \
-      /src/script/$(basename $0)
+for cmd in go make g++; do
+  command -v "${cmd}" >/dev/null || { echo "missing required command: ${cmd}" >&2; exit 1; }
+done
+
+if ! command -v golangci-lint >/dev/null; then
+  cat >&2 <<MSG
+golangci-lint not found. This repo's config is v1, so install ${GOLANGCI_VERSION}:
+
+  curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \\
+    | sh -s -- -b "\$(go env GOPATH)/bin" v${GOLANGCI_VERSION}
+
+A v2 golangci-lint will refuse .golangci.yml outright.
+MSG
+  exit 1
 fi
 
-ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
+export CGO_ENABLED=1
 
-# One trap, not two. bash replaces an EXIT trap when a second one is installed,
-# so the earlier "clean up the matrix library" trap used to be silently
-# discarded by the "clean up the dummy assets" trap below. That left the library
-# sitting in the workspace, where the test step then picked it up instead of
-# building its own.
+LIB="${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
+ASSETS="${ROOT}/internal/sportsmatrix/assets"
+
+# //go:embed assets needs something to embed. Only put a placeholder there,
+# and only clear it afterwards, if there is not already a real web build.
+MADE_ASSETS=no
+[ -d "${ASSETS}/web" ] || MADE_ASSETS=yes
+
 cleanup() {
-  rm -rf "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
-  rm -rf "${ROOT}/internal/sportsmatrix/assets"
+  rm -rf "${LIB}"
+  if [ "${MADE_ASSETS}" = "yes" ]; then
+    rm -rf "${ASSETS}"
+  fi
+  return 0
 }
 trap cleanup EXIT
 
-# Linting only needs the headers to typecheck the cgo package, so a prebuilt
-# copy is fine here. Dockerfile.pibuilder installs it to /sportsmatrix_lib,
-# which is where script/build takes it from; /sportslibs is an older location
-# some builder images still carry. Fall back to the vendored source if neither
-# is present.
-if [ ! -d ${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix ]; then
-  for libdir in \
-    /sportsmatrix_lib/rpi-rgb-led-matrix \
-    /sportslibs/rpi-rgb-led-matrix \
-    "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix.BASE"; do
-    if [ -d "${libdir}" ]; then
-      cp -r "${libdir}" "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
-      break
-    fi
-  done
+# golangci-lint cannot typecheck the cgo package without the C headers present.
+rm -rf "${LIB}"
+cp -r "${LIB}.BASE" "${LIB}"
+make -C "${LIB}/lib"
+
+if [ "${MADE_ASSETS}" = "yes" ]; then
+  mkdir -p "${ASSETS}/web"
+  touch "${ASSETS}/web/placeholder"
 fi
 
 fix=""
-
-if [ ! -n "${GITHUB_ACTIONS}" ]; then
+if [ -z "${GITHUB_ACTIONS:-}" ]; then
   fix="--fix"
 fi
 
-# Put some dummy assets here
-mkdir -p "${ROOT}/internal/sportsmatrix/assets/web"
-touch "${ROOT}/internal/sportsmatrix/assets/web/foo"
-
-set -x
-golangci-lint run --verbose --timeout="5m" ${fix}
+golangci-lint run --timeout=5m ${fix} "$@"

@@ -1,0 +1,58 @@
+name: Build Builder Image
+
+# The cross-build image, published to this repo's own GitHub Packages. The tag
+# is the sha256 of Dockerfile.pibuilder, so a change to that file asks for an
+# image that does not exist yet -- which is what this workflow publishes.
+on:
+  push:
+    branches:
+    - master
+    paths:
+    - Dockerfile.pibuilder
+    - 'internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix.BASE/**'
+    - .github/workflows/dockerbuild.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+      with:
+        image: tonistiigi/binfmt:latest
+        platforms: all
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # No secret to manage: GITHUB_TOKEN can write this repo's packages.
+    - name: Log in to GitHub Packages
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Work out the tag
+      id: tag
+      run: |
+        echo "sha=$(sha256sum Dockerfile.pibuilder | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+        echo "owner=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+    - name: Build and push
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: Dockerfile.pibuilder
+        platforms: linux/amd64,linux/arm64/v8
+        push: true
+        tags: |
+          ghcr.io/${{ steps.tag.outputs.owner }}/sportsmatrix-builder:${{ steps.tag.outputs.sha }}
+          ghcr.io/${{ steps.tag.outputs.owner }}/sportsmatrix-builder:latest

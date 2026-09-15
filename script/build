@@ -1,59 +1,116 @@
 #!/bin/bash
 set -euo pipefail
-set -x
 
 ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
 cd "${ROOT}"
 source script/common
+
 IN_DOCKER="${IN_DOCKER:-no}"
 VERSION="${VERSION:-devbuild}"
 DEB_BUILD="${DEB_BUILD:-no}"
 BUILDARCH="${BUILDARCH:-$(uname -m)}"
 
-img=$(latestpibuilder ${BUILDARCH})
+MODULE="$(awk '/^module/ {print $2}' go.mod)"
+LIB="${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
 
-if [ "${IN_DOCKER}" = "no" ]; then
-  if [ ! -d "${ROOT}/internal/sportsmatrix/assets" ]; then
-    mkdir -p "${ROOT}/internal/sportsmatrix/assets"
-    cp -r "${ROOT}/web/build" "${ROOT}/internal/sportsmatrix/assets/web"
+# x86_64/amd64 and aarch64/arm64 are the same thing under different names
+normarch() {
+  case "$1" in
+    x86_64|amd64)  echo amd64 ;;
+    aarch64|arm64) echo aarch64 ;;
+    *)             echo "$1" ;;
+  esac
+}
+
+prepare_assets() {
+  # //go:embed assets needs a directory. Prefer a real web build.
+  if [ -d "${ROOT}/internal/sportsmatrix/assets/web" ]; then
+    return
   fi
+  mkdir -p "${ROOT}/internal/sportsmatrix/assets"
+  if [ -d "${ROOT}/web/build" ]; then
+    cp -r "${ROOT}/web/build" "${ROOT}/internal/sportsmatrix/assets/web"
+  else
+    echo "=> no web/build; embedding a placeholder, the browser UI will be missing"
+    mkdir -p "${ROOT}/internal/sportsmatrix/assets/web"
+    touch "${ROOT}/internal/sportsmatrix/assets/web/placeholder"
+  fi
+}
 
-  docker run -t --rm \
-    -e IN_DOCKER=yes \
-    -e BUILDARCH="${BUILDARCH}" \
-    -e VERSION="${VERSION}" \
-    -e DEB_BUILD="${DEB_BUILD}" \
-    -v "${ROOT}":/app \
-    -w /src \
-    ${img} \
-    /app/script/$(basename $0)
+do_build() {
+  export CGO_ENABLED=1
+  set -x
+  go build -mod=vendor \
+    -o "${ROOT}/sportsmatrix.${BUILDARCH}" \
+    -ldflags="-X ${MODULE}/internal/sportsmatrix.version=${VERSION}" \
+    ./cmd/sportsmatrix
+  set +x
+  echo "=> DONE created ${ROOT}/sportsmatrix.${BUILDARCH}"
 
+  if [ "${DEB_BUILD}" = "yes" ]; then
+    BUILDARCH="${BUILDARCH}" VERSION="${VERSION}" "${ROOT}/script/deb-build.sh"
+  fi
+}
+
+# Inside the cross-build container. That image ships the matrix library already
+# compiled by its own toolchain, so use it rather than rebuilding.
+if [ "${IN_DOCKER}" = "yes" ]; then
+  cd /app
+  cp -r .nvmrc cmd internal vendor go.mod go.sum /src/
+  cd /src
+  export GOCACHE=/app/.cache
+  ROOT=/src
+  cp -r /sportsmatrix_lib/rpi-rgb-led-matrix /src/internal/rgbmatrix-rpi/lib/
+  # deb-build.sh and the output both belong on the mounted volume
+  go build -mod=vendor \
+    -o "/app/sportsmatrix.${BUILDARCH}" \
+    -ldflags="-X ${MODULE}/internal/sportsmatrix.version=${VERSION}" \
+    ./cmd/sportsmatrix
+  echo "=> DONE created /app/sportsmatrix.${BUILDARCH}"
+  if [ "${DEB_BUILD}" = "yes" ]; then
+    BUILDARCH="${BUILDARCH}" VERSION="${VERSION}" /app/script/deb-build.sh
+  fi
   exit
 fi
 
-# Everything below is inside docker
-cd /app
-cp -r \
-  .nvmrc \
-  cmd \
-  internal \
-  vendor \
-  go.mod \
-  go.sum \
-  /src/
+prepare_assets
 
-cd /src
-
-export CGO_ENABLED=1
-export GOCACHE=/app/.cache
-
-cp -r /sportsmatrix_lib/rpi-rgb-led-matrix /src/internal/rgbmatrix-rpi/lib/
-
-go build -o /app/sportsmatrix.${BUILDARCH} -ldflags="-X github.com/parandandrd/sportsmatrix/internal/sportsmatrix.version=${VERSION}" ./cmd/sportsmatrix
-
-echo "=> DONE created ${ROOT}/sportsmatrix.${BUILDARCH}"
-
-if [ "${DEB_BUILD}" = "yes" ];
-then
-  BUILDARCH="${BUILDARCH}" VERSION="${VERSION}" /app/script/deb-build.sh
+# Building for this machine's own architecture needs nothing but a toolchain.
+# A different architecture needs a foreign-arch userland, which is what the
+# builder image is for.
+if [ "$(normarch "${BUILDARCH}")" = "$(normarch "$(uname -m)")" ]; then
+  for cmd in go make g++; do
+    command -v "${cmd}" >/dev/null || { echo "missing required command: ${cmd}" >&2; exit 1; }
+  done
+  echo "=> building natively for ${BUILDARCH}"
+  rm -rf "${LIB}"
+  cp -r "${LIB}.BASE" "${LIB}"
+  make -C "${LIB}/lib"
+  trap 'rm -rf "${LIB}"' EXIT
+  do_build
+  exit
 fi
+
+IMG="$(latestpibuilder)"
+PLATFORM="$(dockerplatform "${BUILDARCH}")"
+
+# Publishing the image is a convenience, not a dependency: if it is missing,
+# build it here rather than failing the release.
+if ! docker image inspect "${IMG}" >/dev/null 2>&1 \
+   && ! docker pull --platform="${PLATFORM}" "${IMG}" >/dev/null 2>&1; then
+  echo "=> ${IMG} is not published; building it locally first"
+  NOPUSH=1 PLATFORM="${PLATFORM}" "${ROOT}/script/build-builder"
+fi
+
+echo "=> cross-building for ${BUILDARCH} (${PLATFORM}) in ${IMG}"
+set -x
+docker run -t --rm \
+  --platform="${PLATFORM}" \
+  -e IN_DOCKER=yes \
+  -e BUILDARCH="${BUILDARCH}" \
+  -e VERSION="${VERSION}" \
+  -e DEB_BUILD="${DEB_BUILD}" \
+  -v "${ROOT}":/app \
+  -w /src \
+  "${IMG}" \
+  /app/script/$(basename $0)

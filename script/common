@@ -2,8 +2,9 @@
 set -euo pipefail
 
 ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
-DOCKERCONF="${ROOT}/.dockerconfig"
 GO_VERSION="1.25.3"
+# .golangci.yml is a v1 config; a v2 binary refuses it outright.
+GOLANGCI_VERSION="1.64.6"
 
 getsha() {
   if uname -s | grep -i darwin &> /dev/null; then
@@ -13,32 +14,21 @@ getsha() {
   fi
 }
 
+# One multi-arch image, tagged by the hash of the Dockerfile it was built from,
+# in a registry this repo can actually publish to. Which architecture you get is
+# chosen at run time with --platform, not by the tag.
+BUILDER_REGISTRY="${SPORTSMATRIX_REGISTRY:-ghcr.io/parandandrd}"
+
 latestpibuilder() {
-  arch="$1"
-  buildos="${2:-bullseye}"
-  case "${arch}" in
-    amd64|x86_64)
-      arch=amd64
-      ;;
-    arm64)
-      arch=aarch64
-      ;;
-    *)
-    ;;
+  echo "${BUILDER_REGISTRY}/sportsmatrix-builder:$(getsha "${ROOT}/Dockerfile.pibuilder")"
+}
+
+dockerplatform() {
+  case "$1" in
+    aarch64|arm64)  echo "linux/arm64/v8" ;;
+    amd64|x86_64)   echo "linux/amd64" ;;
+    *)              echo "unsupported architecture for the builder image: $1" >&2; return 1 ;;
   esac
-  echo "robbydyer/pibuilder-${arch}-${buildos}:$(getsha "${ROOT}/Dockerfile.pibuilder")"
-}
-
-latestlinter() {
-  echo "robbydyer/rgbmatrixlint:$(getsha "${ROOT}/Dockerfile.lint")"
-}
-
-dockerlogin() {
-  if [ -d "${DOCKERCONF}" ]; then
-    return
-  fi
-  echo "Enter docker hub credentials:"
-  echo "${DOCKERHUB_PASS}" | docker --config="${DOCKERCONF}" login -u robbydyer --password-stdin
 }
 
 install_go() {

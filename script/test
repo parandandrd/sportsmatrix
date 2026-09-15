@@ -1,59 +1,49 @@
 #!/bin/bash
 set -euo pipefail
-set -x
 
 ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
 cd "${ROOT}"
-IN_DOCKER="${IN_DOCKER:-no}"
-SUFFIX="build"
-BUILDARCH="${BUILDARCH:-$(uname -m)}"
 
-if [ "${IN_DOCKER}" = "no" ]; then
-  source "${ROOT}/script/common"
-  pibuilder=$(latestpibuilder ${BUILDARCH})
+# This used to run inside a Docker image pulled from a registry this repo
+# cannot publish to, so editing that Dockerfile broke it with no way to build a
+# replacement. Everything the image actually supplied was a Go toolchain and a
+# C++ compiler, so run the tests directly instead.
 
-  docker run -t --rm \
-    -e IN_DOCKER=yes \
-    -v "${ROOT}":/src \
-    -w /src \
-    ${pibuilder} \
-    /src/script/$(basename $0)
-  exit
-fi
-
-# Inside docker
+for cmd in go make g++; do
+  command -v "${cmd}" >/dev/null || { echo "missing required command: ${cmd}" >&2; exit 1; }
+done
 
 export CGO_ENABLED=1
-export GOCACHE=/src/.cache
 
-set -x
-ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
+LIB="${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
+ASSETS="${ROOT}/internal/sportsmatrix/assets"
 
-# One trap, not two. bash replaces an EXIT trap when a second one is installed,
-# so the earlier "clean up the matrix library" trap used to be silently
-# discarded by the "clean up the dummy assets" trap below, leaving the library
-# behind in the workspace for whatever step ran next.
+# Only clear the assets directory if this script is the thing that created it;
+# a real web build may already be sitting there.
+# //go:embed assets needs something to embed. Only put a placeholder there,
+# and only clear it afterwards, if there is not already a real web build.
+MADE_ASSETS=no
+[ -d "${ASSETS}/web" ] || MADE_ASSETS=yes
+
 cleanup() {
-  rm -rf "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
-  rm -rf "${ROOT}/internal/sportsmatrix/assets"
+  rm -rf "${LIB}"
+  if [ "${MADE_ASSETS}" = "yes" ]; then
+    rm -rf "${ASSETS}"
+  fi
+  return 0
 }
 trap cleanup EXIT
 
 # Build the matrix library from the vendored source rather than reusing a
-# prebuilt archive from the builder image. The archives shipped in those images
-# were compiled against a newer glibc and libstdc++ than the image itself links
-# against, so linking the test binary fails on symbols like __isoc23_sscanf,
-# __isoc23_strtol and std::__throw_bad_array_new_length. Compiling it here costs
-# a couple of minutes and guarantees it matches the toolchain doing the link.
-# Any copy left over from an earlier step is discarded for the same reason.
-rm -rf "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
-cp -r "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix.BASE" \
-  "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix"
-make -C "${ROOT}/internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix/lib"
+# prebuilt archive. Archives compiled against a different glibc and libstdc++
+# than the toolchain doing the link fail on symbols like __isoc23_sscanf.
+rm -rf "${LIB}"
+cp -r "${LIB}.BASE" "${LIB}"
+make -C "${LIB}/lib"
 
-# Put some dummy assets here
-mkdir -p "${ROOT}/internal/sportsmatrix/assets/web"
-touch "${ROOT}/internal/sportsmatrix/assets/web/foo"
+if [ "${MADE_ASSETS}" = "yes" ]; then
+  mkdir -p "${ASSETS}/web"
+  touch "${ASSETS}/web/placeholder"
+fi
 
-cd /src
-go test -v -mod=vendor ./...
+go test -mod=vendor "$@" ./...

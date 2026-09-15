@@ -1,73 +1,40 @@
 #!/bin/bash
-# This script is used to build the docker image that is used to run builds.
+# Builds and publishes the cross-build image. CI does this automatically when
+# Dockerfile.pibuilder changes; run it by hand only to seed or debug the image.
+#
+# Publishing needs write access to the repo's GitHub Packages:
+#   echo "$GITHUB_TOKEN" | docker login ghcr.io -u <your-github-user> --password-stdin
+#
+# NOPUSH=1 builds locally without publishing.
 set -euo pipefail
 
 ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
-
+cd "${ROOT}"
 source "${ROOT}/script/common"
-BUILDARCH="${BUILDARCH:-all}"
+
 NOPUSH="${NOPUSH:-}"
+IMG="$(latestpibuilder)"
 
-dobuild() {
-  buildarch="$1"
-  cd "${ROOT}"
+if [ -n "${NOPUSH}" ]; then
+  # --load cannot handle a multi-platform manifest, so one platform only
+  PLATFORM="${PLATFORM:-$(dockerplatform "$(uname -m)")}"
+  OUT="--load"
+else
+  PLATFORM="${PLATFORM:-linux/amd64,linux/arm64/v8}"
+  OUT="--push"
+fi
 
-  case "${buildarch}" in
-    aarch64|arm64)
-      base="multiarch/debian-debootstrap:arm64-bullseye-slim"
-      ;;
-    armv7l|armhf|armv6l)
-      base="multiarch/debian-debootstrap:armhf-buster-slim"
-      ;;
-    armv6l)
-      base="ghcr.io/pi-hole/ftl-build:v1.16-armv6hf"
-      ;;
-    amd64|x86_64)
-      base="multiarch/debian-debootstrap:amd64-bullseye"
-      ;;
-    *)
-      echo "Unsupported arch ${buildarch}"
-      exit 1
-      ;;
-  esac
+# Install the emulators needed to build a foreign-architecture image
+docker run --privileged --rm tonistiigi/binfmt --install all
 
-  docker pull "${base}"
-
-  img=$(latestpibuilder ${buildarch})
-
-  platform="linux/amd64,linux/arm64/v8"
-  if [ -n "${NOPUSH:-}" ]; then
-    push="--load"
-    platform="linux/arm64/v8"
-  else
-    push="--push"
-    platform="linux/amd64,linux/arm64/v8"
-  fi
-
-  #if [ "$(docker images -q ${img})" = "" ]; then
-    echo "==> Building ${img}"
-    docker --config="${DOCKERCONF}" builder build -t "${img}" \
-      ${push} \
-      --builder=build \
-      -f Dockerfile.pibuilder \
-      --build-arg BASE=${base} \
-      --platform="${platform}" \
-      .
-  #fi
-}
-
-# Install qemu emulators
-docker run --privileged --rm tonistiigi/binfmt:qemu-v9.2.0 --install all
-
-dockerlogin
+docker buildx inspect sportsmatrix >/dev/null 2>&1 || \
+  docker buildx create --name=sportsmatrix --driver=docker-container
 
 set -x
-docker --config="${DOCKERCONF}" builder create --use --name=build --node=build
-
-if [ "${BUILDARCH}" = "all" ]; then
-  dobuild aarch64
-  dobuild armv7l
-  dobuild amd64
-else
-  dobuild "${BUILDARCH}"
-fi
+docker buildx build \
+  --builder=sportsmatrix \
+  --platform="${PLATFORM}" \
+  -f Dockerfile.pibuilder \
+  -t "${IMG}" \
+  ${OUT} \
+  .

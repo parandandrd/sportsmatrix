@@ -46,6 +46,7 @@ class TopNav extends React.Component {
 
                                 <NavDropDown.Item as={Link} to="/mlb">MLB</NavDropDown.Item>
                                 <NavDropDown.Item as={Link} to="/mls">MLS</NavDropDown.Item>
+                                <NavDropDown.Item as={Link} to="/nwsl">NWSL</NavDropDown.Item>
                                 <NavDropDown.Item as={Link} to="/nba">NBA</NavDropDown.Item>
                                 <NavDropDown.Item as={Link} to="/ncaaf">NCAAF</NavDropDown.Item>
                                 <NavDropDown.Item as={Link} to="/nhl">NHL</NavDropDown.Item>
@@ -64,8 +65,6 @@ class TopNav extends React.Component {
                                 <NavDropDown.Item as={Link} to="/laliga">La Liga</NavDropDown.Item>
                                 <NavDropDown.Item as={Link} to="/xfl">XFL</NavDropDown.Item>
                             </NavDropDown>
-                            <Nav.Link as={Link} to="/stocks">Stocks</Nav.Link>
-                            <Nav.Link as={Link} to="/weather">Weather</Nav.Link>
                             <NavDropDown bg="dark" variant="dark" title="Racing" id="racing-drop">
                                 <NavDropDown.Item as={Link} to="/f1">F1</NavDropDown.Item>
                                 <NavDropDown.Item as={Link} to="/irl">IndyCar</NavDropDown.Item>

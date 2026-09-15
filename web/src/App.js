@@ -20,32 +20,34 @@ class App extends React.Component {
           <TopNav />
           <Routes>
             <Route path="/" element={<All />} />
-            <Route path="/mlb" render={() => <Sport sport="mlb" id="mlb" key="mlb" withImg="true" />} />
-            <Route path="/ncaaf" render={() => <Sport sport="ncaaf" id="ncaaf" key="ncaaf" withImg="true" />} />
-            <Route path="/nhl" render={() => <Sport sport="nhl" id="nhl" key="nhl" withImg="true" />} />
-            <Route path="/ncaam" render={() => <Sport sport="ncaam" id="ncaam" key="ncaam" withImg="true" />} />
-            <Route path="/nfl" render={() => <Sport sport="nfl" id="nfl" key="nfl" withImg="true" />} />
-            <Route path="/nba" render={() => <Sport sport="nba" id="nba" key="nba" withImg="true" />} />
-            <Route path="/mls" render={() => <Sport sport="mls" id="mls" key="mls" withImg="true" />} />
-            <Route path="/epl" render={() => <Sport sport="epl" id="epl" key="epl" withImg="true" />} />
-            <Route path="/dfl" render={() => <Sport sport="dfl" id="dfl" key="dfl" withImg="true" />} />
-            <Route path="/dfb" render={() => <Sport sport="dfb" id="dfb" key="dfb" withImg="true" />} />
-            <Route path="/uefa" render={() => <Sport sport="uefa" id="uefa" key="uefa" withImg="true" />} />
-            <Route path="/fifa" render={() => <Sport sport="fifa" id="fifa" key="fifa" withImg="true" />} />
-            <Route path="/pga" render={() => <BasicBoard id="pga" name="pga" key="pga" path="stat/pga" withImg="true" />} />
-            <Route path="/img" render={() => <ImageBoard withImg="true" />} />
-            <Route path="/clock" render={() => <BasicBoard id="clock" name="clock" key="clock" withImg="true" />} />
-            <Route path="/sys" render={() => <BasicBoard id="sys" name="sys" key="sys" withImg="true" />} />
-            <Route path="/gcal" render={() => <BasicBoard id="gcal" name="gcal" key="gcal" withImg="true" />} />
-            <Route path="/board" exact component={Board} />
-            <Route path="/docs" exact component={() => <SwaggerUI spec={swag} />} />
-            <Route path="/f1" exact component={() => <Racing sport="f1" id="f1" key="f1" withImg="true" />} />
-            <Route path="/irl" exact component={() => <Racing sport="irl" id="irl" key="irl" withImg="true" />} />
-            <Route path="/ncaaw" render={() => <Sport sport="ncaaw" id="ncaaw" key="ncaaw" withImg="true" />} />
-            <Route path="/wnba" render={() => <Sport sport="wnba" id="wnba" key="wnba" withImg="true" />} />
-            <Route path="/ligue" render={() => <Sport sport="ligue" id="ligue" key="ligue" withImg="true" />} />
-            <Route path="/seriea" render={() => <Sport sport="seriea" id="seriea" key="seriea" withImg="true" />} />
-            <Route path="/laliga" render={() => <Sport sport="laliga" id="laliga" key="laliga" withImg="true" />} />
+            <Route path="/mlb" element={<Sport sport="mlb" id="mlb" key="mlb" withImg="true" />} />
+            <Route path="/ncaaf" element={<Sport sport="ncaaf" id="ncaaf" key="ncaaf" withImg="true" />} />
+            <Route path="/nhl" element={<Sport sport="nhl" id="nhl" key="nhl" withImg="true" />} />
+            <Route path="/ncaam" element={<Sport sport="ncaam" id="ncaam" key="ncaam" withImg="true" />} />
+            <Route path="/nfl" element={<Sport sport="nfl" id="nfl" key="nfl" withImg="true" />} />
+            <Route path="/nba" element={<Sport sport="nba" id="nba" key="nba" withImg="true" />} />
+            <Route path="/mls" element={<Sport sport="mls" id="mls" key="mls" withImg="true" />} />
+            <Route path="/epl" element={<Sport sport="epl" id="epl" key="epl" withImg="true" />} />
+            <Route path="/dfl" element={<Sport sport="dfl" id="dfl" key="dfl" withImg="true" />} />
+            <Route path="/dfb" element={<Sport sport="dfb" id="dfb" key="dfb" withImg="true" />} />
+            <Route path="/uefa" element={<Sport sport="uefa" id="uefa" key="uefa" withImg="true" />} />
+            <Route path="/fifa" element={<Sport sport="fifa" id="fifa" key="fifa" withImg="true" />} />
+            <Route path="/pga" element={<BasicBoard id="pga" name="pga" key="pga" path="stat/pga" withImg="true" />} />
+            <Route path="/img" element={<ImageBoard withImg="true" />} />
+            <Route path="/clock" element={<BasicBoard id="clock" name="clock" key="clock" withImg="true" />} />
+            <Route path="/sys" element={<BasicBoard id="sys" name="sys" key="sys" withImg="true" />} />
+            <Route path="/gcal" element={<BasicBoard id="gcal" name="gcal" key="gcal" withImg="true" />} />
+            <Route path="/board" element={<Board />} />
+            <Route path="/docs" element={<SwaggerUI spec={swag} />} />
+            <Route path="/f1" element={<Racing sport="f1" id="f1" key="f1" withImg="true" />} />
+            <Route path="/irl" element={<Racing sport="irl" id="irl" key="irl" withImg="true" />} />
+            <Route path="/ncaaw" element={<Sport sport="ncaaw" id="ncaaw" key="ncaaw" withImg="true" />} />
+            <Route path="/wnba" element={<Sport sport="wnba" id="wnba" key="wnba" withImg="true" />} />
+            <Route path="/ligue" element={<Sport sport="ligue" id="ligue" key="ligue" withImg="true" />} />
+            <Route path="/seriea" element={<Sport sport="seriea" id="seriea" key="seriea" withImg="true" />} />
+            <Route path="/laliga" element={<Sport sport="laliga" id="laliga" key="laliga" withImg="true" />} />
+            <Route path="/xfl" element={<Sport sport="xfl" id="xfl" key="xfl" withImg="true" />} />
+            <Route path="/nwsl" element={<Sport sport="nwsl" id="nwsl" key="nwsl" withImg="true" />} />
           </Routes>
         </BrowserRouter>
         <hr />

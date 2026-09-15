@@ -19,16 +19,43 @@ mkdir -p DEBIAN etc/systemd/system usr/local/bin etc/logrotate.d
 cp "${ROOT}/sportsmatrix.${BUILDARCH}" usr/local/bin/sportsmatrix
 chmod 755 usr/local/bin/sportsmatrix
 
-cat <<EOF > DEBIAN/control
-Package: sportsmatrix
-Version: ${VERSION}
-Section: custom
-Priority: optional
-Architecture: all
-Essential: no
-Maintainer: https://github.com/robbydyer/sports
-Description: Live sports driver for RGB LED matrix
-EOF
+# Architecture was "all", which claims the package runs anywhere. It is an
+# arch-specific binary, so dpkg would happily install the arm64 build on a
+# 32-bit Pi and leave it to fail at exec time.
+case "${BUILDARCH}" in
+  aarch64|arm64) DEB_ARCH=arm64 ;;
+  armv7l|armhf)  DEB_ARCH=armhf ;;
+  x86_64|amd64)  DEB_ARCH=amd64 ;;
+  *)             DEB_ARCH=all ;;
+esac
+
+# The package declared no dependencies at all, so a Pi with an older glibc than
+# the builder installed it cleanly and then died with "GLIBC_x.yz not found" in
+# the journal, with nothing anywhere saying why. Read the floor off the binary
+# rather than assuming the build host's version: it is the highest versioned
+# symbol actually referenced, which is normally lower and therefore lets the
+# package install on more systems, not fewer.
+LIBC_MIN="$(objdump -T usr/local/bin/sportsmatrix 2>/dev/null \
+  | grep -o 'GLIBC_[0-9]\+\.[0-9]\+\(\.[0-9]\+\)\?' \
+  | sed 's/GLIBC_//' \
+  | sort -uV \
+  | tail -1 || true)"
+
+{
+  echo "Package: sportsmatrix"
+  echo "Version: ${VERSION}"
+  echo "Section: custom"
+  echo "Priority: optional"
+  echo "Architecture: ${DEB_ARCH}"
+  echo "Essential: no"
+  if [ -n "${LIBC_MIN}" ]; then
+    echo "Depends: libc6 (>= ${LIBC_MIN})"
+  fi
+  echo "Maintainer: https://github.com/parandandrd/sportsmatrix"
+  echo "Description: Live sports driver for RGB LED matrix"
+} > DEBIAN/control
+
+echo "=> ${DEB_ARCH} package, libc6 floor: ${LIBC_MIN:-not determined}"
 
 cat <<EOF > etc/systemd/system/sportsmatrix.service
 [Unit]

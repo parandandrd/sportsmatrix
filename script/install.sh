@@ -53,7 +53,7 @@ done
 # ---------------------------------------------------------------- architecture
 case "$(dpkg --print-architecture)" in
   arm64)  ASSET_ARCH="aarch64" ;;
-  armhf)  ASSET_ARCH="armv7l" ;;
+  armhf)  die "this needs 64-bit Raspberry Pi OS. Your Pi reports armhf (32-bit); reflash with the 64-bit image." ;;
   armel)  die "armv6 Pis are not supported. You need a Pi 3, 4, or Zero 2." ;;
   *)      die "unsupported architecture: $(dpkg --print-architecture)" ;;
 esac

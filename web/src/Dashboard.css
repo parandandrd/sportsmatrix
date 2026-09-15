@@ -1,0 +1,266 @@
+:root {
+    --sm-bg: #10131a;
+    --sm-panel: #1a1f2b;
+    --sm-panel-hi: #222839;
+    --sm-line: #2c3448;
+    --sm-text: #e8ecf5;
+    --sm-dim: #8b96ad;
+    --sm-on: #34d399;
+    --sm-off: #4a5468;
+    --sm-accent: #5b9dff;
+}
+
+.dash {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 12px 16px 48px;
+    color: var(--sm-text);
+}
+
+/* Preview ------------------------------------------------------------- */
+
+.preview {
+    background: #000;
+    border: 1px solid var(--sm-line);
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 90px;
+}
+
+.preview img {
+    display: block;
+    width: 100%;
+    height: auto;
+    /* the loading frame is square and would otherwise tower over the page */
+    max-height: 260px;
+    object-fit: contain;
+    /* the panel is a handful of pixels wide -- keep them square, not smeared */
+    image-rendering: pixelated;
+}
+
+.preview-note {
+    color: var(--sm-dim);
+    font-size: 12px;
+    margin: 6px 2px 0;
+}
+
+/* Controls ------------------------------------------------------------ */
+
+.section {
+    margin-top: 22px;
+}
+
+.section h2 {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sm-dim);
+    margin: 0 0 10px 2px;
+    font-weight: 600;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.btn-sm-matrix {
+    flex: 1 1 auto;
+    min-width: 116px;
+    background: var(--sm-panel);
+    border: 1px solid var(--sm-line);
+    color: var(--sm-text);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.btn-sm-matrix:hover:not(:disabled) {
+    background: var(--sm-panel-hi);
+}
+
+.btn-sm-matrix:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.btn-sm-matrix.danger {
+    border-color: #6b2a35;
+    color: #ff9aa8;
+}
+
+/* Board rows ---------------------------------------------------------- */
+
+.boards {
+    border: 1px solid var(--sm-line);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--sm-panel);
+}
+
+.board-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    border-top: 1px solid var(--sm-line);
+}
+
+.board-row:first-child {
+    border-top: none;
+}
+
+.board-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: none;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.board-name:disabled {
+    cursor: default;
+}
+
+.board-tag {
+    color: var(--sm-dim);
+    font-size: 11px;
+    border: 1px solid var(--sm-line);
+    border-radius: 999px;
+    padding: 1px 7px;
+    flex: 0 0 auto;
+}
+
+.board-jump {
+    background: none;
+    border: 1px solid var(--sm-line);
+    color: var(--sm-dim);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.board-jump:hover {
+    color: var(--sm-text);
+}
+
+/* the toggle: a plain checkbox styled as a switch, no library needed */
+.switch {
+    position: relative;
+    flex: 0 0 auto;
+    width: 42px;
+    height: 24px;
+}
+
+.switch input {
+    position: absolute;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    cursor: pointer;
+}
+
+.switch span {
+    position: absolute;
+    inset: 0;
+    background: var(--sm-off);
+    border-radius: 999px;
+    transition: background 120ms ease;
+    pointer-events: none;
+}
+
+.switch span::after {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 120ms ease;
+}
+
+.switch input:checked+span {
+    background: var(--sm-on);
+}
+
+.switch input:checked+span::after {
+    transform: translateX(18px);
+}
+
+.switch input:focus-visible+span {
+    outline: 2px solid var(--sm-accent);
+    outline-offset: 2px;
+}
+
+.board-settings {
+    border-top: 1px solid var(--sm-line);
+    background: var(--sm-bg);
+    padding: 6px 4px 12px;
+}
+
+.board-panel-empty {
+    color: var(--sm-dim);
+    font-size: 13px;
+    margin: 12px;
+}
+
+.dash-msg {
+    color: var(--sm-dim);
+    font-size: 13px;
+    padding: 14px 12px;
+}
+
+.dash-msg.error {
+    color: #ff9aa8;
+}
+
+.board-logo {
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+}
+
+/* the nav and the board settings still come from bootstrap; keep them from
+   dropping a white panel into a dark page */
+.navbar .dropdown-menu {
+    background-color: var(--sm-panel);
+    border: 1px solid var(--sm-line);
+}
+
+.navbar .dropdown-item {
+    color: var(--sm-text);
+}
+
+.navbar .dropdown-item:hover,
+.navbar .dropdown-item:focus {
+    background-color: var(--sm-panel-hi);
+    color: var(--sm-text);
+}
+
+.board-settings .btn-primary {
+    background-color: var(--sm-panel-hi);
+    border-color: var(--sm-line);
+}
+
+.board-settings .form-check-input:checked {
+    background-color: var(--sm-on);
+    border-color: var(--sm-on);
+}

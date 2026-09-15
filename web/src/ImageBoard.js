@@ -55,7 +55,7 @@ class ImageBoard extends React.Component {
 
     doJump = async () => {
         await JumpToBoard("img");
-        this.props.doSync();
+        this.props.doSync?.();
     }
     render() {
         var img = (

@@ -15,6 +15,7 @@ service Sportsmatrix {
        rpc RestartService(google.protobuf.Empty) returns (google.protobuf.Empty);
        rpc SetLiveOnly(LiveOnlyReq) returns (google.protobuf.Empty);
        rpc ListBoards(google.protobuf.Empty) returns (ListBoardsResp);
+       rpc SetBoardEnabled(SetBoardEnabledReq) returns (google.protobuf.Empty);
 }
 
 message VersionResp {
@@ -50,8 +51,22 @@ message BoardInfo {
     // in_between marks boards that render between the others rather than
     // taking their own turn in the rotation
     bool in_between = 3;
+    // rpc_path is where this board mounts its own service, trailing slash
+    // included, e.g. "/nhl/sport.v1.Sport/". The service name in it says what
+    // kind of board this is, so a client can drive a board's own settings
+    // without a hardcoded table of leagues. Empty for a board with no service.
+    string rpc_path = 4;
 }
 
 message ListBoardsResp {
     repeated BoardInfo boards = 1;
+}
+
+// SetBoardEnabledReq turns a single board on or off by name. SetAll is all or
+// nothing, and every other way to toggle one board runs through that board's
+// own service, which means knowing its kind and RPC path first.
+message SetBoardEnabledReq {
+    // name as ListBoards reports it. Matched case-insensitively, like Jump.
+    string name = 1;
+    bool enabled = 2;
 }

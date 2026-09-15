@@ -302,6 +302,32 @@
         }
       }
     },
+    "/matrix.v1.Sportsmatrix/ListBoards": {
+      "post": {
+        "tags": [
+          "Sportsmatrix"
+        ],
+        "operationId": "ListBoards",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_google.protobuf.Empty"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_ListBoardsResp"
+            }
+          }
+        }
+      }
+    },
     "/matrix.v1.Sportsmatrix/NextBoard": {
       "post": {
         "tags": [
@@ -432,6 +458,32 @@
         }
       }
     },
+    "/matrix.v1.Sportsmatrix/SetBoardEnabled": {
+      "post": {
+        "tags": [
+          "Sportsmatrix"
+        ],
+        "operationId": "SetBoardEnabled",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_SetBoardEnabledReq"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_google.protobuf.Empty"
+            }
+          }
+        }
+      }
+    },
     "/matrix.v1.Sportsmatrix/SetLiveOnly": {
       "post": {
         "tags": [
@@ -471,58 +523,6 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/matrix.v1_Status"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/matrix.v1_google.protobuf.Empty"
-            }
-          }
-        }
-      }
-    },
-    "/matrix.v1.Sportsmatrix/SlowDown": {
-      "post": {
-        "tags": [
-          "Sportsmatrix"
-        ],
-        "operationId": "SlowDown",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/matrix.v1_google.protobuf.Empty"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/matrix.v1_google.protobuf.Empty"
-            }
-          }
-        }
-      }
-    },
-    "/matrix.v1.Sportsmatrix/SpeedUp": {
-      "post": {
-        "tags": [
-          "Sportsmatrix"
-        ],
-        "operationId": "SpeedUp",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/matrix.v1_google.protobuf.Empty"
             }
           }
         ],
@@ -626,13 +626,10 @@
       }
     },
     "board.v1_Status": {
-      "description": "Fields: enabled, scroll_enabled",
+      "description": "Fields: enabled",
       "type": "object",
       "properties": {
         "enabled": {
-          "type": "boolean"
-        },
-        "scroll_enabled": {
           "type": "boolean"
         }
       }
@@ -668,7 +665,7 @@
       }
     },
     "imageboard.v1_Status": {
-      "description": "Fields: enabled, diskcache_enabled, memcache_enabled, scroll_enabled",
+      "description": "Fields: enabled, diskcache_enabled, memcache_enabled",
       "type": "object",
       "properties": {
         "diskcache_enabled": {
@@ -678,9 +675,6 @@
           "type": "boolean"
         },
         "memcache_enabled": {
-          "type": "boolean"
-        },
-        "scroll_enabled": {
           "type": "boolean"
         }
       }
@@ -704,13 +698,10 @@
       }
     },
     "racing.v1_Status": {
-      "description": "Fields: enabled, scroll_enabled",
+      "description": "Fields: enabled",
       "type": "object",
       "properties": {
         "enabled": {
-          "type": "boolean"
-        },
-        "scroll_enabled": {
           "type": "boolean"
         }
       }
@@ -734,7 +725,7 @@
       }
     },
     "sport.v1_Status": {
-      "description": "Fields: enabled, favorite_hidden, favorite_sticky, scroll_enabled, tight_scroll_enabled, record_rank_enabled, odds_enabled, use_gradient, live_only, detailed_live, show_league_logo",
+      "description": "Fields: enabled, favorite_hidden, favorite_sticky, record_rank_enabled, use_gradient, live_only, detailed_live, show_league_logo",
       "type": "object",
       "properties": {
         "detailed_live": {
@@ -752,19 +743,10 @@
         "live_only": {
           "type": "boolean"
         },
-        "odds_enabled": {
-          "type": "boolean"
-        },
         "record_rank_enabled": {
           "type": "boolean"
         },
-        "scroll_enabled": {
-          "type": "boolean"
-        },
         "show_league_logo": {
-          "type": "boolean"
-        },
-        "tight_scroll_enabled": {
           "type": "boolean"
         },
         "use_gradient": {
@@ -781,12 +763,43 @@
         }
       }
     },
+    "matrix.v1_BoardInfo": {
+      "description": "Fields: name, enabled, in_between",
+      "type": "object",
+      "title": "Board describes a board that this instance was configured with. Boards are only constructed when their config section is present, so this is the set that actually exists, not everything the binary knows how to render.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "enabled is the board's current state, which the API can change at runtime"
+        },
+        "in_between": {
+          "type": "boolean",
+          "title": "in_between marks boards that render between the others rather than taking their own turn in the rotation"
+        },
+        "name": {
+          "type": "string",
+          "title": "name as the board reports it, which is what Jump expects"
+        }
+      }
+    },
     "matrix.v1_JumpReq": {
       "description": "Fields: board",
       "type": "object",
       "properties": {
         "board": {
           "type": "string"
+        }
+      }
+    },
+    "matrix.v1_ListBoardsResp": {
+      "description": "Fields: boards",
+      "type": "object",
+      "properties": {
+        "boards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/matrix.v1_BoardInfo"
+          }
         }
       }
     },
@@ -805,6 +818,20 @@
       "properties": {
         "enabled": {
           "type": "boolean"
+        }
+      }
+    },
+    "matrix.v1_SetBoardEnabledReq": {
+      "description": "Fields: name, enabled",
+      "type": "object",
+      "title": "SetBoardEnabledReq turns a single board on or off by name. SetAll is all or nothing, and every other way to toggle one board runs through that board's own service, which means knowing its kind and RPC path first.",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "name": {
+          "type": "string",
+          "title": "name as ListBoards reports it. Matched case-insensitively, like Jump."
         }
       }
     },

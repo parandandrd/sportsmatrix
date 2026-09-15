@@ -20,15 +20,18 @@ for full in $(find proto -name '*.proto' | sort | uniq); do
   cd "${ROOT}"
 done
 
+# gsed on macOS, plain sed everywhere else
+SED="$(command -v gsed || command -v sed)"
+
 src="${ROOT}/web/src/matrix.swagger.json"
 cat "${ROOT}"/docs-base/* | jq -s 'reduce .[] as $item ({}; . * $item)' > "${src}"
 
-gsed -i 's,/twirp/matrix.v1.Sportsmatrix,/matrix.v1.Sportsmatrix,g' "${src}"
-gsed -i 's,/twirp/board.v1.BasicBoard,/stocks/board.v1.BasicBoard,g' "${src}"
-gsed -i 's,/twirp/racing.v1.Racing,/f1/racing.v1.Racing,g' "${src}"
-gsed -i 's,"title": "weatherboard.proto","title": "Sportsmatrix API",g' "${src}"
-gsed -i 's,/twirp/imageboard,/imageboard,g' "${src}"
-gsed -i 's,/twirp/sport.v1,/nhl/sport.v1,g' "${src}"
-gsed -i 's,/twirp/weather,/weather,g' "${src}"
-gsed -i 's/"BasicBoard"/"BasicBoard - includes stocks, pga, clock, sys"/g' "${src}"
-gsed -i 's/"Sport"/"Sport - nhl, mlb, nfl, ncaaf, ncaam, epl, mls, nba, ncaaw, wnba, ligue, seriea, laliga"/g' "${src}"
+"${SED}" -i 's,/twirp/matrix.v1.Sportsmatrix,/matrix.v1.Sportsmatrix,g' "${src}"
+"${SED}" -i 's,/twirp/board.v1.BasicBoard,/stocks/board.v1.BasicBoard,g' "${src}"
+"${SED}" -i 's,/twirp/racing.v1.Racing,/f1/racing.v1.Racing,g' "${src}"
+"${SED}" -i 's,"title": "weatherboard.proto","title": "Sportsmatrix API",g' "${src}"
+"${SED}" -i 's,/twirp/imageboard,/imageboard,g' "${src}"
+"${SED}" -i 's,/twirp/sport.v1,/nhl/sport.v1,g' "${src}"
+"${SED}" -i 's,/twirp/weather,/weather,g' "${src}"
+"${SED}" -i 's/"BasicBoard"/"BasicBoard - includes stocks, pga, clock, sys"/g' "${src}"
+"${SED}" -i 's/"Sport"/"Sport - nhl, mlb, nfl, ncaaf, ncaam, epl, mls, nba, ncaaw, wnba, ligue, seriea, laliga"/g' "${src}"

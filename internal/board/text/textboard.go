@@ -176,8 +176,17 @@ func (s *TextBoard) InBetween() bool {
 }
 
 // Name ...
+//
+// Every headline board used to answer "Texts", so a setup with headlines on
+// for three leagues had three boards under one name. Jump, and anything else
+// addressing a board by name, could only ever reach the first of them.
 func (s *TextBoard) Name() string {
-	return "Texts"
+	prfx := strings.ReplaceAll(s.api.HTTPPathPrefix(), "/", "")
+	if prfx == "" {
+		return "Headlines"
+	}
+
+	return fmt.Sprintf("%s Headlines", strings.ToUpper(prfx))
 }
 
 func (s *TextBoard) enablerCancel(ctx context.Context, cancel context.CancelFunc) {

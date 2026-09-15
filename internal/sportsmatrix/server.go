@@ -2,7 +2,9 @@ package sportsmatrix
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"strings"
 	"syscall"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/emptypb"
 
+	"github.com/robbydyer/sports/internal/board"
 	sportboard "github.com/robbydyer/sports/internal/board/sport"
 	pb "github.com/robbydyer/sports/internal/proto/sportsmatrix"
 )
@@ -54,22 +57,64 @@ func (s *Server) ListBoards(ctx context.Context, req *emptypb.Empty) (*pb.ListBo
 		Boards: make([]*pb.BoardInfo, 0, len(s.sm.boards)+len(s.sm.betweenBoards)),
 	}
 
+	info := func(b board.Board, inBetween bool) *pb.BoardInfo {
+		// the path a board mounts its own service on is the only thing that
+		// says what kind of board it is; Name is a display name, and for the
+		// sport boards it is the league's full name rather than its slug.
+		path, h := b.GetRPCHandler()
+		if h == nil {
+			path = ""
+		}
+
+		return &pb.BoardInfo{
+			Name:      b.Name(),
+			Enabled:   b.Enabler().Enabled(),
+			InBetween: inBetween,
+			RpcPath:   path,
+		}
+	}
+
 	for _, b := range s.sm.boards {
-		resp.Boards = append(resp.Boards, &pb.BoardInfo{
-			Name:    b.Name(),
-			Enabled: b.Enabler().Enabled(),
-		})
+		resp.Boards = append(resp.Boards, info(b, false))
 	}
 
 	for _, b := range s.sm.betweenBoards {
-		resp.Boards = append(resp.Boards, &pb.BoardInfo{
-			Name:      b.Name(),
-			Enabled:   b.Enabler().Enabled(),
-			InBetween: true,
-		})
+		resp.Boards = append(resp.Boards, info(b, true))
 	}
 
 	return resp, nil
+}
+
+// SetBoardEnabled turns a single board on or off by the name ListBoards
+// reports. SetAll is all or nothing, and every other route to one board's
+// enabled state runs through that board's own service, so a caller has to know
+// the board's kind and RPC path before it can flip a switch. Matching is
+// case-insensitive, like Jump.
+func (s *Server) SetBoardEnabled(ctx context.Context, req *pb.SetBoardEnabledReq) (*emptypb.Empty, error) {
+	s.sm.Lock()
+	defer s.sm.Unlock()
+
+	found := false
+
+	for _, group := range [][]board.Board{s.sm.boards, s.sm.betweenBoards} {
+		for _, b := range group {
+			if !strings.EqualFold(b.Name(), req.Name) {
+				continue
+			}
+			found = true
+			if req.Enabled {
+				b.Enabler().Enable()
+			} else {
+				b.Enabler().Disable()
+			}
+		}
+	}
+
+	if !found {
+		return nil, twirp.NewError(twirp.NotFound, fmt.Sprintf("no board named %q", req.Name))
+	}
+
+	return &emptypb.Empty{}, nil
 }
 
 // SetAll ...

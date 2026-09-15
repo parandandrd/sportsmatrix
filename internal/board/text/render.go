@@ -2,10 +2,12 @@ package textboard
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
+	"io/fs"
 	"strings"
 
 	"go.uber.org/zap"
@@ -51,6 +53,14 @@ func (s *TextBoard) renderLogo(ctx context.Context, canvas board.Canvas) error {
 
 	i, err := l.GetThumbnail(ctx, zeroed)
 	if err != nil {
+		// As in the sport board: a league with no bundled logo renders its
+		// headlines without one instead of erroring every cycle.
+		if errors.Is(err, fs.ErrNotExist) {
+			s.log.Warn("no logo asset for league, rendering headlines without it",
+				zap.String("league", s.api.HTTPPathPrefix()),
+			)
+			return nil
+		}
 		return err
 	}
 

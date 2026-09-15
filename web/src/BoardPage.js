@@ -29,7 +29,7 @@ export default function BoardPage() {
     return (
         <div className="dash">
             <div className="section">
-                <h2><Link to="/" className="board-jump">Back</Link></h2>
+                <p className="back"><Link to="/">&larr; All boards</Link></p>
                 {state === 'loading' ? <p className="dash-msg">Loading...</p> : null}
                 {state === 'error' ? <p className="dash-msg error">Could not reach the matrix.</p> : null}
                 {state === 'missing'

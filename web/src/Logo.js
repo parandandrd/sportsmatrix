@@ -25,14 +25,13 @@ import liguelogo from './ligue.png';
 import seriealogo from './seriea.png';
 import laligalogo from './laliga.png';
 import xfllogo from './xfl.png';
+import nwsllogo from './nwsl.png';
 
 export function LogoSrc(sport) {
     if (sport === "nhl") {
         return nhllogo
     } else if (sport === "ncaam") {
         return ncaamlogo
-    } else if (sport === "nhl") {
-        return nhllogo
     } else if (sport === "mlb") {
         return mlblogo
     } else if (sport === "nba") {
@@ -83,5 +82,7 @@ export function LogoSrc(sport) {
         return laligalogo
     } else if (sport === "xfl") {
         return xfllogo
+    } else if (sport === "nwsl") {
+        return nwsllogo
     }
 }

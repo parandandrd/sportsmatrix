@@ -250,6 +250,32 @@
         }
       }
     },
+    "/matrix.v1.Sportsmatrix/GetBoardSettings": {
+      "post": {
+        "tags": [
+          "Sportsmatrix"
+        ],
+        "operationId": "GetBoardSettings",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_BoardSettingsReq"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_BoardSettings"
+            }
+          }
+        }
+      }
+    },
     "/matrix.v1.Sportsmatrix/GetSettings": {
       "post": {
         "tags": [
@@ -523,6 +549,32 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/matrix.v1_SetBoardOrderReq"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_google.protobuf.Empty"
+            }
+          }
+        }
+      }
+    },
+    "/matrix.v1.Sportsmatrix/SetBoardSettings": {
+      "post": {
+        "tags": [
+          "Sportsmatrix"
+        ],
+        "operationId": "SetBoardSettings",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_BoardSettings"
             }
           }
         ],
@@ -898,6 +950,63 @@
         }
       }
     },
+    "matrix.v1_BoardSettings": {
+      "description": "Fields: name, has_board_delay, board_delay, min_board_delay, has_teams, watch_teams, favorite_teams, teams",
+      "type": "object",
+      "title": "BoardSettings are the settings of one board that can be changed while it runs. A board has only some of them, and the has_ fields say which. Setting them saves them to the config file.",
+      "properties": {
+        "board_delay": {
+          "type": "string",
+          "title": "how long the board shows for, as a duration such as \"15s\" or \"1m30s\". A sport board shows each game for this long. Left empty, it is unchanged."
+        },
+        "favorite_teams": {
+          "type": "array",
+          "title": "the teams whose scores can be hidden, and whose live games can be stuck to",
+          "items": {
+            "type": "string"
+          }
+        },
+        "has_board_delay": {
+          "type": "boolean"
+        },
+        "has_teams": {
+          "type": "boolean",
+          "title": "set has_teams to change watch_teams and favorite_teams"
+        },
+        "min_board_delay": {
+          "type": "string",
+          "title": "the least board_delay can be. Only in answers."
+        },
+        "name": {
+          "type": "string",
+          "title": "name as ListBoards reports it"
+        },
+        "teams": {
+          "type": "array",
+          "title": "the league's teams, to choose from. Only in answers.",
+          "items": {
+            "$ref": "#/definitions/matrix.v1_Team"
+          }
+        },
+        "watch_teams": {
+          "type": "array",
+          "title": "the teams whose games are shown: abbreviations, or ALL, a conference or a ranking such as TOP25. None is the same as ALL.",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "matrix.v1_BoardSettingsReq": {
+      "description": "Fields: name",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "name as ListBoards reports it"
+        }
+      }
+    },
     "matrix.v1_JumpReq": {
       "description": "Fields: board",
       "type": "object",
@@ -1027,6 +1136,18 @@
         },
         "webboard_on": {
           "type": "boolean"
+        }
+      }
+    },
+    "matrix.v1_Team": {
+      "description": "Fields: abbreviation, name",
+      "type": "object",
+      "properties": {
+        "abbreviation": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
         }
       }
     },

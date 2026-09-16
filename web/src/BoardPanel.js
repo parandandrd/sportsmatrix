@@ -3,6 +3,7 @@ import Sport from './Sport.js';
 import Racing from './Racing.js';
 import ImageBoard from './ImageBoard.js';
 import BasicBoard from './BasicBoard.js';
+import BoardSettings from './BoardSettings.js';
 
 // BoardPanel renders the settings for one board. Which component to use comes
 // from the board's own RPC path, reported by ListBoards, so nothing here has to
@@ -12,6 +13,15 @@ import BasicBoard from './BasicBoard.js';
 // has stats or headlines boards at all, so the panel doesn't ask services that
 // aren't there.
 export default function BoardPanel({ board, group, onChange, onError }) {
+    return (
+        <>
+            <BoardSettings board={board} onError={onError} />
+            <Panel board={board} group={group} onChange={onChange} onError={onError} />
+        </>
+    );
+}
+
+function Panel({ board, group, onChange, onError }) {
     const sync = onChange || (() => { });
     const has = (prefix) => (group ? group.subs.some((b) => b.path.startsWith(prefix)) : undefined);
 

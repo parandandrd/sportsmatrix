@@ -7,11 +7,16 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
+	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"go.uber.org/zap"
 
 	"github.com/parandandrd/sportsmatrix/internal/board"
+	sportboard "github.com/parandandrd/sportsmatrix/internal/board/sport"
 	"github.com/parandandrd/sportsmatrix/internal/conffile"
 	pb "github.com/parandandrd/sportsmatrix/internal/proto/sportsmatrix"
 )
@@ -182,6 +187,9 @@ func (s *SportsMatrix) setBoardOrder(sections []string) error {
 }
 
 var (
+	errUnknownBoard   = errors.New("no such board")
+	errNoSuchSetting  = errors.New("that board doesn't have that setting")
+	errBadDelay       = errors.New("not a display time that board can have")
 	errUnknownSection = errors.New("unknown section")
 	errBadSchedule    = errors.New("not a cron schedule")
 	errBadBrightness  = errors.New("brightness goes from 1 to 100")
@@ -407,4 +415,152 @@ func (r *recorder) copyTo(w http.ResponseWriter) {
 	}
 	w.WriteHeader(r.code)
 	_, _ = w.Write(r.body.Bytes())
+}
+
+// findBoard is the board with a name, matched as Jump matches it.
+func (s *SportsMatrix) findBoard(name string) board.Board {
+	s.Lock()
+	defer s.Unlock()
+
+	for _, group := range [][]board.Board{s.boards, s.betweenBoards} {
+		for _, b := range group {
+			if strings.EqualFold(b.Name(), name) {
+				return b
+			}
+		}
+	}
+
+	return nil
+}
+
+// defaultMinDelay is the least time a board without a floor of its own can
+// be shown for.
+const defaultMinDelay = 5 * time.Second
+
+func minDelay(b board.Board) time.Duration {
+	if m, ok := b.(board.DelayMinimum); ok {
+		return m.MinBoardDelay()
+	}
+	return defaultMinDelay
+}
+
+// formatDelay writes a display time the way people write them in the config
+// file: "10s", "1m30s", "2m" rather than time.Duration's "2m0s".
+func formatDelay(d time.Duration) string {
+	minutes, seconds := d/time.Minute, (d % time.Minute).Seconds()
+	switch {
+	case minutes == 0:
+		return strconv.FormatFloat(seconds, 'f', -1, 64) + "s"
+	case seconds == 0:
+		return fmt.Sprintf("%dm", minutes)
+	default:
+		return fmt.Sprintf("%dm%ss", minutes, strconv.FormatFloat(seconds, 'f', -1, 64))
+	}
+}
+
+func (s *SportsMatrix) boardSettings(ctx context.Context, name string) (*pb.BoardSettings, error) {
+	b := s.findBoard(name)
+	if b == nil {
+		return nil, fmt.Errorf("%w called %q", errUnknownBoard, name)
+	}
+
+	out := &pb.BoardSettings{Name: b.Name()}
+
+	if d, ok := b.(board.DelaySetter); ok {
+		out.HasBoardDelay = true
+		out.BoardDelay = formatDelay(d.BoardDelay())
+		out.MinBoardDelay = formatDelay(minDelay(b))
+	}
+
+	if sb, ok := b.(*sportboard.SportBoard); ok {
+		out.HasTeams = true
+		out.WatchTeams, out.FavoriteTeams = sb.Teams()
+
+		// The teams are the league's own, fetched and kept by the board's API,
+		// so a slow answer here is not worth failing the rest over.
+		tctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		teams, err := sb.TeamChoices(tctx)
+		if err != nil {
+			s.log.Warn("failed to list teams for board settings", zap.String("board", b.Name()), zap.Error(err))
+		}
+		// ESPN's leagues list their teams from more than one endpoint, and the
+		// same team comes back from each
+		seen := make(map[string]bool, len(teams))
+		for _, t := range teams {
+			if seen[t.GetAbbreviation()] {
+				continue
+			}
+			seen[t.GetAbbreviation()] = true
+			out.Teams = append(out.Teams, &pb.Team{Abbreviation: t.GetAbbreviation(), Name: t.GetDisplayName()})
+		}
+		sort.Slice(out.Teams, func(i, j int) bool { return out.Teams[i].Name < out.Teams[j].Name })
+	}
+
+	return out, nil
+}
+
+func (s *SportsMatrix) setBoardSettings(req *pb.BoardSettings) error {
+	b := s.findBoard(req.Name)
+	if b == nil {
+		return fmt.Errorf("%w called %q", errUnknownBoard, req.Name)
+	}
+
+	s.settingsLock.Lock()
+	defer s.settingsLock.Unlock()
+
+	var edits []conffile.Edit
+
+	if req.BoardDelay != "" {
+		d, ok := b.(board.DelaySetter)
+		if !ok {
+			return fmt.Errorf("%w: %s has no display time", errNoSuchSetting, b.Name())
+		}
+		delay, err := time.ParseDuration(req.BoardDelay)
+		if err != nil || delay < minDelay(b) || delay > time.Hour {
+			return fmt.Errorf("%w: %q for %s, which takes from %s to 1h", errBadDelay, req.BoardDelay, b.Name(), formatDelay(minDelay(b)))
+		}
+		if delay != d.BoardDelay() {
+			d.SetBoardDelay(delay)
+			if e := s.boardEdit(b, "boardDelay", formatDelay(delay)); e != nil {
+				edits = append(edits, *e)
+			}
+		}
+	}
+
+	if req.HasTeams {
+		sb, ok := b.(*sportboard.SportBoard)
+		if !ok {
+			return fmt.Errorf("%w: %s has no teams", errNoSuchSetting, b.Name())
+		}
+		watchBefore, favoriteBefore := sb.Teams()
+		if sb.SetTeams(teamList(req.WatchTeams), teamList(req.FavoriteTeams)) {
+			watch, favorite := sb.Teams()
+			if !slices.Equal(watch, watchBefore) {
+				if e := s.boardEdit(b, "watchTeams", watch); e != nil {
+					edits = append(edits, *e)
+				}
+			}
+			if !slices.Equal(favorite, favoriteBefore) {
+				if e := s.boardEdit(b, "favoriteTeams", favorite); e != nil {
+					edits = append(edits, *e)
+				}
+			}
+		}
+	}
+
+	return s.save(edits...)
+}
+
+// teamList tidies a list of teams as typed: abbreviations are matched as the
+// league writes them, which is in capitals.
+func teamList(teams []string) []string {
+	out := []string{}
+	for _, t := range teams {
+		t = strings.ToUpper(strings.TrimSpace(t))
+		if t != "" && !slices.Contains(out, t) {
+			out = append(out, t)
+		}
+	}
+	return out
 }

@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"image/draw"
 	"math"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -40,16 +41,19 @@ type OptionFunc func(s *SportBoard) error
 
 // SportBoard implements board.Board
 type SportBoard struct {
-	config               *Config
-	api                  API
-	cachedLiveGames      map[int]Game
-	logos                map[string]*logo.Logo
-	log                  *zap.Logger
-	logoDrawCache        map[string]image.Image
-	scoreWriters         map[string]*rgbrender.TextWriter
-	timeWriters          map[string]*rgbrender.TextWriter
-	teamInfoWidths       map[string]map[string]int
-	watchTeams           []string
+	config          *Config
+	api             API
+	cachedLiveGames map[int]Game
+	logos           map[string]*logo.Logo
+	log             *zap.Logger
+	logoDrawCache   map[string]image.Image
+	scoreWriters    map[string]*rgbrender.TextWriter
+	timeWriters     map[string]*rgbrender.TextWriter
+	teamInfoWidths  map[string]map[string]int
+	watchTeams      []string
+	// teamsLock guards watchTeams and the config's WatchTeams and FavoriteTeams,
+	// which can change while every canvas renders the board
+	teamsLock            sync.RWMutex
 	teamInfoLock         sync.RWMutex
 	writerLock           sync.Mutex
 	drawLock             sync.RWMutex
@@ -74,7 +78,7 @@ type Todayer func() []time.Time
 // Config ...
 type Config struct {
 	TodayFunc            Todayer
-	boardDelay           time.Duration
+	boardDelay           atomic.Duration
 	stickyDelay          *time.Duration
 	TimeColor            color.Color
 	ScoreColor           color.Color
@@ -161,15 +165,7 @@ type Game interface {
 
 // SetDefaults sets config defaults
 func (c *Config) SetDefaults() {
-	if c.BoardDelay != "" {
-		d, err := time.ParseDuration(c.BoardDelay)
-		if err != nil {
-			c.boardDelay = 10 * time.Second
-		}
-		c.boardDelay = d
-	} else {
-		c.boardDelay = 10 * time.Second
-	}
+	c.boardDelay.Store(board.ParseDelay(c.BoardDelay, 10*time.Second))
 
 	if c.TimeColor == nil {
 		c.TimeColor = color.White
@@ -238,9 +234,9 @@ func New(ctx context.Context, api API, bounds image.Rectangle, today *time.Time,
 		s.enabler.Enable()
 	}
 
-	if s.config.boardDelay < 10*time.Second {
+	if s.config.boardDelay.Load() < 10*time.Second {
 		s.log.Warn("cannot set sportboard delay below 10 sec")
-		s.config.boardDelay = 10 * time.Second
+		s.config.boardDelay.Store(10 * time.Second)
 	}
 
 	// If today is not nil, it means we're testing a given date.
@@ -384,6 +380,58 @@ func (s *SportBoard) ScrollMode() bool {
 }
 
 // SetLiveOnly sets this board to show only live games or not
+// BoardDelay is how long each game shows for.
+func (s *SportBoard) BoardDelay() time.Duration {
+	return s.config.boardDelay.Load()
+}
+
+// SetBoardDelay changes how long each game shows for, from the next time it shows.
+func (s *SportBoard) SetBoardDelay(d time.Duration) {
+	s.config.boardDelay.Store(d)
+}
+
+// MinBoardDelay is the least time each game can show for.
+func (s *SportBoard) MinBoardDelay() time.Duration {
+	return 10 * time.Second
+}
+
+// Teams are the teams the board watches, and the ones it treats as favorites,
+// as they are set: "ALL", a conference or a ranking as well as abbreviations.
+func (s *SportBoard) Teams() ([]string, []string) {
+	s.teamsLock.RLock()
+	defer s.teamsLock.RUnlock()
+	return append([]string{}, s.config.WatchTeams...), append([]string{}, s.config.FavoriteTeams...)
+}
+
+// SetTeams changes the teams the board watches and its favorites while it
+// runs, and reports whether that changed anything. Watching nobody is
+// watching everybody, as it is in the config file.
+func (s *SportBoard) SetTeams(watch []string, favorite []string) bool {
+	if len(watch) == 0 {
+		watch = []string{"ALL"}
+	}
+
+	s.teamsLock.Lock()
+	changed := !slices.Equal(watch, s.config.WatchTeams) || !slices.Equal(favorite, s.config.FavoriteTeams)
+	s.config.WatchTeams = append([]string{}, watch...)
+	s.config.FavoriteTeams = append([]string{}, favorite...)
+	// worked out again from the new list on the next render
+	s.watchTeams = nil
+	s.teamsLock.Unlock()
+
+	if changed {
+		s.clearDrawCache()
+		s.callCancelBoard()
+	}
+
+	return changed
+}
+
+// TeamChoices are the league's teams, to pick watched teams and favorites from.
+func (s *SportBoard) TeamChoices(ctx context.Context) ([]Team, error) {
+	return s.api.GetTeams(ctx)
+}
+
 // SetLiveOnly reports whether that changed anything.
 func (s *SportBoard) SetLiveOnly(live bool) bool {
 	if s.config.LiveOnly.CompareAndSwap(!live, live) {
@@ -486,6 +534,7 @@ func (s *SportBoard) render(ctx context.Context, canvas board.Canvas) error {
 	}
 
 	// Determine which games are watched so that the game counter is accurate
+	s.teamsLock.Lock()
 	if len(s.watchTeams) < 1 {
 		s.log.Debug("fetching watch teams",
 			zap.String("league", s.api.League()),
@@ -496,6 +545,8 @@ func (s *SportBoard) render(ctx context.Context, canvas board.Canvas) error {
 			zap.Strings("teams", s.watchTeams),
 		)
 	}
+	watchTeams := s.watchTeams
+	s.teamsLock.Unlock()
 
 	var games []Game
 OUTER:
@@ -516,7 +567,7 @@ OUTER:
 			zap.String("away", away.GetAbbreviation()),
 			zap.String("away ID", away.GetID()),
 		)
-		for _, watchTeamID := range s.watchTeams {
+		for _, watchTeamID := range watchTeams {
 			if home.GetID() == watchTeamID || away.GetID() == watchTeamID {
 				isLive, err := game.IsLive()
 				if err != nil {
@@ -595,7 +646,7 @@ OUTER:
 		s.log.Error("error while loading live game data for first game", zap.Error(err))
 	}
 
-	preloaderTimeout := s.config.boardDelay + (10 * time.Second)
+	preloaderTimeout := s.config.boardDelay.Load() + (10 * time.Second)
 
 	defer func() { _ = canvas.Clear() }()
 
@@ -609,7 +660,7 @@ OUTER:
 		select {
 		case <-s.renderCtx.Done():
 			return context.Canceled
-		case <-time.After(s.config.boardDelay):
+		case <-time.After(s.config.boardDelay.Load()):
 		}
 	}
 
@@ -696,7 +747,7 @@ GAMES:
 			select {
 			case <-s.renderCtx.Done():
 				return context.Canceled
-			case <-time.After(s.config.boardDelay):
+			case <-time.After(s.config.boardDelay.Load()):
 			}
 
 			if !(isFav && s.config.FavoriteSticky.Load()) {
@@ -742,7 +793,7 @@ func (s *SportBoard) renderGrid(ctx context.Context, canvas board.Canvas, games 
 
 	numCells := len(grid.Cells())
 	numGrids := int(math.Ceil(float64(len(games)) / float64(numCells)))
-	totalDelay := int(s.config.boardDelay.Seconds()) * len(games)
+	totalDelay := int(s.config.boardDelay.Load().Seconds()) * len(games)
 
 	if numGrids == 0 {
 		numGrids = 1

@@ -177,6 +177,9 @@ func (s *SportBoard) isFavoriteGame(game Game) (bool, error) {
 }
 
 func (s *SportBoard) isFavorite(abbrev string) bool {
+	s.teamsLock.RLock()
+	defer s.teamsLock.RUnlock()
+
 	for _, a := range s.config.FavoriteTeams {
 		if abbrev == a {
 			return true

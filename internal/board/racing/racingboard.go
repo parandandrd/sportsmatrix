@@ -44,7 +44,7 @@ type Todayer func() []time.Time
 // Config ...
 type Config struct {
 	TodayFunc          Todayer
-	boardDelay         time.Duration
+	boardDelay         atomic.Duration
 	StartEnabled       *atomic.Bool `json:"enabled"`
 	BoardDelay         string       `json:"boardDelay"`
 	OnTimes            []string     `json:"onTimes"`
@@ -68,15 +68,7 @@ type Event struct {
 
 // SetDefaults sets config defaults
 func (c *Config) SetDefaults() {
-	if c.BoardDelay != "" {
-		d, err := time.ParseDuration(c.BoardDelay)
-		if err != nil {
-			c.boardDelay = 10 * time.Second
-		}
-		c.boardDelay = d
-	} else {
-		c.boardDelay = 10 * time.Second
-	}
+	c.boardDelay.Store(board.ParseDelay(c.BoardDelay, 10*time.Second))
 
 	if c.StartEnabled == nil {
 		c.StartEnabled = atomic.NewBool(false)
@@ -101,9 +93,9 @@ func New(api API, logger *zap.Logger, config *Config) (*RacingBoard, error) {
 		zap.String("board name", s.Name()),
 	)
 
-	if s.config.boardDelay < 10*time.Second {
+	if s.config.boardDelay.Load() < 10*time.Second {
 		s.log.Warn("cannot set sportboard delay below 10 sec")
-		s.config.boardDelay = 10 * time.Second
+		s.config.boardDelay.Store(10 * time.Second)
 	}
 
 	if s.config.TodayFunc == nil {
@@ -175,4 +167,19 @@ func (s *RacingBoard) GetHTTPHandlers() ([]*board.HTTPHandler, error) {
 // GetRPCHandler ...
 func (s *RacingBoard) GetRPCHandler() (string, http.Handler) {
 	return s.rpcServer.PathPrefix(), s.rpcServer
+}
+
+// BoardDelay is how long each event shows for.
+func (s *RacingBoard) BoardDelay() time.Duration {
+	return s.config.boardDelay.Load()
+}
+
+// SetBoardDelay changes how long each event shows for, from the next time it shows.
+func (s *RacingBoard) SetBoardDelay(d time.Duration) {
+	s.config.boardDelay.Store(d)
+}
+
+// MinBoardDelay is the least time each event can show for.
+func (s *RacingBoard) MinBoardDelay() time.Duration {
+	return 10 * time.Second
 }

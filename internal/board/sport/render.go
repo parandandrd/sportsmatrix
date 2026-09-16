@@ -854,7 +854,7 @@ func (s *SportBoard) renderNoScheduled(ctx context.Context, canvas board.Canvas)
 	select {
 	case <-ctx.Done():
 		return context.Canceled
-	case <-time.After(s.config.boardDelay / 2):
+	case <-time.After(s.config.boardDelay.Load() / 2):
 		return nil
 	}
 }

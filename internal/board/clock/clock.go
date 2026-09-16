@@ -37,7 +37,7 @@ type Clock struct {
 
 // Config is a Clock configuration
 type Config struct {
-	boardDelay   time.Duration
+	boardDelay   atomic.Duration
 	StartEnabled *atomic.Bool `json:"enabled"`
 	BoardDelay   string       `json:"boardDelay"`
 	OnTimes      []string     `json:"onTimes"`
@@ -48,15 +48,7 @@ type Config struct {
 
 // SetDefaults ...
 func (c *Config) SetDefaults() {
-	if c.BoardDelay != "" {
-		var err error
-		c.boardDelay, err = time.ParseDuration(c.BoardDelay)
-		if err != nil {
-			c.boardDelay = 10 * time.Second
-		}
-	} else {
-		c.boardDelay = 10 * time.Second
-	}
+	c.boardDelay.Store(board.ParseDelay(c.BoardDelay, 10*time.Second))
 
 	if c.StartEnabled == nil {
 		c.StartEnabled = atomic.NewBool(false)
@@ -250,7 +242,7 @@ func (c *Clock) render(ctx context.Context, canvas board.Canvas) error {
 	select {
 	case <-ctx.Done():
 		return context.Canceled
-	case <-time.After(c.config.boardDelay):
+	case <-time.After(c.config.boardDelay.Load()):
 	}
 
 	return nil
@@ -317,4 +309,14 @@ func (c *Clock) getWriter(canvasHeight int) (*rgbrender.TextWriter, error) {
 	c.textWriters[canvasHeight].YStartCorrection = -3
 
 	return c.textWriters[canvasHeight], nil
+}
+
+// BoardDelay is how long the clock shows for.
+func (c *Clock) BoardDelay() time.Duration {
+	return c.config.boardDelay.Load()
+}
+
+// SetBoardDelay changes how long the clock shows for, from the next time it shows.
+func (c *Clock) SetBoardDelay(d time.Duration) {
+	c.config.boardDelay.Store(d)
 }

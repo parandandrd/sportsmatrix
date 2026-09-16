@@ -67,7 +67,7 @@ type ImageDirectory struct {
 
 // Config ...
 type Config struct {
-	boardDelay    time.Duration
+	boardDelay    atomic.Duration
 	BoardDelay    string            `json:"boardDelay"`
 	StartEnabled  *atomic.Bool      `json:"enabled"`
 	Directories   []string          `json:"directories"`
@@ -88,16 +88,7 @@ type img struct {
 
 // SetDefaults sets some Config defaults
 func (c *Config) SetDefaults() {
-	if c.BoardDelay != "" {
-		d, err := time.ParseDuration(c.BoardDelay)
-		if err == nil {
-			c.boardDelay = d
-		} else {
-			c.boardDelay = 10 * time.Second
-		}
-	} else {
-		c.boardDelay = 10 * time.Second
-	}
+	c.boardDelay.Store(board.ParseDelay(c.BoardDelay, 10*time.Second))
 
 	if c.StartEnabled == nil {
 		c.StartEnabled = atomic.NewBool(false)
@@ -430,7 +421,7 @@ IMAGES:
 
 		if img.isGif {
 			i.log.Debug("playing GIF", zap.String("path", p))
-			gifCtx, gifCancel := context.WithTimeout(ctx, i.config.boardDelay)
+			gifCtx, gifCancel := context.WithTimeout(ctx, i.config.boardDelay.Load())
 			defer gifCancel()
 
 			if err := rgbrender.PlayGIF(gifCtx, canvas, img.gif); err != nil {
@@ -467,7 +458,7 @@ IMAGES:
 		select {
 		case <-ctx.Done():
 			return context.Canceled
-		case <-time.After(i.config.boardDelay):
+		case <-time.After(i.config.boardDelay.Load()):
 		}
 
 		if jump != "" {
@@ -698,4 +689,14 @@ func (i *ImageBoard) validateDirectories() error {
 // SetJumper sets the jumper function
 func (i *ImageBoard) SetJumper(j Jumper) {
 	i.jumper = j
+}
+
+// BoardDelay is how long each image shows for.
+func (i *ImageBoard) BoardDelay() time.Duration {
+	return i.config.boardDelay.Load()
+}
+
+// SetBoardDelay changes how long each image shows for, from the next time it shows.
+func (i *ImageBoard) SetBoardDelay(d time.Duration) {
+	i.config.boardDelay.Store(d)
 }

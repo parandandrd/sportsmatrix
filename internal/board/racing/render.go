@@ -87,7 +87,7 @@ EVENTS:
 		select {
 		case <-ctx.Done():
 			return context.Canceled
-		case <-time.After(s.config.boardDelay):
+		case <-time.After(s.config.boardDelay.Load()):
 		}
 	}
 

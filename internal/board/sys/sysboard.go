@@ -41,7 +41,7 @@ type SysBoard struct {
 
 // Config ...
 type Config struct {
-	boardDelay   time.Duration
+	boardDelay   atomic.Duration
 	StartEnabled *atomic.Bool `json:"enabled"`
 	BoardDelay   string       `json:"boardDelay"`
 	OnTimes      []string     `json:"onTimes"`
@@ -50,15 +50,7 @@ type Config struct {
 
 // SetDefaults ...
 func (c *Config) SetDefaults() {
-	if c.BoardDelay != "" {
-		var err error
-		c.boardDelay, err = time.ParseDuration(c.BoardDelay)
-		if err != nil {
-			c.boardDelay = 10 * time.Second
-		}
-	} else {
-		c.boardDelay = 10 * time.Second
-	}
+	c.boardDelay.Store(board.ParseDelay(c.BoardDelay, 10*time.Second))
 
 	if c.StartEnabled == nil {
 		c.StartEnabled = atomic.NewBool(false)
@@ -212,7 +204,7 @@ func (s *SysBoard) Render(ctx context.Context, canvas board.Canvas) error {
 
 	select {
 	case <-ctx.Done():
-	case <-time.After(s.config.boardDelay):
+	case <-time.After(s.config.boardDelay.Load()):
 	}
 
 	return nil
@@ -277,4 +269,14 @@ func getCPUTemp() (int, error) {
 	}
 
 	return t / 1000, nil
+}
+
+// BoardDelay is how long the system board shows for.
+func (s *SysBoard) BoardDelay() time.Duration {
+	return s.config.boardDelay.Load()
+}
+
+// SetBoardDelay changes how long the system board shows for, from the next time it shows.
+func (s *SysBoard) SetBoardDelay(d time.Duration) {
+	s.config.boardDelay.Store(d)
 }

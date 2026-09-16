@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { BACKEND, CallRPC, MatrixPostRet, SetBoardEnabled, JumpToBoard } from './util';
 import { GroupBoards, MoveSection, RefreshBoards, SubLabel, useBoards } from './boards';
 import BoardPanel from './BoardPanel.js';
+import MatrixSettings from './MatrixSettings.js';
 import { LogoSrc } from './Logo';
 import './Dashboard.css';
 
@@ -314,6 +315,8 @@ export default function Dashboard() {
                 </div>
                 {problem ? <p className="dash-msg error" role="alert">{problem}</p> : null}
             </div>
+
+            <MatrixSettings />
 
             {error ? <p className="dash-msg error">Could not reach the matrix: {error}</p> : null}
             {!error && boards === null ? <p className="dash-msg">Loading...</p> : null}

@@ -17,6 +17,9 @@ service Sportsmatrix {
        rpc ListBoards(google.protobuf.Empty) returns (ListBoardsResp);
        rpc SetBoardEnabled(SetBoardEnabledReq) returns (google.protobuf.Empty);
        rpc SetBoardOrder(SetBoardOrderReq) returns (google.protobuf.Empty);
+       rpc GetSettings(google.protobuf.Empty) returns (Settings);
+       rpc SetBrightness(SetBrightnessReq) returns (google.protobuf.Empty);
+       rpc SetScreenSchedule(ScreenSchedule) returns (google.protobuf.Empty);
 }
 
 message VersionResp {
@@ -88,4 +91,26 @@ message SetBoardOrderReq {
     // sections as ListBoards reports them, in the order wanted. The sections
     // named trade the places they had; any left out stay where they are.
     repeated string sections = 1;
+}
+
+// Settings are the matrix-wide settings that can be changed while it runs.
+message Settings {
+    // brightness of the panel, from 1 to 100
+    int32 brightness = 1;
+    ScreenSchedule screen_schedule = 2;
+    // config_file is where changes are saved. Empty when the matrix was
+    // started without one, and changes last until it restarts.
+    string config_file = 3;
+}
+
+message SetBrightnessReq {
+    // from 1 to 100, taking effect at once
+    int32 brightness = 1;
+}
+
+// ScreenSchedule is when the screen turns itself on and off, as cron
+// expressions: "30 7 * * *" is half past seven every day.
+message ScreenSchedule {
+    repeated string on_times = 1;
+    repeated string off_times = 2;
 }

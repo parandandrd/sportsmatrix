@@ -31,6 +31,7 @@ import (
 	"github.com/parandandrd/sportsmatrix/internal/conffile"
 	"github.com/parandandrd/sportsmatrix/internal/enabler"
 	pb "github.com/parandandrd/sportsmatrix/internal/proto/sportsmatrix"
+	rgb "github.com/parandandrd/sportsmatrix/internal/rgbmatrix-rpi"
 )
 
 // pathBoard is a board that mounts a service at a given path, which is all
@@ -328,4 +329,82 @@ func TestBoardOrder(t *testing.T) {
 	_, err = (&Server{sm: noFile}).SetBoardOrder(context.Background(), &pb.SetBoardOrderReq{Sections: []string{"nhlConfig"}})
 	require.ErrorAs(t, err, &twerr)
 	require.Equal(t, twirp.FailedPrecondition, twerr.Code())
+}
+
+// brightCanvas is a canvas that drives LEDs, as far as brightness goes.
+type brightCanvas struct {
+	board.Canvas
+	brightness int
+}
+
+func (c *brightCanvas) SetBrightness(b int) { c.brightness = b }
+
+func TestBrightnessAndScreenSchedule(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	logger := zaptest.NewLogger(t, zaptest.Level(zapcore.FatalLevel))
+
+	dat, err := os.ReadFile("../../sportsmatrix.conf.example")
+	require.NoError(t, err)
+	path := filepath.Join(t.TempDir(), "sportsmatrix.conf")
+	require.NoError(t, os.WriteFile(path, dat, 0o644))
+
+	cfg := &Config{
+		WebBoardWidth:  1,
+		ScreenOnTimes:  []string{"0 19 * * *"},
+		ScreenOffTimes: []string{"0 0 * * *"},
+		HardwareConfig: &rgb.HardwareConfig{Brightness: 60},
+	}
+	leds := &brightCanvas{Canvas: board.NewBlankCanvas(1, 1, logger)}
+	b := &TestBoard{log: logger, hasRendered: atomic.NewBool(false), enabler: enabler.New()}
+
+	s, err := New(ctx, logger, cfg, []board.Canvas{leds}, b)
+	require.NoError(t, err)
+	s.SetConfigFile(conffile.New(path))
+	require.Len(t, s.cron.Entries(), 2)
+
+	svr := &Server{sm: s}
+	saved := func() string {
+		t.Helper()
+		out, err := os.ReadFile(path)
+		require.NoError(t, err)
+		return string(out)
+	}
+
+	_, err = svr.SetBrightness(ctx, &pb.SetBrightnessReq{Brightness: 35})
+	require.NoError(t, err)
+	require.Equal(t, 35, leds.brightness, "straight to the panel")
+	require.Contains(t, saved(), "  hardwareConfig:\n    cols: 64\n    rows: 32\n\n    # 1 to 100. Make sure your power supply is sufficient\n    brightness: 35\n")
+
+	var twerr twirp.Error
+	_, err = svr.SetBrightness(ctx, &pb.SetBrightnessReq{Brightness: 0})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.InvalidArgument, twerr.Code())
+	require.Equal(t, 35, leds.brightness)
+
+	_, err = svr.SetScreenSchedule(ctx, &pb.ScreenSchedule{
+		OnTimes:  []string{"30 7 * * *"},
+		OffTimes: []string{"0 23 * * 0-4", "@midnight"},
+	})
+	require.NoError(t, err)
+	require.Len(t, s.cron.Entries(), 3, "the old jobs are replaced, not added to")
+	require.Contains(t, saved(), "  screenOffTimes:\n  - \"0 23 * * 0-4\"\n  - \"@midnight\"\n")
+	require.Contains(t, saved(), "  screenOnTimes:\n  - \"30 7 * * *\"\n")
+
+	before := saved()
+	_, err = svr.SetScreenSchedule(ctx, &pb.ScreenSchedule{OnTimes: []string{"30 7 * *"}})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.InvalidArgument, twerr.Code())
+	require.Contains(t, twerr.Msg(), `"30 7 * *"`)
+	require.Len(t, s.cron.Entries(), 3, "a bad schedule leaves the jobs alone")
+	require.Equal(t, before, saved(), "and the file")
+
+	got, err := svr.GetSettings(ctx, nil)
+	require.NoError(t, err)
+	require.Equal(t, int32(35), got.Brightness)
+	require.Equal(t, []string{"30 7 * * *"}, got.ScreenSchedule.OnTimes)
+	require.Equal(t, []string{"0 23 * * 0-4", "@midnight"}, got.ScreenSchedule.OffTimes)
+	require.Equal(t, path, got.ConfigFile)
 }

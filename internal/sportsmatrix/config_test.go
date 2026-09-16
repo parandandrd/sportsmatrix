@@ -32,3 +32,22 @@ func TestDefaultsDoNotAliasPackageDefaults(t *testing.T) {
 	require.Equal(t, cols, rgb.DefaultConfig.Cols)
 	require.Equal(t, daemon, rgb.DefaultRuntimeOptions.Daemon)
 }
+
+// Defaults turned a brightness of 100 into 60, to tone down the library's
+// default, and so overrode a config that asked for 100 on purpose. Setting 100
+// from the web UI would have come back as 60 after a restart.
+func TestDefaultsKeepAChosenBrightness(t *testing.T) {
+	t.Parallel()
+
+	chosen := &Config{HardwareConfig: &rgb.HardwareConfig{Brightness: 100}}
+	chosen.Defaults()
+	require.Equal(t, 100, chosen.HardwareConfig.Brightness)
+
+	unset := &Config{HardwareConfig: &rgb.HardwareConfig{}}
+	unset.Defaults()
+	require.Equal(t, 60, unset.HardwareConfig.Brightness)
+
+	none := &Config{}
+	none.Defaults()
+	require.Equal(t, 60, none.HardwareConfig.Brightness)
+}

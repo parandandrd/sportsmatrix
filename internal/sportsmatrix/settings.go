@@ -13,6 +13,7 @@ import (
 
 	"github.com/parandandrd/sportsmatrix/internal/board"
 	"github.com/parandandrd/sportsmatrix/internal/conffile"
+	pb "github.com/parandandrd/sportsmatrix/internal/proto/sportsmatrix"
 )
 
 // SetConfigFile gives the matrix the config file it was started from, so that
@@ -180,7 +181,77 @@ func (s *SportsMatrix) setBoardOrder(sections []string) error {
 	return nil
 }
 
-var errUnknownSection = errors.New("unknown section")
+var (
+	errUnknownSection = errors.New("unknown section")
+	errBadSchedule    = errors.New("not a cron schedule")
+	errBadBrightness  = errors.New("brightness goes from 1 to 100")
+)
+
+// settings are the matrix-wide settings as they are now.
+func (s *SportsMatrix) settings() *pb.Settings {
+	s.settingsLock.Lock()
+	defer s.settingsLock.Unlock()
+
+	out := &pb.Settings{
+		Brightness: int32(s.cfg.HardwareConfig.Brightness),
+		ScreenSchedule: &pb.ScreenSchedule{
+			OnTimes:  append([]string{}, s.cfg.ScreenOnTimes...),
+			OffTimes: append([]string{}, s.cfg.ScreenOffTimes...),
+		},
+	}
+	if s.configFile != nil {
+		out.ConfigFile = s.configFile.Path()
+	}
+
+	return out
+}
+
+// brightnessSetter is a canvas that drives real LEDs.
+type brightnessSetter interface {
+	SetBrightness(int)
+}
+
+func (s *SportsMatrix) setBrightness(brightness int) error {
+	if brightness < 1 || brightness > 100 {
+		return errBadBrightness
+	}
+
+	s.settingsLock.Lock()
+	defer s.settingsLock.Unlock()
+
+	for _, c := range s.canvases {
+		if b, ok := c.(brightnessSetter); ok {
+			b.SetBrightness(brightness)
+		}
+	}
+	s.cfg.HardwareConfig.Brightness = brightness
+
+	return s.save(conffile.Edit{
+		Path:  []string{"sportsMatrixConfig", "hardwareConfig", "brightness"},
+		Value: brightness,
+	})
+}
+
+func (s *SportsMatrix) setScreenSchedule(on, off []string) error {
+	s.settingsLock.Lock()
+	defer s.settingsLock.Unlock()
+
+	if on == nil {
+		on = []string{}
+	}
+	if off == nil {
+		off = []string{}
+	}
+
+	if err := s.scheduleScreen(on, off); err != nil {
+		return err
+	}
+
+	return s.save(
+		conffile.Edit{Path: []string{"sportsMatrixConfig", "screenOnTimes"}, Value: on},
+		conffile.Edit{Path: []string{"sportsMatrixConfig", "screenOffTimes"}, Value: off},
+	)
+}
 
 // setEnabled turns boards on or off and saves each one whose state changed.
 // A board already in the state asked for leaves its config alone, so turning

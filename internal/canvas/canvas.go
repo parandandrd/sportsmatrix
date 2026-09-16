@@ -37,6 +37,11 @@ func (c *Canvas) Name() string {
 	return "RGB Canvas"
 }
 
+// SetBrightness sets the panel's brightness, from 1 to 100, while it runs.
+func (c *Canvas) SetBrightness(brightness int) {
+	c.m.SetBrightness(brightness)
+}
+
 // Scrollable ...
 func (c *Canvas) Scrollable() bool {
 	return false

@@ -56,6 +56,8 @@ type SportsMatrix struct {
 	serveContext       context.Context
 	webBoardCancel     context.CancelFunc
 	liveOnly           *atomic.Bool
+	cron               *cron.Cron
+	screenJobs         []cron.EntryID
 	boardSections      map[board.Board]string
 	sectionOrder       map[string]int
 	configFile         *conffile.File
@@ -103,6 +105,8 @@ func (c *Config) Defaults() {
 		c.HardwareConfig = &hw
 		c.HardwareConfig.Cols = 64
 		c.HardwareConfig.Rows = 32
+		// the library's default is full brightness, which is too much
+		c.HardwareConfig.Brightness = 60
 	}
 
 	if c.HardwareConfig.Rows == 0 {
@@ -111,8 +115,10 @@ func (c *Config) Defaults() {
 	if c.HardwareConfig.Cols == 0 {
 		c.HardwareConfig.Cols = 64
 	}
-	// The defaults do 100, but that's too much
-	if c.HardwareConfig.Brightness == 0 || c.HardwareConfig.Brightness == 100 {
+	// Only a brightness nobody set. This used to turn 100 into 60 too, meant
+	// for the library default above, which also overrode a config that asked
+	// for 100 on purpose.
+	if c.HardwareConfig.Brightness == 0 {
 		c.HardwareConfig.Brightness = 60
 	}
 	if c.HardwareConfig.HardwareMapping == "" {
@@ -182,11 +188,33 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config, canvases []board.
 		b.Enabler().SetStateChangeCallback(s.notifyBoardStateChange)
 	}
 
-	c := cron.New()
+	s.cron = cron.New()
+	if err := s.scheduleScreen(s.cfg.ScreenOnTimes, s.cfg.ScreenOffTimes); err != nil {
+		return nil, err
+	}
+	s.cron.Start()
 
-	for _, off := range s.cfg.ScreenOffTimes {
-		s.log.Info("Screen will be scheduled to turn off", zap.String("turn off", off))
-		_, err := c.AddFunc(off, func() {
+	return s, nil
+}
+
+// scheduleScreen replaces the jobs that turn the screen on and off. Every
+// expression is checked before any job is touched, so a bad one leaves the
+// schedule as it was. Callers other than New hold settingsLock.
+func (s *SportsMatrix) scheduleScreen(on, off []string) error {
+	for _, spec := range append(append([]string(nil), on...), off...) {
+		if _, err := cron.ParseStandard(spec); err != nil {
+			return fmt.Errorf("%w: %q: %w", errBadSchedule, spec, err)
+		}
+	}
+
+	for _, id := range s.screenJobs {
+		s.cron.Remove(id)
+	}
+	s.screenJobs = nil
+
+	for _, spec := range off {
+		s.log.Info("Screen will be scheduled to turn off", zap.String("turn off", spec))
+		id, err := s.cron.AddFunc(spec, func() {
 			s.log.Warn("Turning screen off!")
 			if err := s.ScreenOff(context.Background()); err != nil {
 				s.log.Error("failed to turn screen off during ScreenOfftimes",
@@ -195,12 +223,13 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config, canvases []board.
 			}
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to add cron for screen off times: %w", err)
+			return fmt.Errorf("failed to add cron for screen off times: %w", err)
 		}
+		s.screenJobs = append(s.screenJobs, id)
 	}
-	for _, on := range s.cfg.ScreenOnTimes {
-		s.log.Info("Screen will be scheduled to turn on", zap.String("turn on", on))
-		_, err := c.AddFunc(on, func() {
+	for _, spec := range on {
+		s.log.Info("Screen will be scheduled to turn on", zap.String("turn on", spec))
+		id, err := s.cron.AddFunc(spec, func() {
 			s.log.Warn("Turning screen on!")
 			if err := s.ScreenOn(context.Background()); err != nil {
 				s.log.Error("failed to turn screen on during ScreenOnTimes",
@@ -209,12 +238,15 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config, canvases []board.
 			}
 		})
 		if err != nil {
-			return nil, fmt.Errorf("failed to add cron for screen on times: %w", err)
+			return fmt.Errorf("failed to add cron for screen on times: %w", err)
 		}
+		s.screenJobs = append(s.screenJobs, id)
 	}
-	c.Start()
 
-	return s, nil
+	s.cfg.ScreenOnTimes = on
+	s.cfg.ScreenOffTimes = off
+
+	return nil
 }
 
 // SetBoardSections records which top-level config file section each board was

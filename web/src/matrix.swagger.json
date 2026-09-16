@@ -250,6 +250,32 @@
         }
       }
     },
+    "/matrix.v1.Sportsmatrix/GetSettings": {
+      "post": {
+        "tags": [
+          "Sportsmatrix"
+        ],
+        "operationId": "GetSettings",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_google.protobuf.Empty"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_Settings"
+            }
+          }
+        }
+      }
+    },
     "/matrix.v1.Sportsmatrix/GetStatus": {
       "post": {
         "tags": [
@@ -510,6 +536,32 @@
         }
       }
     },
+    "/matrix.v1.Sportsmatrix/SetBrightness": {
+      "post": {
+        "tags": [
+          "Sportsmatrix"
+        ],
+        "operationId": "SetBrightness",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_SetBrightnessReq"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_google.protobuf.Empty"
+            }
+          }
+        }
+      }
+    },
     "/matrix.v1.Sportsmatrix/SetLiveOnly": {
       "post": {
         "tags": [
@@ -523,6 +575,32 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/matrix.v1_LiveOnlyReq"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_google.protobuf.Empty"
+            }
+          }
+        }
+      }
+    },
+    "/matrix.v1.Sportsmatrix/SetScreenSchedule": {
+      "post": {
+        "tags": [
+          "Sportsmatrix"
+        ],
+        "operationId": "SetScreenSchedule",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_ScreenSchedule"
             }
           }
         ],
@@ -851,6 +929,25 @@
         }
       }
     },
+    "matrix.v1_ScreenSchedule": {
+      "description": "Fields: on_times, off_times",
+      "type": "object",
+      "title": "ScreenSchedule is when the screen turns itself on and off, as cron expressions: \"30 7 * * *\" is half past seven every day.",
+      "properties": {
+        "off_times": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "on_times": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "matrix.v1_SetAllReq": {
       "description": "Fields: enabled",
       "type": "object",
@@ -885,6 +982,36 @@
           "items": {
             "type": "string"
           }
+        }
+      }
+    },
+    "matrix.v1_SetBrightnessReq": {
+      "description": "Fields: brightness",
+      "type": "object",
+      "properties": {
+        "brightness": {
+          "type": "integer",
+          "format": "int32",
+          "title": "from 1 to 100, taking effect at once"
+        }
+      }
+    },
+    "matrix.v1_Settings": {
+      "description": "Fields: brightness, screen_schedule, config_file",
+      "type": "object",
+      "title": "Settings are the matrix-wide settings that can be changed while it runs.",
+      "properties": {
+        "brightness": {
+          "type": "integer",
+          "format": "int32",
+          "title": "brightness of the panel, from 1 to 100"
+        },
+        "config_file": {
+          "type": "string",
+          "title": "config_file is where changes are saved. Empty when the matrix was started without one, and changes last until it restarts."
+        },
+        "screen_schedule": {
+          "$ref": "#/definitions/matrix.v1_ScreenSchedule"
         }
       }
     },

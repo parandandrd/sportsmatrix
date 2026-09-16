@@ -32,6 +32,7 @@ type SportsMatrix struct {
 	webBoardOn         chan struct{}
 	webBoardOff        chan struct{}
 	serveBlock         chan struct{}
+	boardStateChange   chan struct{}
 	log                *zap.Logger
 	boardCtx           context.Context
 	boardCancel        context.CancelFunc
@@ -133,22 +134,23 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config, canvases []board.
 	cfg.Defaults()
 
 	s := &SportsMatrix{
-		boards:        boards,
-		cfg:           cfg,
-		log:           logger,
-		serveBlock:    make(chan struct{}),
-		close:         make(chan struct{}),
-		screenIsOn:    atomic.NewBool(true),
-		webBoardIsOn:  atomic.NewBool(false),
-		webBoardOn:    make(chan struct{}),
-		webBoardOff:   make(chan struct{}),
-		isServing:     make(chan struct{}, 1),
-		jumpTo:        make(chan string, 1),
-		canvases:      canvases,
-		jumping:       atomic.NewBool(false),
-		screenSwitch:  make(chan struct{}, 1),
-		webBoardWasOn: atomic.NewBool(false),
-		liveOnly:      atomic.NewBool(false),
+		boards:           boards,
+		cfg:              cfg,
+		log:              logger,
+		serveBlock:       make(chan struct{}),
+		boardStateChange: make(chan struct{}, 1),
+		close:            make(chan struct{}),
+		screenIsOn:       atomic.NewBool(true),
+		webBoardIsOn:     atomic.NewBool(false),
+		webBoardOn:       make(chan struct{}),
+		webBoardOff:      make(chan struct{}),
+		isServing:        make(chan struct{}, 1),
+		jumpTo:           make(chan string, 1),
+		canvases:         canvases,
+		jumping:          atomic.NewBool(false),
+		screenSwitch:     make(chan struct{}, 1),
+		webBoardWasOn:    atomic.NewBool(false),
+		liveOnly:         atomic.NewBool(false),
 	}
 
 	s.boardCtx, s.boardCancel = context.WithCancel(context.Background())
@@ -172,6 +174,9 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config, canvases []board.
 
 	for _, b := range s.boards {
 		s.log.Info("Registering board", zap.String("board", b.Name()))
+		// So the serve loop can sleep while every board is disabled and still
+		// wake the moment one is turned back on.
+		b.Enabler().SetStateChangeCallback(s.notifyBoardStateChange)
 	}
 
 	c := cron.New()
@@ -364,6 +369,20 @@ func (s *SportsMatrix) stopWebBoard() {
 	s.webBoardIsOn.Store(false)
 }
 
+// allDisabledWait is how long the serve loop sleeps between checks when every
+// board is disabled and no Enabler has reported a state change.
+const allDisabledWait = 5 * time.Second
+
+// notifyBoardStateChange wakes the serve loop when a board is enabled or
+// disabled. It runs on whatever goroutine flipped the board -- an RPC handler,
+// usually -- so the send must never block.
+func (s *SportsMatrix) notifyBoardStateChange() {
+	select {
+	case s.boardStateChange <- struct{}{}:
+	default:
+	}
+}
+
 // Serve blocks until the context is canceled
 func (s *SportsMatrix) Serve(ctx context.Context) error {
 	if err := s.startServices(ctx); err != nil {
@@ -430,6 +449,21 @@ func (s *SportsMatrix) Serve(ctx context.Context) error {
 					}
 				}
 			})
+
+			// Wait for a board to come back rather than spinning. Enabling one
+			// signals boardStateChange, so this wakes immediately in the normal
+			// case; the timer is the fallback for any Enabler implementation
+			// that does not report its own state changes. Without this the loop
+			// re-checks allDisabled() as fast as the CPU allows -- tens of
+			// millions of times a second, one core pegged, until a board comes
+			// back on.
+			select {
+			case <-ctx.Done():
+				s.log.Warn("context canceled while all boards were disabled")
+				return context.Canceled
+			case <-s.boardStateChange:
+			case <-time.After(allDisabledWait):
+			}
 
 			continue
 		}
@@ -540,7 +574,12 @@ func (s *SportsMatrix) doBoard(ctx context.Context, b board.Board) error {
 
 	var wg sync.WaitGroup
 
-	var boardErr error
+	// Each canvas renders on its own goroutine, so the error they report back
+	// has to be recorded under a lock rather than assigned to a shared var.
+	var (
+		errLock  sync.Mutex
+		boardErr error
+	)
 
 CANVASES:
 	for _, canvas := range s.canvases {
@@ -554,7 +593,11 @@ CANVASES:
 			defer wg.Done()
 			s.log.Debug("rendering board", zap.String("board", b.Name()))
 			if err := b.Render(s.currentBoardCtx, canvas); err != nil {
-				boardErr = err
+				errLock.Lock()
+				if boardErr == nil {
+					boardErr = err
+				}
+				errLock.Unlock()
 				s.log.Error("board render returned error",
 					zap.Error(err),
 				)
@@ -576,6 +619,9 @@ CANVASES:
 	case <-done:
 	}
 	s.log.Debug("done waiting for canvases")
+
+	errLock.Lock()
+	defer errLock.Unlock()
 
 	return boardErr
 }

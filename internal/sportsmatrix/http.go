@@ -150,7 +150,7 @@ func (s *SportsMatrix) startHTTP() chan error {
 			return errChan
 		}
 		s.log.Info("serving web UI", zap.Int("port", s.cfg.HTTPListenPort))
-		router.PathPrefix("/").Handler(http.FileServer(EmbedDir{http.FS(web)}))
+		router.PathPrefix("/").Handler(newWebUI(web))
 	}
 
 	s.log.Info("Starting http server")

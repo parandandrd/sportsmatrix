@@ -396,3 +396,8 @@ body .swagger-ui input[type=text] {
     color: var(--sm-text);
     border-color: var(--sm-line);
 }
+
+.board-problem {
+    padding: 0 12px 11px 44px;
+    margin: -3px 0 0;
+}

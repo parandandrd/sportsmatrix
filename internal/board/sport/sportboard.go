@@ -384,10 +384,13 @@ func (s *SportBoard) ScrollMode() bool {
 }
 
 // SetLiveOnly sets this board to show only live games or not
-func (s *SportBoard) SetLiveOnly(live bool) {
+// SetLiveOnly reports whether that changed anything.
+func (s *SportBoard) SetLiveOnly(live bool) bool {
 	if s.config.LiveOnly.CompareAndSwap(!live, live) {
 		s.callCancelBoard()
+		return true
 	}
+	return false
 }
 
 // GridSize returns the column width and row height for a grid layout. 0 is returned for

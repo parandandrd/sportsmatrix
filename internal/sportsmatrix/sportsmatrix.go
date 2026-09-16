@@ -14,6 +14,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/parandandrd/sportsmatrix/internal/board"
+	"github.com/parandandrd/sportsmatrix/internal/conffile"
 	"github.com/parandandrd/sportsmatrix/internal/imgcanvas"
 	rgb "github.com/parandandrd/sportsmatrix/internal/rgbmatrix-rpi"
 )
@@ -56,6 +57,9 @@ type SportsMatrix struct {
 	liveOnly           *atomic.Bool
 	boardSections      map[board.Board]string
 	sectionOrder       map[string]int
+	configFile         *conffile.File
+	// settingsLock is held across changing a setting and saving it
+	settingsLock sync.Mutex
 	sync.Mutex
 }
 
@@ -217,6 +221,15 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config, canvases []board.
 // lay boards out the way the config file does. Keys are matched without regard
 // to case, as the config file itself is read.
 func (s *SportsMatrix) SetBoardSections(sections map[board.Board]string, fileOrder []string) {
+	order := sectionPositions(fileOrder)
+
+	s.Lock()
+	defer s.Unlock()
+	s.boardSections = sections
+	s.sectionOrder = order
+}
+
+func sectionPositions(fileOrder []string) map[string]int {
 	order := make(map[string]int, len(fileOrder))
 	for i, key := range fileOrder {
 		k := strings.ToLower(key)
@@ -224,11 +237,7 @@ func (s *SportsMatrix) SetBoardSections(sections map[board.Board]string, fileOrd
 			order[k] = i
 		}
 	}
-
-	s.Lock()
-	defer s.Unlock()
-	s.boardSections = sections
-	s.sectionOrder = order
+	return order
 }
 
 // AddBetweenBoard adds a board to be run between each enabled board

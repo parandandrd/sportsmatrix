@@ -6,7 +6,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Image from 'react-bootstrap/Image';
 import Form from 'react-bootstrap/Form';
-import { MatrixPostRet, JumpToBoard } from './util';
+import { CallRPC, MatrixPostRet, JumpToBoard } from './util';
 import * as pb from './imageboard/imageboard_pb';
 import { LogoSrc } from './Logo';
 
@@ -49,7 +49,12 @@ class ImageBoard extends React.Component {
     updateStatus = async () => {
         var req = new pb.SetStatusReq();
         req.setStatus(this.state.status);
-        await MatrixPostRet("imageboard.v1.ImageBoard/SetStatus", JSON.stringify(req.toObject()));
+        try {
+            await CallRPC("imageboard.v1.ImageBoard/SetStatus", req.toObject());
+            this.props.onError?.('');
+        } catch (err) {
+            this.props.onError?.(err.message);
+        }
         await this.getStatus();
         this.props.doSync?.();
     }

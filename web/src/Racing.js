@@ -6,7 +6,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import Image from 'react-bootstrap/Image';
-import { MatrixPostRet, JumpToBoard } from './util';
+import { CallRPC, MatrixPostRet, JumpToBoard } from './util';
 import { SetStatusReq, Status } from './racingboard/racingboard_pb';
 import { LogoSrc } from './Logo';
 
@@ -48,7 +48,12 @@ class Sport extends React.Component {
     updateStatus = async () => {
         var req = new SetStatusReq();
         req.setStatus(this.state.status);
-        await MatrixPostRet(this.props.sport + "/racing.v1.Racing/SetStatus", JSON.stringify(req.toObject()));
+        try {
+            await CallRPC(this.props.sport + "/racing.v1.Racing/SetStatus", req.toObject());
+            this.props.onError?.('');
+        } catch (err) {
+            this.props.onError?.(err.message);
+        }
         await this.getStatus();
         this.props.doSync?.();
     }

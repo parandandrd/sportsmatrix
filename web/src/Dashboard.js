@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { BACKEND, MatrixPostRet, SetBoardEnabled, JumpToBoard } from './util';
+import { BACKEND, CallRPC, MatrixPostRet, SetBoardEnabled, JumpToBoard } from './util';
 import { GroupBoards, RefreshBoards, SubLabel, useBoards } from './boards';
 import BoardPanel from './BoardPanel.js';
 import { LogoSrc } from './Logo';
@@ -79,19 +79,22 @@ function logoFor(board) {
     return LogoSrc(board.path.split('/').pop());
 }
 
-function Switch({ board, label, onChanged }) {
+function Switch({ board, label, onChanged, onError }) {
     const [busy, setBusy] = useState(false);
 
     const toggle = async () => {
         setBusy(true);
         try {
             await SetBoardEnabled(board.name, !board.enabled);
-            await onChanged();
+            onError('');
         } catch (err) {
-            console.log('failed to toggle board', board.name, err);
+            // the switch may still have flipped: a change that could not be
+            // saved to the config file is made anyway
+            onError(err.message);
         } finally {
             setBusy(false);
         }
+        await onChanged();
     };
 
     return (
@@ -112,6 +115,7 @@ function Switch({ board, label, onChanged }) {
 // headlines boards its section also builds.
 function BoardGroup({ group, onChanged, tagUnconfigured }) {
     const [open, setOpen] = useState(false);
+    const [problem, setProblem] = useState('');
     const { main, subs } = group;
     const logo = logoFor(main);
 
@@ -140,20 +144,21 @@ function BoardGroup({ group, onChanged, tagUnconfigured }) {
                     ? <span className="board-tag" title="Not in sportsmatrix.conf; running on defaults">not in conf</span>
                     : null}
                 <button className="board-jump" onClick={jump}>Jump</button>
-                <Switch board={main} onChanged={onChanged} />
+                <Switch board={main} onChanged={onChanged} onError={setProblem} />
             </div>
             {subs.length > 0
                 ? <div className="board-subs">
                     {subs.map((sub) =>
                         <div className="board-sub" key={sub.name}>
                             <span>{SubLabel(sub)}</span>
-                            <Switch board={sub} label={SubLabel(sub)} onChanged={onChanged} />
+                            <Switch board={sub} label={SubLabel(sub)} onChanged={onChanged} onError={setProblem} />
                         </div>)}
                 </div>
                 : null}
+            {problem ? <p className="dash-msg error board-problem" role="alert">{problem}</p> : null}
             {open
                 ? <div className="board-settings">
-                    <BoardPanel board={main} group={group} onChange={onChanged} />
+                    <BoardPanel board={main} group={group} onChange={onChanged} onError={setProblem} />
                 </div>
                 : null}
         </div>
@@ -167,20 +172,6 @@ function GroupList({ groups, onChanged, tagUnconfigured }) {
                 <BoardGroup key={g.key} group={g} onChanged={onChanged} tagUnconfigured={tagUnconfigured} />)}
         </div>
     );
-}
-
-// twirpMessage pulls the reason out of a failed Twirp call, which is what the
-// person pressing the button needs -- "no browser installed", not "412".
-async function twirpMessage(resp) {
-    try {
-        const body = await resp.json();
-        if (body && body.msg) {
-            return body.msg;
-        }
-    } catch (e) {
-        // not a Twirp error body
-    }
-    return `${resp.status} ${resp.statusText}`;
 }
 
 export default function Dashboard() {
@@ -209,13 +200,15 @@ export default function Dashboard() {
 
     useEffect(() => { refreshStatus(); }, [refreshStatus]);
 
+    // A failed call shows the server's reason, which is what the person
+    // pressing the button needs -- "chromium is not installed", not "412".
     const call = async (method, body) => {
         setPending(method);
         try {
-            const resp = await MatrixPostRet(`matrix.v1.Sportsmatrix/${method}`, body || '{}');
-            setProblem(resp.ok ? '' : await twirpMessage(resp));
+            await CallRPC(`matrix.v1.Sportsmatrix/${method}`, body || '{}');
+            setProblem('');
         } catch (err) {
-            setProblem(String(err));
+            setProblem(err.message);
         } finally {
             setPending('');
         }

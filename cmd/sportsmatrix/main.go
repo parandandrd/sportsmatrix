@@ -46,6 +46,7 @@ type rootArgs struct {
 	logLevel       zapcore.Level
 	configFile     string
 	config         *config.Config
+	configPath     string
 	configSections []string
 	boardSections  map[board.Board]string
 	test           bool
@@ -173,6 +174,7 @@ func (r *rootArgs) setConfig(filename string) error {
 	}
 
 	r.config = c
+	r.configPath = filename
 
 	// Only the web UI's board order depends on this, so a file that parsed
 	// above is not rejected over it.

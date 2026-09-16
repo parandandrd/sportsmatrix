@@ -14,6 +14,7 @@ import (
 	"github.com/parandandrd/sportsmatrix/internal/board"
 	imageboard "github.com/parandandrd/sportsmatrix/internal/board/image"
 	cnvs "github.com/parandandrd/sportsmatrix/internal/canvas"
+	"github.com/parandandrd/sportsmatrix/internal/conffile"
 	"github.com/parandandrd/sportsmatrix/internal/matrix"
 	"github.com/parandandrd/sportsmatrix/internal/sportsmatrix"
 )
@@ -100,6 +101,9 @@ func (s *runCmd) run(cmd *cobra.Command, args []string) error {
 	defer mtrx.Close()
 
 	mtrx.SetBoardSections(s.rArgs.boardSections, s.rArgs.configSections)
+	if s.rArgs.configPath != "" {
+		mtrx.SetConfigFile(conffile.New(s.rArgs.configPath))
+	}
 
 	for _, b := range boards {
 		if strings.EqualFold(b.Name(), imageboard.Name) {

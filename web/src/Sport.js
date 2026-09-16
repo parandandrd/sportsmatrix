@@ -6,7 +6,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import Image from 'react-bootstrap/Image';
-import { MatrixPostRet, JSONToStatus, JumpToBoard } from './util';
+import { CallRPC, MatrixPostRet, JSONToStatus, JumpToBoard } from './util';
 import { SetStatusReq, Status } from './sportboard/sportboard_pb';
 import * as basicboard_pb from './basicboard/basicboard_pb';
 import { LogoSrc } from './Logo';
@@ -90,17 +90,26 @@ class Sport extends React.Component {
     }
 
     updateStatus = async () => {
-        var req = new SetStatusReq();
-        req.setStatus(this.state.status);
-        await MatrixPostRet(this.props.sport + "/sport.v1.Sport/SetStatus", JSON.stringify(req.toObject()));
+        try {
+            var req = new SetStatusReq();
+            req.setStatus(this.state.status);
+            await CallRPC(this.props.sport + "/sport.v1.Sport/SetStatus", req.toObject());
 
-        var sreq = new basicboard_pb.SetStatusReq();
-        sreq.setStatus(this.state.stats);
-        await MatrixPostRet("stat/" + this.props.sport + "/board.v1.BasicBoard/SetStatus", JSON.stringify(sreq.toObject()));
+            if (this.state.has_stats) {
+                var sreq = new basicboard_pb.SetStatusReq();
+                sreq.setStatus(this.state.stats);
+                await CallRPC("stat/" + this.props.sport + "/board.v1.BasicBoard/SetStatus", sreq.toObject());
+            }
 
-        var hreq = new basicboard_pb.SetStatusReq();
-        hreq.setStatus(this.state.headlines);
-        await MatrixPostRet("headlines/" + this.props.sport + "/board.v1.BasicBoard/SetStatus", JSON.stringify(hreq.toObject()));
+            if (this.state.has_headlines) {
+                var hreq = new basicboard_pb.SetStatusReq();
+                hreq.setStatus(this.state.headlines);
+                await CallRPC("headlines/" + this.props.sport + "/board.v1.BasicBoard/SetStatus", hreq.toObject());
+            }
+            this.props.onError?.('');
+        } catch (err) {
+            this.props.onError?.(err.message);
+        }
         await this.getStatus();
         this.props.doSync?.();
     }

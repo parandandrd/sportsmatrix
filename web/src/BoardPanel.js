@@ -11,20 +11,20 @@ import BasicBoard from './BasicBoard.js';
 // group, when given, is the board's config section. It says whether a league
 // has stats or headlines boards at all, so the panel doesn't ask services that
 // aren't there.
-export default function BoardPanel({ board, group, onChange }) {
+export default function BoardPanel({ board, group, onChange, onError }) {
     const sync = onChange || (() => { });
     const has = (prefix) => (group ? group.subs.some((b) => b.path.startsWith(prefix)) : undefined);
 
     switch (board.kind) {
         case 'sport':
             return <Sport sport={board.path} name={board.name} id={board.path}
-                stats={has('stat/')} headlines={has('headlines/')} doSync={sync} />;
+                stats={has('stat/')} headlines={has('headlines/')} doSync={sync} onError={onError} />;
         case 'racing':
-            return <Racing sport={board.path} name={board.name} id={board.path} doSync={sync} />;
+            return <Racing sport={board.path} name={board.name} id={board.path} doSync={sync} onError={onError} />;
         case 'image':
-            return <ImageBoard id={board.name} name={board.name} doSync={sync} />;
+            return <ImageBoard id={board.name} name={board.name} doSync={sync} onError={onError} />;
         case 'basic':
-            return <BasicBoard id={board.name} name={board.name} path={board.path} doSync={sync} />;
+            return <BasicBoard id={board.name} name={board.name} path={board.path} doSync={sync} onError={onError} />;
         default:
             return (
                 <p className="board-panel-empty">

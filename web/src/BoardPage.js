@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { GroupBoards, RefreshBoards, useBoards } from './boards';
 import BoardPanel from './BoardPanel.js';
@@ -12,6 +12,7 @@ import './Dashboard.css';
 export default function BoardPage() {
     const { name } = useParams();
     const { boards, error } = useBoards();
+    const [problem, setProblem] = useState('');
 
     const group = GroupBoards(boards).find((g) => [g.main, ...g.subs].some((b) => b.name === name));
     const board = group ? [group.main, ...group.subs].find((b) => b.name === name) : null;
@@ -34,8 +35,10 @@ export default function BoardPage() {
                                 board={board}
                                 group={board === group.main ? group : undefined}
                                 onChange={() => RefreshBoards()}
+                                onError={setProblem}
                             />
                         </div>
+                        {problem ? <p className="dash-msg error board-problem" role="alert">{problem}</p> : null}
                     </div>
                     : null}
             </div>

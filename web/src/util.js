@@ -95,11 +95,25 @@ export async function ListBoards() {
     return (data.boards || []).map(DescribeBoard);
 }
 
+// CallRPC posts to a Twirp method and returns its JSON answer. A failed call
+// throws an Error carrying the server's own explanation -- "could not save that
+// to /etc/sportsmatrix.conf", say -- rather than a bare status code.
+export async function CallRPC(path, body) {
+    const resp = await MatrixPostRet(path, typeof body === 'string' ? body : JSON.stringify(body || {}));
+    const text = await resp.text();
+    let data = null;
+    try {
+        data = text ? JSON.parse(text) : null;
+    } catch (e) {
+        // not every answer is JSON
+    }
+    if (!resp.ok) {
+        throw new Error((data && data.msg) || `${resp.status} ${resp.statusText}`);
+    }
+    return data;
+}
+
 // SetBoardEnabled turns one board on or off by the name ListBoards reported.
 export async function SetBoardEnabled(name, enabled) {
-    const resp = await MatrixPostRet("matrix.v1.Sportsmatrix/SetBoardEnabled",
-        JSON.stringify({ name: name, enabled: Boolean(enabled) }));
-    if (!resp.ok) {
-        throw new Error(`SetBoardEnabled(${name}) failed: ${resp.status}`);
-    }
+    await CallRPC("matrix.v1.Sportsmatrix/SetBoardEnabled", { name: name, enabled: Boolean(enabled) });
 }

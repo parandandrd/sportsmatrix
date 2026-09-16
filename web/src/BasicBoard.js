@@ -6,7 +6,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Image from 'react-bootstrap/Image';
 import Form from 'react-bootstrap/Form';
-import { MatrixPostRet, JSONToStatus, JumpToBoard } from './util';
+import { CallRPC, MatrixPostRet, JSONToStatus, JumpToBoard } from './util';
 import * as pb from './basicboard/basicboard_pb';
 import { LogoSrc } from './Logo';
 
@@ -43,7 +43,12 @@ class BasicBoard extends React.Component {
     updateStatus = async () => {
         var req = new pb.SetStatusReq();
         req.setStatus(this.state.status);
-        await MatrixPostRet(this.state.path + "/board.v1.BasicBoard/SetStatus", JSON.stringify(req.toObject()));
+        try {
+            await CallRPC(this.state.path + "/board.v1.BasicBoard/SetStatus", req.toObject());
+            this.props.onError?.('');
+        } catch (err) {
+            this.props.onError?.(err.message);
+        }
         await this.getStatus();
         this.props.doSync?.();
     }

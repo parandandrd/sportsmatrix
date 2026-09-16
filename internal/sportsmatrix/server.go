@@ -15,6 +15,7 @@ import (
 
 	"github.com/parandandrd/sportsmatrix/internal/board"
 	sportboard "github.com/parandandrd/sportsmatrix/internal/board/sport"
+	"github.com/parandandrd/sportsmatrix/internal/conffile"
 	pb "github.com/parandandrd/sportsmatrix/internal/proto/sportsmatrix"
 )
 
@@ -110,27 +111,24 @@ func (s *Server) ListBoards(ctx context.Context, req *emptypb.Empty) (*pb.ListBo
 // the board's kind and RPC path before it can flip a switch. Matching is
 // case-insensitive, like Jump.
 func (s *Server) SetBoardEnabled(ctx context.Context, req *pb.SetBoardEnabledReq) (*emptypb.Empty, error) {
+	var matched []board.Board
+
 	s.sm.Lock()
-	defer s.sm.Unlock()
-
-	found := false
-
 	for _, group := range [][]board.Board{s.sm.boards, s.sm.betweenBoards} {
 		for _, b := range group {
-			if !strings.EqualFold(b.Name(), req.Name) {
-				continue
-			}
-			found = true
-			if req.Enabled {
-				b.Enabler().Enable()
-			} else {
-				b.Enabler().Disable()
+			if strings.EqualFold(b.Name(), req.Name) {
+				matched = append(matched, b)
 			}
 		}
 	}
+	s.sm.Unlock()
 
-	if !found {
+	if len(matched) == 0 {
 		return nil, twirp.NewError(twirp.NotFound, fmt.Sprintf("no board named %q", req.Name))
+	}
+
+	if err := s.sm.setEnabled(matched, req.Enabled); err != nil {
+		return nil, twirp.NewError(twirp.Internal, err.Error())
 	}
 
 	return &emptypb.Empty{}, nil
@@ -139,22 +137,11 @@ func (s *Server) SetBoardEnabled(ctx context.Context, req *pb.SetBoardEnabledReq
 // SetAll ...
 func (s *Server) SetAll(ctx context.Context, req *pb.SetAllReq) (*emptypb.Empty, error) {
 	s.sm.Lock()
-	defer s.sm.Unlock()
+	all := append(append([]board.Board(nil), s.sm.boards...), s.sm.betweenBoards...)
+	s.sm.Unlock()
 
-	if req.Enabled {
-		for _, board := range s.sm.boards {
-			board.Enabler().Enable()
-		}
-		for _, board := range s.sm.betweenBoards {
-			board.Enabler().Enable()
-		}
-	} else {
-		for _, board := range s.sm.boards {
-			board.Enabler().Disable()
-		}
-		for _, board := range s.sm.betweenBoards {
-			board.Enabler().Disable()
-		}
+	if err := s.sm.setEnabled(all, req.Enabled); err != nil {
+		return nil, twirp.NewError(twirp.Internal, err.Error())
 	}
 
 	return &emptypb.Empty{}, nil
@@ -245,10 +232,24 @@ func (s *Server) RestartService(ctx context.Context, req *emptypb.Empty) (*empty
 
 // SetLiveOnly sets the LiveOnly setting for SportBoards
 func (s *Server) SetLiveOnly(ctx context.Context, req *pb.LiveOnlyReq) (*emptypb.Empty, error) {
-	for _, board := range s.sm.boards {
-		if sportBoard, ok := board.(*sportboard.SportBoard); ok {
-			sportBoard.SetLiveOnly(req.LiveOnly)
+	s.sm.Lock()
+	boards := append([]board.Board(nil), s.sm.boards...)
+	s.sm.Unlock()
+
+	s.sm.settingsLock.Lock()
+	defer s.sm.settingsLock.Unlock()
+
+	var edits []conffile.Edit
+	for _, b := range boards {
+		if sportBoard, ok := b.(*sportboard.SportBoard); ok && sportBoard.SetLiveOnly(req.LiveOnly) {
+			if e := s.sm.boardEdit(b, "liveOnly", req.LiveOnly); e != nil {
+				edits = append(edits, *e)
+			}
 		}
+	}
+
+	if err := s.sm.save(edits...); err != nil {
+		return nil, twirp.NewError(twirp.Internal, err.Error())
 	}
 
 	return &emptypb.Empty{}, nil

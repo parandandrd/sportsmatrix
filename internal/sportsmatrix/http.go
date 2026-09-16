@@ -91,7 +91,7 @@ func (s *SportsMatrix) startHTTP() chan error {
 					zap.String("path", path),
 					zap.String("board", b.Name()),
 				)
-				router.PathPrefix(path).Handler(h)
+				router.PathPrefix(path).Handler(s.savingHandler(b, path, h))
 				rpcPaths[path] = struct{}{}
 			}
 		}
@@ -238,11 +238,13 @@ func (s *SportsMatrix) httpHandlers() []*board.HTTPHandler {
 		{
 			Path: "/api/disableall",
 			Handler: func(w http.ResponseWriter, req *http.Request) {
-				s.Lock()
-				defer s.Unlock()
 				s.log.Info("disabling all boards")
-				for _, board := range s.boards {
-					board.Enabler().Disable()
+				s.Lock()
+				boards := append([]board.Board(nil), s.boards...)
+				s.Unlock()
+				if err := s.setEnabled(boards, false); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
 				}
 				s.log.Info("all boards disabled")
 			},
@@ -251,9 +253,11 @@ func (s *SportsMatrix) httpHandlers() []*board.HTTPHandler {
 			Path: "/api/enableall",
 			Handler: func(w http.ResponseWriter, req *http.Request) {
 				s.Lock()
-				defer s.Unlock()
-				for _, board := range s.boards {
-					board.Enabler().Enable()
+				boards := append([]board.Board(nil), s.boards...)
+				s.Unlock()
+				if err := s.setEnabled(boards, true); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
 				}
 				s.log.Info("all boards enabled")
 			},

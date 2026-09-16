@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -114,7 +115,72 @@ func (s *SportsMatrix) refreshSectionOrder() {
 	s.Lock()
 	defer s.Unlock()
 	s.sectionOrder = order
+	s.sortBoards()
 }
+
+// errNoConfigFile is returned for a change that only makes sense saved.
+var errNoConfigFile = errors.New("this matrix was started without a config file, so there is nowhere to keep that")
+
+// setBoardOrder rearranges boards by their config sections: see SetBoardOrder
+// in the proto. A section the file doesn't have is added to it first, so that
+// it has a place to be moved from.
+func (s *SportsMatrix) setBoardOrder(sections []string) error {
+	s.settingsLock.Lock()
+	defer s.settingsLock.Unlock()
+
+	if s.configFile == nil {
+		return errNoConfigFile
+	}
+
+	s.Lock()
+	main := make(map[string]board.Board)
+	for _, b := range append(append([]board.Board(nil), s.boards...), s.betweenBoards...) {
+		section := strings.ToLower(s.boardSections[b])
+		if section == "" {
+			continue
+		}
+		if current, ok := main[section]; !ok || (subKey(current) != "" && subKey(b) == "") {
+			main[section] = b
+		}
+	}
+	inFile := s.sectionOrder
+	s.Unlock()
+
+	var add []conffile.Edit
+	for _, section := range sections {
+		b, ok := main[strings.ToLower(section)]
+		if !ok {
+			return fmt.Errorf("%w: no board comes from a config section called %q", errUnknownSection, section)
+		}
+		if _, ok := inFile[strings.ToLower(section)]; !ok {
+			if e := s.boardEdit(b, "enabled", b.Enabler().Enabled()); e != nil {
+				add = append(add, *e)
+			}
+		}
+	}
+
+	if err := s.save(add...); err != nil {
+		return err
+	}
+
+	changed, err := s.configFile.Order(sections)
+	if err != nil {
+		return fmt.Errorf("could not save the new order to %s: %w", s.configFile.Path(), err)
+	}
+	if changed {
+		s.refreshSectionOrder()
+
+		var order []string
+		for _, b := range s.boardList() {
+			order = append(order, b.Name())
+		}
+		s.log.Info("Board Render order changed", zap.Strings("order", order))
+	}
+
+	return nil
+}
+
+var errUnknownSection = errors.New("unknown section")
 
 // setEnabled turns boards on or off and saves each one whose state changed.
 // A board already in the state asked for leaves its config alone, so turning

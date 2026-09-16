@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -220,6 +221,9 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config, canvases []board.
 // built from, and the order the file lists its sections in, so ListBoards can
 // lay boards out the way the config file does. Keys are matched without regard
 // to case, as the config file itself is read.
+//
+// The boards take the config file's order too: the panel cycles through them
+// in the order their sections come in the file.
 func (s *SportsMatrix) SetBoardSections(sections map[board.Board]string, fileOrder []string) {
 	order := sectionPositions(fileOrder)
 
@@ -227,6 +231,36 @@ func (s *SportsMatrix) SetBoardSections(sections map[board.Board]string, fileOrd
 	defer s.Unlock()
 	s.boardSections = sections
 	s.sectionOrder = order
+	s.sortBoards()
+}
+
+// sortBoards puts the boards in the order of the config file's sections,
+// keeping each section's own boards in the order they were built, and boards
+// whose section isn't in the file last. It replaces the slice rather than
+// sorting it in place, since the serve loop may be ranging over the old one.
+// Callers hold the lock.
+func (s *SportsMatrix) sortBoards() {
+	position := func(b board.Board) int {
+		section := s.boardSections[b]
+		if i, ok := s.sectionOrder[strings.ToLower(section)]; ok && section != "" {
+			return i
+		}
+		return len(s.sectionOrder)
+	}
+
+	sorted := append([]board.Board(nil), s.boards...)
+	sort.SliceStable(sorted, func(i, j int) bool {
+		return position(sorted[i]) < position(sorted[j])
+	})
+	s.boards = sorted
+}
+
+// boardList is the boards the serve loop cycles through, as they are now. The
+// slice is only ever replaced, never changed, so a caller can range over it.
+func (s *SportsMatrix) boardList() []board.Board {
+	s.Lock()
+	defer s.Unlock()
+	return s.boards
 }
 
 func sectionPositions(fileOrder []string) map[string]int {
@@ -393,7 +427,7 @@ func (s *SportsMatrix) Serve(ctx context.Context) error {
 		go s.startWebBoardWithRetry(ctx)
 	}
 
-	if len(s.boards) < 1 {
+	if len(s.boardList()) < 1 {
 		return fmt.Errorf("no boards configured")
 	}
 
@@ -410,7 +444,7 @@ func (s *SportsMatrix) Serve(ctx context.Context) error {
 	setServingOnce := sync.Once{}
 
 	boardOrder := []string{}
-	for _, b := range s.boards {
+	for _, b := range s.boardList() {
 		boardOrder = append(boardOrder, b.Name())
 
 		for _, inb := range s.betweenBoards {
@@ -481,7 +515,7 @@ func (s *SportsMatrix) Serve(ctx context.Context) error {
 
 func (s *SportsMatrix) serveLoop(ctx context.Context) {
 BOARDS:
-	for _, b := range s.boards {
+	for _, b := range s.boardList() {
 		select {
 		case <-ctx.Done():
 			return
@@ -622,7 +656,7 @@ func (s *SportsMatrix) Close() {
 }
 
 func (s *SportsMatrix) allDisabled() bool {
-	for _, b := range s.boards {
+	for _, b := range s.boardList() {
 		if b.Enabler().Enabled() {
 			return false
 		}
@@ -639,7 +673,8 @@ func (s *SportsMatrix) JumpTo(ctx context.Context, boardName string) error {
 	s.jumping.Store(true)
 	defer s.jumping.Store(false)
 
-	boards := append(s.boards, s.betweenBoards...)
+	// a copy: appending to the live slice can write into its spare capacity
+	boards := append(append([]board.Board(nil), s.boardList()...), s.betweenBoards...)
 
 	for _, b := range boards {
 		if strings.EqualFold(b.Name(), boardName) {

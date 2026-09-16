@@ -2,6 +2,7 @@ package sportsmatrix
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -132,6 +133,20 @@ func (s *Server) SetBoardEnabled(ctx context.Context, req *pb.SetBoardEnabledReq
 	}
 
 	return &emptypb.Empty{}, nil
+}
+
+// SetBoardOrder rearranges boards by the config sections they come from.
+func (s *Server) SetBoardOrder(ctx context.Context, req *pb.SetBoardOrderReq) (*emptypb.Empty, error) {
+	switch err := s.sm.setBoardOrder(req.Sections); {
+	case err == nil:
+		return &emptypb.Empty{}, nil
+	case errors.Is(err, errUnknownSection):
+		return nil, twirp.NewError(twirp.InvalidArgument, err.Error())
+	case errors.Is(err, errNoConfigFile):
+		return nil, twirp.NewError(twirp.FailedPrecondition, err.Error())
+	default:
+		return nil, twirp.NewError(twirp.Internal, err.Error())
+	}
 }
 
 // SetAll ...

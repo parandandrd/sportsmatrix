@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { BACKEND, CallRPC, MatrixPostRet, SetBoardEnabled, JumpToBoard } from './util';
-import { GroupBoards, RefreshBoards, SubLabel, useBoards } from './boards';
+import { GroupBoards, MoveSection, RefreshBoards, SubLabel, useBoards } from './boards';
 import BoardPanel from './BoardPanel.js';
 import { LogoSrc } from './Logo';
 import './Dashboard.css';
@@ -113,7 +113,7 @@ function Switch({ board, label, onChanged, onError }) {
 
 // BoardGroup is one config file section: a league's board, and the stats and
 // headlines boards its section also builds.
-function BoardGroup({ group, onChanged, tagUnconfigured }) {
+function BoardGroup({ group, onChanged, tagUnconfigured, reorder }) {
     const [open, setOpen] = useState(false);
     const [problem, setProblem] = useState('');
     const { main, subs } = group;
@@ -143,7 +143,20 @@ function BoardGroup({ group, onChanged, tagUnconfigured }) {
                 {tagUnconfigured && !group.inConfigFile
                     ? <span className="board-tag" title="Not in sportsmatrix.conf; running on defaults">not in conf</span>
                     : null}
-                <button className="board-jump" onClick={jump}>Jump</button>
+                {reorder
+                    ? <span className="board-move">
+                        <button
+                            onClick={() => reorder.move(group.key, -1)}
+                            disabled={reorder.busy || reorder.first}
+                            aria-label={`Move ${main.name} up`}
+                        >&uarr;</button>
+                        <button
+                            onClick={() => reorder.move(group.key, 1)}
+                            disabled={reorder.busy || reorder.last}
+                            aria-label={`Move ${main.name} down`}
+                        >&darr;</button>
+                    </span>
+                    : <button className="board-jump" onClick={jump}>Jump</button>}
                 <Switch board={main} onChanged={onChanged} onError={setProblem} />
             </div>
             {subs.length > 0
@@ -165,11 +178,21 @@ function BoardGroup({ group, onChanged, tagUnconfigured }) {
     );
 }
 
-function GroupList({ groups, onChanged, tagUnconfigured }) {
+// GroupList shows groups in the order given. With onMove, each can be moved up
+// or down among them.
+function GroupList({ groups, onChanged, tagUnconfigured, onMove, moving }) {
     return (
         <div className="boards">
-            {groups.map((g) =>
-                <BoardGroup key={g.key} group={g} onChanged={onChanged} tagUnconfigured={tagUnconfigured} />)}
+            {groups.map((g, i) =>
+                <BoardGroup
+                    key={g.key}
+                    group={g}
+                    onChanged={onChanged}
+                    tagUnconfigured={tagUnconfigured}
+                    reorder={onMove
+                        ? { move: (key, delta) => onMove(groups, key, delta), busy: moving !== '', first: i === 0, last: i === groups.length - 1 }
+                        : null}
+                />)}
         </div>
     );
 }
@@ -182,6 +205,9 @@ export default function Dashboard() {
     const [showOff, setShowOff] = useState(false);
     const [problem, setProblem] = useState('');
     const [pending, setPending] = useState('');
+    const [reordering, setReordering] = useState(false);
+    const [moving, setMoving] = useState('');
+    const [orderProblem, setOrderProblem] = useState('');
 
     const refreshStatus = useCallback(async () => {
         try {
@@ -227,6 +253,29 @@ export default function Dashboard() {
     };
 
     const groups = GroupBoards(boards);
+    // the order lives in the config file, by section, which an older server
+    // doesn't report
+    const canReorder = groups.length > 1 && groups.every((g) => g.main.section);
+
+    // Moving a board moves it on the panel too: the panel cycles through boards
+    // in the config file's order.
+    const move = async (visible, key, delta) => {
+        const sections = MoveSection(groups, visible, key, delta);
+        if (!sections) {
+            return;
+        }
+        setMoving(key);
+        try {
+            await CallRPC('matrix.v1.Sportsmatrix/SetBoardOrder', { sections });
+            setOrderProblem('');
+        } catch (err) {
+            setOrderProblem(err.message);
+        }
+        await RefreshBoards();
+        setMoving('');
+    };
+    const onMove = reordering ? move : undefined;
+
     const on = groups.filter((g) => g.enabled);
     const off = groups.filter((g) => !g.enabled && g.inConfigFile);
     const unconfigured = groups.filter((g) => !g.enabled && !g.inConfigFile);
@@ -274,8 +323,19 @@ export default function Dashboard() {
 
             {on.length > 0
                 ? <div className="section">
-                    <h2>On the panel ({on.length})</h2>
-                    <GroupList groups={on} onChanged={refresh} tagUnconfigured />
+                    <div className="section-head">
+                        <h2>On the panel ({on.length})</h2>
+                        {canReorder
+                            ? <button className="section-action" onClick={() => setReordering(!reordering)} aria-pressed={reordering}>
+                                {reordering ? 'Done' : 'Reorder'}
+                            </button>
+                            : null}
+                    </div>
+                    {reordering
+                        ? <p className="section-note">The panel shows boards in this order. It is saved to sportsmatrix.conf.</p>
+                        : null}
+                    {orderProblem ? <p className="dash-msg error" role="alert">{orderProblem}</p> : null}
+                    <GroupList groups={on} onChanged={refresh} tagUnconfigured onMove={onMove} moving={moving} />
                 </div>
                 : null}
 
@@ -296,13 +356,15 @@ export default function Dashboard() {
                         <h2>Off ({hidden})</h2>
                         <span>{showOff ? 'Hide' : 'Show'}</span>
                     </button>
-                    {showOff && off.length > 0 ? <GroupList groups={off} onChanged={refresh} /> : null}
+                    {showOff && off.length > 0
+                        ? <GroupList groups={off} onChanged={refresh} onMove={onMove} moving={moving} />
+                        : null}
                     {showOff && unconfigured.length > 0
                         ? <>
                             <p className="section-note">
                                 Not in sportsmatrix.conf. These run on defaults.
                             </p>
-                            <GroupList groups={unconfigured} onChanged={refresh} />
+                            <GroupList groups={unconfigured} onChanged={refresh} onMove={onMove} moving={moving} />
                         </>
                         : null}
                 </div>

@@ -113,3 +113,27 @@ export function GroupBoards(boards) {
 
     return groups;
 }
+
+// MoveSection works out the new order of config sections after moving the group
+// with key one place up (delta -1) or down (+1) among visible, the groups shown
+// alongside it. Among all the groups, it lands next to the neighbour it passed:
+// the groups not shown keep their places.
+//
+// It returns the sections to send SetBoardOrder, or null when there is nowhere
+// to move. Only sections already in the config file are named, plus the one
+// being moved, since naming a section the file doesn't have adds it.
+export function MoveSection(groups, visible, key, delta) {
+    const shown = visible.map((g) => g.key);
+    const at = shown.indexOf(key);
+    const to = at + delta;
+    if (at < 0 || to < 0 || to >= shown.length) {
+        return null;
+    }
+
+    const order = groups.map((g) => g.key).filter((k) => k !== key);
+    const neighbour = order.indexOf(shown[to]);
+    order.splice(delta < 0 ? neighbour : neighbour + 1, 0, key);
+
+    const inFile = new Set(groups.filter((g) => g.inConfigFile).map((g) => g.key));
+    return order.filter((k) => k === key || inFile.has(k));
+}

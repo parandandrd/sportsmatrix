@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"github.com/twitchtv/twirp"
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
@@ -29,6 +30,7 @@ import (
 	textboard "github.com/parandandrd/sportsmatrix/internal/board/text"
 	"github.com/parandandrd/sportsmatrix/internal/conffile"
 	"github.com/parandandrd/sportsmatrix/internal/enabler"
+	pb "github.com/parandandrd/sportsmatrix/internal/proto/sportsmatrix"
 )
 
 // pathBoard is a board that mounts a service at a given path, which is all
@@ -252,4 +254,78 @@ func TestSettingsAreSavedToTheConfigFile(t *testing.T) {
 		require.Contains(t, body, "could not save that to "+path)
 		require.True(t, mlb.enabler.Enabled())
 	}
+}
+
+// The panel cycles through boards in the config file's order, and moving them
+// moves the file's sections, so the order outlasts a restart.
+func TestBoardOrder(t *testing.T) {
+	t.Parallel()
+
+	logger := zaptest.NewLogger(t, zaptest.Level(zapcore.FatalLevel))
+	mk := func(name, path string, on bool) *pathBoard {
+		b := &pathBoard{TestBoard: &TestBoard{log: logger, hasRendered: atomic.NewBool(false), enabler: enabler.New()}, name: name, path: path}
+		b.enabler.Store(on)
+		return b
+	}
+
+	nhl := mk("NHL", "/nhl/sport.v1.Sport/", true)
+	nhlHeadlines := mk("NHL Headlines", "/headlines/nhl/board.v1.BasicBoard/", false)
+	mlb := mk("MLB", "/mlb/sport.v1.Sport/", true)
+	clockBoard := mk("Clock", "/clock/board.v1.BasicBoard/", true)
+	uefa := mk("UEFA", "/uefa/sport.v1.Sport/", false)
+
+	dat, err := os.ReadFile("../../sportsmatrix.conf.example")
+	require.NoError(t, err)
+	path := filepath.Join(t.TempDir(), "sportsmatrix.conf")
+	require.NoError(t, os.WriteFile(path, dat, 0o644))
+	file := conffile.New(path)
+
+	sections, err := file.Sections()
+	require.NoError(t, err)
+
+	// built in getBoards' order, which is not the file's
+	s := &SportsMatrix{log: logger, boards: []board.Board{nhl, nhlHeadlines, mlb, uefa, clockBoard}}
+	s.SetBoardSections(map[board.Board]string{
+		nhl: "nhlConfig", nhlHeadlines: "nhlConfig", mlb: "mlbConfig", uefa: "uefaConfig", clockBoard: "clockConfig",
+	}, sections)
+	s.SetConfigFile(file)
+
+	names := func() []string {
+		var out []string
+		for _, b := range s.boardList() {
+			out = append(out, b.Name())
+		}
+		return out
+	}
+	require.Equal(t, []string{"Clock", "NHL", "NHL Headlines", "MLB", "UEFA"}, names(),
+		"the file has clock, then NHL, then MLB, and no UEFA")
+
+	svr := &Server{sm: s}
+
+	_, err = svr.SetBoardOrder(context.Background(), &pb.SetBoardOrderReq{Sections: []string{"mlbConfig", "clockConfig", "nhlConfig"}})
+	require.NoError(t, err)
+	require.Equal(t, []string{"MLB", "Clock", "NHL", "NHL Headlines", "UEFA"}, names())
+
+	keys, err := file.Sections()
+	require.NoError(t, err)
+	require.Equal(t, []string{"sportsMatrixConfig", "mlbConfig", "sysConfig", "ncaafConfig", "clockConfig", "nhlConfig"}, keys[:6])
+
+	// a board with no section gets one, and then goes where it was put
+	_, err = svr.SetBoardOrder(context.Background(), &pb.SetBoardOrderReq{Sections: []string{"uefaConfig", "mlbConfig"}})
+	require.NoError(t, err)
+	require.Equal(t, []string{"UEFA", "Clock", "NHL", "NHL Headlines", "MLB"}, names())
+	after, err := os.ReadFile(path)
+	require.NoError(t, err)
+	require.Contains(t, string(after), "\nuefaConfig:\n  enabled: false\n")
+
+	var twerr twirp.Error
+	_, err = svr.SetBoardOrder(context.Background(), &pb.SetBoardOrderReq{Sections: []string{"nhlConfig", "stocksConfig"}})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.InvalidArgument, twerr.Code())
+
+	noFile := &SportsMatrix{log: logger, boards: []board.Board{nhl}}
+	noFile.SetBoardSections(map[board.Board]string{nhl: "nhlConfig"}, nil)
+	_, err = (&Server{sm: noFile}).SetBoardOrder(context.Background(), &pb.SetBoardOrderReq{Sections: []string{"nhlConfig"}})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.FailedPrecondition, twerr.Code())
 }

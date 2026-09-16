@@ -16,6 +16,7 @@ service Sportsmatrix {
        rpc SetLiveOnly(LiveOnlyReq) returns (google.protobuf.Empty);
        rpc ListBoards(google.protobuf.Empty) returns (ListBoardsResp);
        rpc SetBoardEnabled(SetBoardEnabledReq) returns (google.protobuf.Empty);
+       rpc SetBoardOrder(SetBoardOrderReq) returns (google.protobuf.Empty);
 }
 
 message VersionResp {
@@ -78,4 +79,13 @@ message SetBoardEnabledReq {
     // name as ListBoards reports it. Matched case-insensitively, like Jump.
     string name = 1;
     bool enabled = 2;
+}
+
+// SetBoardOrderReq puts boards in a new order by the config sections they come
+// from. The panel cycles through boards in that order, and the config file's
+// sections are rearranged to match, so the order outlasts a restart.
+message SetBoardOrderReq {
+    // sections as ListBoards reports them, in the order wanted. The sections
+    // named trade the places they had; any left out stay where they are.
+    repeated string sections = 1;
 }

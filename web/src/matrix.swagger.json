@@ -484,6 +484,32 @@
         }
       }
     },
+    "/matrix.v1.Sportsmatrix/SetBoardOrder": {
+      "post": {
+        "tags": [
+          "Sportsmatrix"
+        ],
+        "operationId": "SetBoardOrder",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_SetBoardOrderReq"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/matrix.v1_google.protobuf.Empty"
+            }
+          }
+        }
+      }
+    },
     "/matrix.v1.Sportsmatrix/SetLiveOnly": {
       "post": {
         "tags": [
@@ -845,6 +871,20 @@
         "name": {
           "type": "string",
           "title": "name as ListBoards reports it. Matched case-insensitively, like Jump."
+        }
+      }
+    },
+    "matrix.v1_SetBoardOrderReq": {
+      "description": "Fields: sections",
+      "type": "object",
+      "title": "SetBoardOrderReq puts boards in a new order by the config sections they come from. The panel cycles through boards in that order, and the config file's sections are rearranged to match, so the order outlasts a restart.",
+      "properties": {
+        "sections": {
+          "type": "array",
+          "title": "sections as ListBoards reports them, in the order wanted. The sections named trade the places they had; any left out stay where they are.",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },

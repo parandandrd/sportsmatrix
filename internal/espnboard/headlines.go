@@ -25,7 +25,6 @@ type Headlines struct {
 	updateInterval time.Duration
 	lastUpdate     time.Time
 	lastHeadlines  []string
-	logo           image.Image
 	sync.Mutex
 }
 
@@ -42,7 +41,6 @@ func NewHeadlines(leaguer Leaguer, logger *zap.Logger) *Headlines {
 		leaguer:        leaguer,
 		log:            logger,
 		updateInterval: 1 * time.Hour,
-		logo:           nil,
 	}
 }
 
@@ -52,16 +50,14 @@ func (h *Headlines) HTTPPathPrefix() string {
 }
 
 // GetLogo ...
+// GetLogo decodes this league's bundled logo asset.
+//
+// The result is deliberately not cached here. The only caller is the logo
+// package's source getter, which is invoked once to build a thumbnail and then
+// caches that thumbnail in memory and on disk. Holding the decoded source as
+// well kept a full-size image alive for the life of the process for no further
+// use -- 179MB across the bundled league logos, on a board with 1GB of RAM.
 func (h *Headlines) GetLogo(ctx context.Context) (image.Image, error) {
-	h.Lock()
-	defer h.Unlock()
-
-	if h.logo != nil {
-		h.log.Debug("using cached logo for headlines",
-			zap.String("league", h.leaguer.League()),
-		)
-		return h.logo, nil
-	}
 	assetfile := fmt.Sprintf("assets/league_logos/%s.png", strings.ToLower(h.leaguer.HTTPPathPrefix()))
 
 	dat, err := assets.ReadFile(assetfile)
@@ -74,9 +70,8 @@ func (h *Headlines) GetLogo(ctx context.Context) (image.Image, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode logo for %s: %w", h.leaguer.League(), err)
 	}
-	h.logo = l
 
-	return h.logo, nil
+	return l, nil
 }
 
 // GetText ...

@@ -208,19 +208,20 @@ func (s *SportsMatrix) httpHandlers() []*board.HTTPHandler {
 			},
 		},
 		{
+			// These used to send on channels nothing received from, while
+			// holding the lock ListBoards and SetBoardEnabled need.
 			Path: "/api/webboardon",
 			Handler: func(w http.ResponseWriter, req *http.Request) {
-				s.Lock()
-				defer s.Unlock()
-				s.webBoardOn <- struct{}{}
+				if err := s.startWebBoard(); err != nil {
+					s.log.Error("failed /api/webboardon", zap.Error(err))
+					http.Error(w, err.Error(), http.StatusPreconditionFailed)
+				}
 			},
 		},
 		{
 			Path: "/api/webboardoff",
 			Handler: func(w http.ResponseWriter, req *http.Request) {
-				s.Lock()
-				defer s.Unlock()
-				s.webBoardOff <- struct{}{}
+				s.stopWebBoard()
 			},
 		},
 		{

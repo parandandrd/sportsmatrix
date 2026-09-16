@@ -159,24 +159,26 @@ func (s *Server) Jump(ctx context.Context, req *pb.JumpReq) (*emptypb.Empty, err
 
 // SetStatus ...
 func (s *Server) SetStatus(ctx context.Context, req *pb.Status) (*emptypb.Empty, error) {
+	// ScreenOn and ScreenOff already answer with twirp errors
 	if req.ScreenOn {
 		if _, err := s.ScreenOn(ctx, &emptypb.Empty{}); err != nil {
-			return nil, twirp.NewError(twirp.Internal, err.Error())
+			return nil, err
 		}
 	} else {
 		if _, err := s.ScreenOff(ctx, &emptypb.Empty{}); err != nil {
-			return nil, twirp.NewError(twirp.Internal, err.Error())
+			return nil, err
 		}
 	}
 
 	if req.WebboardOn {
-		if !s.sm.webBoardIsOn.Load() {
-			s.sm.startWebBoard(ctx)
+		// The usual reasons this fails are on the Pi, not in the request: no
+		// browser installed, or no display for it to draw on. Say which.
+		if err := s.sm.startWebBoard(); err != nil {
+			s.sm.log.Error("failed to start web board", zap.Error(err))
+			return nil, twirp.NewError(twirp.FailedPrecondition, fmt.Sprintf("could not start the web board: %s", err))
 		}
 	} else {
-		if s.sm.webBoardIsOn.Load() {
-			s.sm.stopWebBoard()
-		}
+		s.sm.stopWebBoard()
 	}
 
 	return &emptypb.Empty{}, nil

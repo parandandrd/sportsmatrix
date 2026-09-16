@@ -2,7 +2,6 @@ package sportsmatrix
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
@@ -29,8 +28,7 @@ type SportsMatrix struct {
 	boards             []board.Board
 	screenIsOn         *atomic.Bool
 	webBoardIsOn       *atomic.Bool
-	webBoardOn         chan struct{}
-	webBoardOff        chan struct{}
+	webBoardSettle     time.Duration
 	serveBlock         chan struct{}
 	boardStateChange   chan struct{}
 	log                *zap.Logger
@@ -54,7 +52,6 @@ type SportsMatrix struct {
 	switchTestSleep    bool
 	webBoardWasOn      *atomic.Bool
 	serveContext       context.Context
-	webBoardCtx        context.Context
 	webBoardCancel     context.CancelFunc
 	liveOnly           *atomic.Bool
 	sync.Mutex
@@ -142,8 +139,7 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config, canvases []board.
 		close:            make(chan struct{}),
 		screenIsOn:       atomic.NewBool(true),
 		webBoardIsOn:     atomic.NewBool(false),
-		webBoardOn:       make(chan struct{}),
-		webBoardOff:      make(chan struct{}),
+		webBoardSettle:   defaultWebBoardSettle,
 		isServing:        make(chan struct{}, 1),
 		jumpTo:           make(chan string, 1),
 		canvases:         canvases,
@@ -253,7 +249,11 @@ func (s *SportsMatrix) ScreenOn(ctx context.Context) error {
 	}
 
 	if s.webBoardWasOn.Load() {
-		s.startWebBoard(s.serveContext)
+		ctx := s.serveContext
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		go s.startWebBoardWithRetry(ctx)
 	}
 
 	return nil
@@ -327,48 +327,6 @@ func (s *SportsMatrix) startServices(ctx context.Context) error {
 	return nil
 }
 
-func (s *SportsMatrix) startWebBoard(ctx context.Context) {
-	s.webBoardLock.Lock()
-	defer s.webBoardLock.Unlock()
-
-	s.webBoardCtx, s.webBoardCancel = context.WithCancel(ctx)
-
-	tries := 0
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-		if err := s.launchWebBoard(ctx); err != nil {
-			if errors.Is(err, context.Canceled) {
-				s.log.Warn("web board context canceled, closing", zap.Error(err))
-				return
-			}
-			s.log.Error("failed to launch web board", zap.Error(err))
-		} else {
-			s.webBoardIsOn.Store(true)
-			return
-		}
-		tries++
-		if tries > 10 {
-			s.log.Error("failed too many times to launch web board")
-			return
-		}
-		time.Sleep(5 * time.Second)
-	}
-}
-
-func (s *SportsMatrix) stopWebBoard() {
-	s.webBoardLock.Lock()
-	defer s.webBoardLock.Unlock()
-	if !s.webBoardIsOn.Load() {
-		return
-	}
-	s.webBoardCancel()
-	s.webBoardIsOn.Store(false)
-}
-
 // allDisabledWait is how long the serve loop sleeps between checks when every
 // board is disabled and no Enabler has reported a state change.
 const allDisabledWait = 5 * time.Second
@@ -385,6 +343,9 @@ func (s *SportsMatrix) notifyBoardStateChange() {
 
 // Serve blocks until the context is canceled
 func (s *SportsMatrix) Serve(ctx context.Context) error {
+	// Set before the HTTP server starts, since its handlers read it.
+	s.serveContext = ctx
+
 	if err := s.startServices(ctx); err != nil {
 		return err
 	}
@@ -395,13 +356,11 @@ func (s *SportsMatrix) Serve(ctx context.Context) error {
 		}
 	}()
 
-	s.serveContext = ctx
-
 	s.boardCtx, s.boardCancel = context.WithCancel(ctx)
 	defer s.boardCancel()
 
 	if s.cfg.LaunchWebBoard {
-		s.startWebBoard(ctx)
+		go s.startWebBoardWithRetry(ctx)
 	}
 
 	if len(s.boards) < 1 {

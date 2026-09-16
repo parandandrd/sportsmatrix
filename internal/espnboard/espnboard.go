@@ -52,6 +52,7 @@ type ESPNBoard struct {
 	logoLock         sync.RWMutex
 	logoLockers      map[string]*sync.Mutex
 	conferenceNames  map[string]struct{}
+	teamsLock        sync.Mutex
 	ranksSet         *atomic.Bool
 	rankSorted       *atomic.Bool
 	lastScheduleCall map[string]*time.Time
@@ -109,46 +110,81 @@ func New(ctx context.Context, leaguer Leaguer, logger *zap.Logger, r rankSetter,
 }
 
 // CacheClear ...
+//
+// This runs from a cron job while boards are rendering, so each map is cleared
+// under the lock its readers already hold.
 func (e *ESPNBoard) CacheClear(ctx context.Context) {
 	e.log.Warn("clearing ESPNBoard cache")
+
+	e.offSeasonLock.Lock()
 	for k := range e.games {
 		delete(e.games, k)
 	}
+	for k := range e.offSeason {
+		delete(e.offSeason, k)
+	}
+	e.offSeasonLock.Unlock()
+
+	e.logoLock.Lock()
 	for k := range e.logos {
 		delete(e.logos, k)
 	}
+	e.logoLock.Unlock()
+
+	e.teamsLock.Lock()
 	e.allTeamIDs = []string{}
 	e.teams = nil
+	e.teamsLock.Unlock()
+
 	e.rankSorted.Store(false)
 	e.ranksSet.Store(false)
 	if _, err := e.GetTeams(ctx); err != nil {
 		e.log.Error("failed to get teams after cache clear", zap.Error(err))
 	}
-	for k := range e.offSeason {
-		delete(e.offSeason, k)
-	}
 }
 
 // GetTeams ...
+//
+// Every canvas renders a board on its own goroutine, and every sport board
+// render calls this. It used to append the whole league to allTeamIDs and write
+// conferenceNames on each call: a slice that grew by a league's worth of IDs
+// per render, and a concurrent map write that took the service down.
 func (e *ESPNBoard) GetTeams(ctx context.Context) ([]sportboard.Team, error) {
-	var err error
-	e.teams, err = e.getTeams(ctx)
+	e.teamsLock.Lock()
+	defer e.teamsLock.Unlock()
+
+	teams, err := e.getTeams(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var tList []sportboard.Team
-
-	for _, t := range e.teams {
-		e.allTeamIDs = append(e.allTeamIDs, t.ID)
-		tList = append(tList, t)
-
-		if t.Conference != nil {
-			e.conferenceNames[t.Conference.Abbreviation] = struct{}{}
+	// getTeams hands back the cached slice itself once it has one, so after the
+	// first load this rebuilds nothing and writes nothing.
+	if !sameTeams(teams, e.teams) || len(e.allTeamIDs) != len(teams) {
+		ids := make([]string, 0, len(teams))
+		confs := make(map[string]struct{})
+		for _, t := range teams {
+			ids = append(ids, t.ID)
+			if t.Conference != nil {
+				confs[t.Conference.Abbreviation] = struct{}{}
+			}
 		}
+		e.teams = teams
+		e.allTeamIDs = ids
+		e.conferenceNames = confs
+	}
+
+	tList := make([]sportboard.Team, 0, len(e.teams))
+	for _, t := range e.teams {
+		tList = append(tList, t)
 	}
 
 	return tList, nil
+}
+
+// sameTeams reports whether a and b are the same slice, not just equal ones.
+func sameTeams(a, b []*Team) bool {
+	return len(a) == len(b) && (len(a) == 0 || &a[0] == &b[0])
 }
 
 // TeamFromID ...

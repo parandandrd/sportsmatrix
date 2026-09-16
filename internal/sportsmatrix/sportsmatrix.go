@@ -54,6 +54,8 @@ type SportsMatrix struct {
 	serveContext       context.Context
 	webBoardCancel     context.CancelFunc
 	liveOnly           *atomic.Bool
+	boardSections      map[board.Board]string
+	sectionOrder       map[string]int
 	sync.Mutex
 }
 
@@ -208,6 +210,25 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config, canvases []board.
 	c.Start()
 
 	return s, nil
+}
+
+// SetBoardSections records which top-level config file section each board was
+// built from, and the order the file lists its sections in, so ListBoards can
+// lay boards out the way the config file does. Keys are matched without regard
+// to case, as the config file itself is read.
+func (s *SportsMatrix) SetBoardSections(sections map[board.Board]string, fileOrder []string) {
+	order := make(map[string]int, len(fileOrder))
+	for i, key := range fileOrder {
+		k := strings.ToLower(key)
+		if _, dup := order[k]; !dup {
+			order[k] = i
+		}
+	}
+
+	s.Lock()
+	defer s.Unlock()
+	s.boardSections = sections
+	s.sectionOrder = order
 }
 
 // AddBetweenBoard adds a board to be run between each enabled board

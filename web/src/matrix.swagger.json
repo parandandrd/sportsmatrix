@@ -764,9 +764,9 @@
       }
     },
     "matrix.v1_BoardInfo": {
-      "description": "Fields: name, enabled, in_between",
+      "description": "Fields: name, enabled, in_between, rpc_path, section, in_config_file",
       "type": "object",
-      "title": "Board describes a board that this instance was configured with. Boards are only constructed when their config section is present, so this is the set that actually exists, not everything the binary knows how to render.",
+      "title": "BoardInfo describes one board this instance runs. Every board the binary can render is built, on defaults for any section the config file leaves out, so in_config_file is what says whether a board was actually configured.",
       "properties": {
         "enabled": {
           "type": "boolean",
@@ -776,9 +776,21 @@
           "type": "boolean",
           "title": "in_between marks boards that render between the others rather than taking their own turn in the rotation"
         },
+        "in_config_file": {
+          "type": "boolean",
+          "title": "in_config_file is false when section is missing from the config file and the board is running on defaults."
+        },
         "name": {
           "type": "string",
           "title": "name as the board reports it, which is what Jump expects"
+        },
+        "rpc_path": {
+          "type": "string",
+          "title": "rpc_path is where this board mounts its own service, trailing slash included, e.g. \"/nhl/sport.v1.Sport/\". The service name in it says what kind of board this is, so a client can drive a board's own settings without a hardcoded table of leagues. Empty for a board with no service."
+        },
+        "section": {
+          "type": "string",
+          "title": "section is the top-level config file key this board is built from, e.g. \"nhlConfig\". A league's stats and headlines boards share its section."
         }
       }
     },
@@ -797,6 +809,7 @@
       "properties": {
         "boards": {
           "type": "array",
+          "title": "boards are in the order their sections appear in the config file, with boards whose section it leaves out last. That is not necessarily the order the panel shows them in.",
           "items": {
             "$ref": "#/definitions/matrix.v1_BoardInfo"
           }

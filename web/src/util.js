@@ -65,6 +65,9 @@ export function DescribeBoard(info) {
         enabled: Boolean(info.enabled),
         inBetween: Boolean(info.in_between),
         rpcPath: info.rpc_path || "",
+        section: info.section || "",
+        // a server that predates the field says nothing either way
+        inConfigFile: info.in_config_file !== false,
         kind: "",
         path: "",
     };

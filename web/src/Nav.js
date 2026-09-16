@@ -5,28 +5,33 @@ import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav';
 import NavDropDown from 'react-bootstrap/NavDropdown';
 import { Link, useLocation } from 'react-router-dom';
-import { GetVersion, ListBoards } from './util';
+import { GetVersion } from './util';
+import { GroupBoards, useBoards } from './boards';
 import './Dashboard.css';
 
-// TopNav lists the boards this instance actually has. It used to hard-code all
-// 22 leagues the binary knows, including two -- stocks and weather -- that only
-// exist in the premium build and had no route at all here.
+// TopNav lists the boards this instance actually has, one entry per config
+// section, in the config file's order: the ones showing on the panel first.
 export default function TopNav() {
     const [version, setVersion] = useState('');
-    const [boards, setBoards] = useState([]);
+    const { boards } = useBoards();
     const location = useLocation();
 
     useEffect(() => {
         GetVersion((v) => setVersion(v));
-        ListBoards()
-            .then((b) => setBoards(b))
-            .catch((err) => console.log('nav could not list boards', err));
     }, []);
 
     // the live board is meant to be looked at, not navigated from
     if (location.pathname === '/board') {
         return null;
     }
+
+    const groups = GroupBoards(boards).filter((g) => g.main.kind);
+    const item = (g) =>
+        <NavDropDown.Item key={g.key} as={Link} to={`/b/${encodeURIComponent(g.main.name)}`}>
+            {g.main.name}
+        </NavDropDown.Item>;
+    const on = groups.filter((g) => g.enabled);
+    const off = groups.filter((g) => !g.enabled);
 
     return (
         <Container fluid>
@@ -36,16 +41,13 @@ export default function TopNav() {
                 <Navbar.Collapse id="basic-navbar-nav">
                     <Nav className="mr-auto">
                         <Nav.Link as={Link} to="/">Home</Nav.Link>
-                        {boards.length > 0
+                        {groups.length > 0
                             ? <NavDropDown title="Boards" id="boards-drop">
-                                {boards.filter((b) => b.kind).map((b) =>
-                                    <NavDropDown.Item
-                                        key={b.name}
-                                        as={Link}
-                                        to={`/b/${encodeURIComponent(b.name)}`}
-                                    >
-                                        {b.name}
-                                    </NavDropDown.Item>)}
+                                {on.length > 0 ? <NavDropDown.Header>On the panel</NavDropDown.Header> : null}
+                                {on.map(item)}
+                                {on.length > 0 && off.length > 0 ? <NavDropDown.Divider /> : null}
+                                {off.length > 0 ? <NavDropDown.Header>Off</NavDropDown.Header> : null}
+                                {off.map(item)}
                             </NavDropDown>
                             : null}
                         <Nav.Link as={Link} to="/docs">API Docs</Nav.Link>

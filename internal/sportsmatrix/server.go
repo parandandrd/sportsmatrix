@@ -165,9 +165,29 @@ func (s *Server) SetScreenSchedule(ctx context.Context, req *pb.ScreenSchedule) 
 	return &emptypb.Empty{}, nil
 }
 
+// GetBoardSettings reports one board's settings, and the choices for them.
+func (s *Server) GetBoardSettings(ctx context.Context, req *pb.BoardSettingsReq) (*pb.BoardSettings, error) {
+	out, err := s.sm.boardSettings(ctx, req.Name)
+	if err != nil {
+		return nil, settingsError(err)
+	}
+	return out, nil
+}
+
+// SetBoardSettings changes one board's settings now, and saves them.
+func (s *Server) SetBoardSettings(ctx context.Context, req *pb.BoardSettings) (*emptypb.Empty, error) {
+	if err := s.sm.setBoardSettings(req); err != nil {
+		return nil, settingsError(err)
+	}
+	return &emptypb.Empty{}, nil
+}
+
 func settingsError(err error) error {
 	switch {
-	case errors.Is(err, errBadBrightness), errors.Is(err, errBadSchedule), errors.Is(err, errUnknownSection):
+	case errors.Is(err, errUnknownBoard):
+		return twirp.NewError(twirp.NotFound, err.Error())
+	case errors.Is(err, errBadBrightness), errors.Is(err, errBadSchedule), errors.Is(err, errUnknownSection),
+		errors.Is(err, errNoSuchSetting), errors.Is(err, errBadDelay):
 		return twirp.NewError(twirp.InvalidArgument, err.Error())
 	case errors.Is(err, errNoConfigFile):
 		return twirp.NewError(twirp.FailedPrecondition, err.Error())

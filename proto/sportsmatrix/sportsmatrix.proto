@@ -20,6 +20,8 @@ service Sportsmatrix {
        rpc GetSettings(google.protobuf.Empty) returns (Settings);
        rpc SetBrightness(SetBrightnessReq) returns (google.protobuf.Empty);
        rpc SetScreenSchedule(ScreenSchedule) returns (google.protobuf.Empty);
+       rpc GetBoardSettings(BoardSettingsReq) returns (BoardSettings);
+       rpc SetBoardSettings(BoardSettings) returns (google.protobuf.Empty);
 }
 
 message VersionResp {
@@ -113,4 +115,39 @@ message SetBrightnessReq {
 message ScreenSchedule {
     repeated string on_times = 1;
     repeated string off_times = 2;
+}
+
+message BoardSettingsReq {
+    // name as ListBoards reports it
+    string name = 1;
+}
+
+// BoardSettings are the settings of one board that can be changed while it
+// runs. A board has only some of them, and the has_ fields say which. Setting
+// them saves them to the config file.
+message BoardSettings {
+    // name as ListBoards reports it
+    string name = 1;
+
+    bool has_board_delay = 2;
+    // how long the board shows for, as a duration such as "15s" or "1m30s". A
+    // sport board shows each game for this long. Left empty, it is unchanged.
+    string board_delay = 3;
+    // the least board_delay can be. Only in answers.
+    string min_board_delay = 4;
+
+    // set has_teams to change watch_teams and favorite_teams
+    bool has_teams = 5;
+    // the teams whose games are shown: abbreviations, or ALL, a conference or a
+    // ranking such as TOP25. None is the same as ALL.
+    repeated string watch_teams = 6;
+    // the teams whose scores can be hidden, and whose live games can be stuck to
+    repeated string favorite_teams = 7;
+    // the league's teams, to choose from. Only in answers.
+    repeated Team teams = 8;
+}
+
+message Team {
+    string abbreviation = 1;
+    string name = 2;
 }

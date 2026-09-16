@@ -3,6 +3,7 @@ package sportsmatrix
 import (
 	"context"
 	"encoding/json"
+	"image"
 	"io"
 	"net/http"
 	"os"
@@ -30,6 +31,7 @@ import (
 	textboard "github.com/parandandrd/sportsmatrix/internal/board/text"
 	"github.com/parandandrd/sportsmatrix/internal/conffile"
 	"github.com/parandandrd/sportsmatrix/internal/enabler"
+	"github.com/parandandrd/sportsmatrix/internal/logo"
 	pb "github.com/parandandrd/sportsmatrix/internal/proto/sportsmatrix"
 	rgb "github.com/parandandrd/sportsmatrix/internal/rgbmatrix-rpi"
 )
@@ -407,4 +409,155 @@ func TestBrightnessAndScreenSchedule(t *testing.T) {
 	require.Equal(t, []string{"30 7 * * *"}, got.ScreenSchedule.OnTimes)
 	require.Equal(t, []string{"0 23 * * 0-4", "@midnight"}, got.ScreenSchedule.OffTimes)
 	require.Equal(t, path, got.ConfigFile)
+}
+
+func TestFormatDelay(t *testing.T) {
+	t.Parallel()
+
+	for d, want := range map[time.Duration]string{
+		10 * time.Second:        "10s",
+		90 * time.Second:        "1m30s",
+		2 * time.Minute:         "2m",
+		1500 * time.Millisecond: "1.5s",
+	} {
+		require.Equal(t, want, formatDelay(d))
+		parsed, err := time.ParseDuration(want)
+		require.NoError(t, err)
+		require.Equal(t, d, parsed, "what it writes has to read back")
+	}
+}
+
+// fakeTeam and fakeLeague are the least a sport board needs to be built and
+// asked about its teams.
+type fakeTeam struct{ abbrev, name string }
+
+func (t fakeTeam) GetID() string           { return t.abbrev }
+func (t fakeTeam) GetName() string         { return t.name }
+func (t fakeTeam) GetAbbreviation() string { return t.abbrev }
+func (t fakeTeam) GetDisplayName() string  { return t.name }
+func (t fakeTeam) Score() int              { return 0 }
+func (t fakeTeam) ConferenceName() string  { return "" }
+
+type fakeLeague struct{}
+
+func (fakeLeague) GetTeams(context.Context) ([]sportboard.Team, error) {
+	return []sportboard.Team{
+		fakeTeam{"NYR", "New York Rangers"},
+		fakeTeam{"NYI", "New York Islanders"},
+		fakeTeam{"BOS", "Boston Bruins"},
+		// as ESPN's two team endpoints both return it
+		fakeTeam{"NYI", "New York Islanders"},
+	}, nil
+}
+func (fakeLeague) TeamFromID(context.Context, string) (sportboard.Team, error) { return nil, nil }
+func (fakeLeague) GetScheduledGames(context.Context, []time.Time) ([]sportboard.Game, error) {
+	return nil, nil
+}
+func (fakeLeague) DateStr(d time.Time) string { return d.Format("20060102") }
+func (fakeLeague) League() string             { return "NHL" }
+func (fakeLeague) HTTPPathPrefix() string     { return "nhl" }
+func (fakeLeague) GetLogo(context.Context, string, *logo.Config, image.Rectangle) (*logo.Logo, error) {
+	return nil, nil
+}
+func (fakeLeague) GetWatchTeams(teams []string, _ string) []string            { return teams }
+func (fakeLeague) TeamRecord(context.Context, sportboard.Team, string) string { return "" }
+func (fakeLeague) TeamRank(context.Context, sportboard.Team, string) string   { return "" }
+func (fakeLeague) CacheClear(context.Context)                                 {}
+func (fakeLeague) HomeSideSwap() bool                                         { return false }
+
+func TestBoardSettings(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	logger := zaptest.NewLogger(t, zaptest.Level(zapcore.FatalLevel))
+
+	sportCfg := &sportboard.Config{BoardDelay: "10s", WatchTeams: []string{"ALL"}}
+	sportCfg.SetDefaults()
+	nhl, err := sportboard.New(ctx, fakeLeague{}, image.Rect(0, 0, 64, 32), nil, logger, sportCfg)
+	require.NoError(t, err)
+
+	clockCfg := &clock.Config{}
+	clockCfg.SetDefaults()
+	clockBoard, err := clock.New(clockCfg, logger)
+	require.NoError(t, err)
+
+	dat, err := os.ReadFile("../../sportsmatrix.conf.example")
+	require.NoError(t, err)
+	path := filepath.Join(t.TempDir(), "sportsmatrix.conf")
+	require.NoError(t, os.WriteFile(path, dat, 0o644))
+	file := conffile.New(path)
+	sections, err := file.Sections()
+	require.NoError(t, err)
+
+	s := &SportsMatrix{log: logger, boards: []board.Board{nhl, clockBoard}}
+	s.SetBoardSections(map[board.Board]string{nhl: "nhlConfig", clockBoard: "clockConfig"}, sections)
+	s.SetConfigFile(file)
+	svr := &Server{sm: s}
+
+	saved := func(keys ...string) any {
+		t.Helper()
+		raw, err := os.ReadFile(path)
+		require.NoError(t, err)
+		var cur any
+		require.NoError(t, yamlv2.Unmarshal(raw, &cur))
+		for _, k := range keys {
+			cur = cur.(map[any]any)[k]
+		}
+		return cur
+	}
+
+	got, err := svr.GetBoardSettings(ctx, &pb.BoardSettingsReq{Name: "nhl"})
+	require.NoError(t, err)
+	require.True(t, got.HasBoardDelay)
+	require.Equal(t, "10s", got.BoardDelay)
+	require.Equal(t, "10s", got.MinBoardDelay)
+	require.True(t, got.HasTeams)
+	require.Equal(t, []string{"ALL"}, got.WatchTeams)
+	require.Empty(t, got.FavoriteTeams)
+	var names []string
+	for _, team := range got.Teams {
+		names = append(names, team.Abbreviation)
+	}
+	require.Equal(t, []string{"BOS", "NYI", "NYR"}, names, "by name, and once each")
+
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{Name: "NHL", BoardDelay: "30s"})
+	require.NoError(t, err)
+	require.Equal(t, 30*time.Second, nhl.BoardDelay())
+	require.Equal(t, "30s", saved("nhlConfig", "boardDelay"))
+	raw, err := os.ReadFile(path)
+	require.NoError(t, err)
+	require.Contains(t, string(raw), "  boardDelay: \"30s\"\n", "quoted, as the file had it")
+
+	var twerr twirp.Error
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{Name: "NHL", BoardDelay: "5s"})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.InvalidArgument, twerr.Code(), "a sport board won't go under 10s")
+	require.Equal(t, 30*time.Second, nhl.BoardDelay())
+
+	// the clock has no floor of its own
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{Name: "Clock", BoardDelay: "5s"})
+	require.NoError(t, err)
+	require.Equal(t, 5*time.Second, clockBoard.BoardDelay())
+	require.Equal(t, "5s", saved("clockConfig", "boardDelay"))
+
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{
+		Name:          "NHL",
+		HasTeams:      true,
+		WatchTeams:    []string{"nyi", " NYR ", "NYI"},
+		FavoriteTeams: []string{"nyi"},
+	})
+	require.NoError(t, err)
+	watch, favorite := nhl.Teams()
+	require.Equal(t, []string{"NYI", "NYR"}, watch)
+	require.Equal(t, []string{"NYI"}, favorite)
+	require.Equal(t, []any{"NYI", "NYR"}, saved("nhlConfig", "watchTeams"))
+	require.Equal(t, []any{"NYI"}, saved("nhlConfig", "favoriteTeams"))
+
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{Name: "Clock", HasTeams: true})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.InvalidArgument, twerr.Code())
+
+	_, err = svr.GetBoardSettings(ctx, &pb.BoardSettingsReq{Name: "Stocks"})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.NotFound, twerr.Code())
 }

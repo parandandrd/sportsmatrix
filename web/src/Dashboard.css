@@ -556,3 +556,84 @@ body .swagger-ui input[type=text] {
     white-space: nowrap;
     margin-left: 12px;
 }
+
+/* A board's own settings, above its switches */
+
+.board-own-settings {
+    margin: 6px 12px 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--sm-line);
+}
+
+.setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 4px 0 10px;
+    font-size: 14px;
+}
+
+.board-own-settings select,
+.board-own-settings input {
+    background: var(--sm-bg);
+    color: var(--sm-text);
+    border: 1px solid var(--sm-line);
+    border-radius: 8px;
+    padding: 3px 6px;
+    font-size: 14px;
+    max-width: 100%;
+}
+
+.team-picker {
+    margin: 8px 0 10px;
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 4px 0 6px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    border: 1px solid var(--sm-line);
+    border-radius: 999px;
+    padding: 1px 4px 1px 10px;
+    font-size: 13px;
+}
+
+.chip:not(:has(button)) {
+    padding-right: 10px;
+}
+
+.chip button {
+    background: none;
+    border: none;
+    color: var(--sm-dim);
+    padding: 0 5px;
+    cursor: pointer;
+}
+
+.chip-empty {
+    color: var(--sm-dim);
+    font-size: 13px;
+}
+
+.team-add {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.team-add select {
+    flex: 1 1 100%;
+}
+
+.team-add input {
+    flex: 1 1 140px;
+    min-width: 0;
+}

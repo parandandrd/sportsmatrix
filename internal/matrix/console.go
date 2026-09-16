@@ -80,20 +80,42 @@ func (c *ConsoleMatrix) PreLoad(scene *MatrixScene) {
 	defer c.preloadLock.Unlock()
 
 	w, h := c.Geometry()
-	prep := make([]uint32, w*h)
+	c.growPreload(scene.Index + 1)
+
+	// Reuse the buffer already at this index rather than allocating a frame's
+	// worth every time. A fresh buffer per frame was the largest single source
+	// of garbage in a scroll, and zeroing them showed on the profile besides.
+	prep := c.preload[scene.Index]
+	if len(prep) != w*h {
+		prep = make([]uint32, w*h)
+		c.preload[scene.Index] = prep
+	} else {
+		clear(prep)
+	}
 
 	for _, pt := range scene.Points {
 		position := c.position(pt.X, pt.Y)
 		prep[position] = rgbaToUint32(pt.Color)
 	}
+}
 
-	if len(c.preload) < scene.Index+1 {
-		newPreload := make([][]uint32, scene.Index+1)
-		copy(newPreload, c.preload)
-		c.preload = newPreload
+// growPreload extends the frame list to n, keeping the buffers already
+// allocated and doubling capacity, so a long scroll does not recopy the outer
+// slice on every frame.
+func (c *ConsoleMatrix) growPreload(n int) {
+	if len(c.preload) >= n {
+		return
 	}
 
-	c.preload[scene.Index] = prep
+	if cap(c.preload) >= n {
+		c.preload = c.preload[:n]
+
+		return
+	}
+
+	grown := make([][]uint32, n, 2*n)
+	copy(grown, c.preload)
+	c.preload = grown
 }
 
 func (c *ConsoleMatrix) ReversePreLoad() {
@@ -104,7 +126,9 @@ func (c *ConsoleMatrix) ReversePreLoad() {
 
 func (c *ConsoleMatrix) Play(ctx context.Context, startInterval time.Duration, interval <-chan time.Duration) error {
 	defer func() {
-		c.preload = [][]uint32{}
+		// Truncate rather than discard: the frame buffers stay in the backing
+		// array and the next scroll reuses them.
+		c.preload = c.preload[:0]
 	}()
 	waitInterval := startInterval
 	c.log.Info("Play matrix",

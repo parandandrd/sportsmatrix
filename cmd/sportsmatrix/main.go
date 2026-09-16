@@ -42,17 +42,19 @@ var defaultPGAUpdateInterval = 2 * time.Minute
 const defaultConfigFile = "/etc/sportsmatrix.conf"
 
 type rootArgs struct {
-	level        string
-	logLevel     zapcore.Level
-	configFile   string
-	config       *config.Config
-	test         bool
-	today        string
-	logFile      string
-	writer       *os.File
-	alternateAPI bool
-	debug        bool
-	todayT       *time.Time
+	level          string
+	logLevel       zapcore.Level
+	configFile     string
+	config         *config.Config
+	configSections []string
+	boardSections  map[board.Board]string
+	test           bool
+	today          string
+	logFile        string
+	writer         *os.File
+	alternateAPI   bool
+	debug          bool
+	todayT         *time.Time
 }
 
 func main() {
@@ -171,6 +173,11 @@ func (r *rootArgs) setConfig(filename string) error {
 	}
 
 	r.config = c
+
+	// Only the web UI's board order depends on this, so a file that parsed
+	// above is not rejected over it.
+	r.configSections, _ = configSections(f)
+
 	return nil
 }
 
@@ -540,6 +547,7 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 	}
 
 	if r.config.NHLConfig != nil && nhlAPI != nil {
+		start := len(boards)
 		var api sportboard.API
 		if r.alternateAPI {
 			api, err = nhl.New(ctx, logger)
@@ -580,9 +588,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.NHLConfig, boards[start:])
 	}
 
 	if r.config.MLBConfig != nil {
+		start := len(boards)
 		var api sportboard.API
 		var opts []sportboard.OptionFunc
 		if r.alternateAPI {
@@ -643,8 +654,11 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.MLBConfig, boards[start:])
 	}
 	if r.config.NCAAMConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewNCAAMensBasketball(ctx, logger)
 		if err != nil {
 			return boards, err
@@ -670,8 +684,11 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.NCAAMConfig, boards[start:])
 	}
 	if r.config.NCAAFConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewNCAAF(ctx, logger)
 		if err != nil {
 			return boards, err
@@ -698,8 +715,11 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.NCAAFConfig, boards[start:])
 	}
 	if r.config.NBAConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewNBA(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -725,8 +745,11 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.NBAConfig, boards[start:])
 	}
 	if r.config.NFLConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewNFL(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -752,8 +775,11 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.NFLConfig, boards[start:])
 	}
 	if r.config.MLSConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewMLS(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -779,8 +805,11 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.MLSConfig, boards[start:])
 	}
 	if r.config.NWSLConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewNWSL(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -806,8 +835,11 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.NWSLConfig, boards[start:])
 	}
 	if r.config.EPLConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewEPL(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -833,9 +865,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.EPLConfig, boards[start:])
 	}
 
 	if r.config.DFLConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewDFL(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -861,9 +896,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.DFLConfig, boards[start:])
 	}
 
 	if r.config.DFBConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewDFB(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -889,9 +927,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.DFBConfig, boards[start:])
 	}
 
 	if r.config.UEFAConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewUEFA(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -917,9 +958,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.UEFAConfig, boards[start:])
 	}
 
 	if r.config.FIFAConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewFIFA(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -945,33 +989,45 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.FIFAConfig, boards[start:])
 	}
 
 	if r.config.ImageConfig != nil {
+		start := len(boards)
 		b, err := imageboard.New(r.config.ImageConfig, logger)
 		if err != nil {
 			return boards, err
 		}
 		boards = append(boards, b)
+
+		r.addSection(&r.config.ImageConfig, boards[start:])
 	}
 
 	if r.config.ClockConfig != nil {
+		start := len(boards)
 		b, err := clock.New(r.config.ClockConfig, logger)
 		if err != nil {
 			return boards, err
 		}
 		boards = append(boards, b)
+
+		r.addSection(&r.config.ClockConfig, boards[start:])
 	}
 
 	if r.config.SysConfig != nil {
+		start := len(boards)
 		b, err := sysboard.New(logger, r.config.SysConfig)
 		if err != nil {
 			return boards, err
 		}
 		boards = append(boards, b)
+
+		r.addSection(&r.config.SysConfig, boards[start:])
 	}
 
 	if r.config.PGA != nil {
+		start := len(boards)
 		update := defaultPGAUpdateInterval
 		if r.config.PGA.UpdateInterval != "" {
 			d, err := time.ParseDuration(r.config.PGA.UpdateInterval)
@@ -992,9 +1048,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			return nil, err
 		}
 		boards = append(boards, b)
+
+		r.addSection(&r.config.PGA, boards[start:])
 	}
 
 	if r.config.F1Config != nil {
+		start := len(boards)
 		api, err := espnracing.New(&espnracing.F1{}, logger)
 		if err != nil {
 			return nil, err
@@ -1004,9 +1063,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			return nil, err
 		}
 		boards = append(boards, b)
+
+		r.addSection(&r.config.F1Config, boards[start:])
 	}
 
 	if r.config.IRLConfig != nil {
+		start := len(boards)
 		api, err := espnracing.New(&espnracing.IRL{}, logger)
 		if err != nil {
 			return nil, err
@@ -1016,9 +1078,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			return nil, err
 		}
 		boards = append(boards, b)
+
+		r.addSection(&r.config.IRLConfig, boards[start:])
 	}
 
 	if r.config.CalenderConfig != nil {
+		start := len(boards)
 		api, err := gcal.New(logger)
 		if err != nil {
 			return nil, err
@@ -1028,9 +1093,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			return nil, err
 		}
 		boards = append(boards, b)
+
+		r.addSection(&r.config.CalenderConfig, boards[start:])
 	}
 
 	if r.config.NCAAWConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewNCAAWomensBasketball(ctx, logger)
 		if err != nil {
 			return boards, err
@@ -1056,9 +1124,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.NCAAWConfig, boards[start:])
 	}
 
 	if r.config.WNBAConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewWNBA(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -1084,9 +1155,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.WNBAConfig, boards[start:])
 	}
 
 	if r.config.LigueConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewLigue(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -1112,9 +1186,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.LigueConfig, boards[start:])
 	}
 
 	if r.config.SerieaConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewSerieA(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -1140,9 +1217,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.SerieaConfig, boards[start:])
 	}
 
 	if r.config.LaligaConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewLaLiga(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -1168,9 +1248,12 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.LaligaConfig, boards[start:])
 	}
 
 	if r.config.XFLConfig != nil {
+		start := len(boards)
 		api, err := espnboard.NewXFL(ctx, logger)
 		if err != nil {
 			return nil, err
@@ -1196,6 +1279,8 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 			}
 			boards = append(boards, b)
 		}
+
+		r.addSection(&r.config.XFLConfig, boards[start:])
 	}
 
 	return boards, nil

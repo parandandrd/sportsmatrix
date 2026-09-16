@@ -99,6 +99,8 @@ func (s *runCmd) run(cmd *cobra.Command, args []string) error {
 	}
 	defer mtrx.Close()
 
+	mtrx.SetBoardSections(s.rArgs.boardSections, s.rArgs.configSections)
+
 	for _, b := range boards {
 		if strings.EqualFold(b.Name(), imageboard.Name) {
 			if i, ok := b.(*imageboard.ImageBoard); ok {

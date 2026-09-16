@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"syscall"
 	"time"
@@ -45,10 +46,10 @@ func (s *Server) ScreenOff(ctx context.Context, req *emptypb.Empty) (*emptypb.Em
 	return &emptypb.Empty{}, nil
 }
 
-// ListBoards returns the boards this instance was configured with, and whether
-// each is currently enabled. Boards are only constructed when their config
-// section is present, so this is what actually exists rather than everything
-// the binary can render.
+// ListBoards returns every board this instance runs and whether each is
+// currently enabled, in the order of the config file sections they come from.
+// Every board the binary can render is built whether or not the config file
+// mentions it, so each also says whether its section is really in the file.
 func (s *Server) ListBoards(ctx context.Context, req *emptypb.Empty) (*pb.ListBoardsResp, error) {
 	s.sm.Lock()
 	defer s.sm.Unlock()
@@ -66,11 +67,16 @@ func (s *Server) ListBoards(ctx context.Context, req *emptypb.Empty) (*pb.ListBo
 			path = ""
 		}
 
+		section := s.sm.boardSections[b]
+		_, inFile := s.sm.sectionOrder[strings.ToLower(section)]
+
 		return &pb.BoardInfo{
-			Name:      b.Name(),
-			Enabled:   b.Enabler().Enabled(),
-			InBetween: inBetween,
-			RpcPath:   path,
+			Name:         b.Name(),
+			Enabled:      b.Enabler().Enabled(),
+			InBetween:    inBetween,
+			RpcPath:      path,
+			Section:      section,
+			InConfigFile: section != "" && inFile,
 		}
 	}
 
@@ -81,6 +87,19 @@ func (s *Server) ListBoards(ctx context.Context, req *emptypb.Empty) (*pb.ListBo
 	for _, b := range s.sm.betweenBoards {
 		resp.Boards = append(resp.Boards, info(b, true))
 	}
+
+	// A section the file leaves out goes last. The sort is stable, so boards
+	// built from one section stay together and in the order they were built,
+	// which puts a league's own board ahead of its stats and headlines.
+	position := func(bi *pb.BoardInfo) int {
+		if i, ok := s.sm.sectionOrder[strings.ToLower(bi.Section)]; ok && bi.InConfigFile {
+			return i
+		}
+		return len(s.sm.sectionOrder)
+	}
+	sort.SliceStable(resp.Boards, func(i, j int) bool {
+		return position(resp.Boards[i]) < position(resp.Boards[j])
+	})
 
 	return resp, nil
 }

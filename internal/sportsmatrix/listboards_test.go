@@ -214,3 +214,59 @@ func TestListBoardsOverHTTP(t *testing.T) {
 	require.Contains(t, string(body), "not_found")
 	require.Len(t, list(), 4, "and must not have invented a board")
 }
+
+// ListBoards lays boards out the way the config file does, and says which
+// boards the file actually configures: every board the binary knows is built,
+// so a board existing says nothing about whether anyone asked for it.
+func TestListBoardsFollowsConfigFile(t *testing.T) {
+	t.Parallel()
+
+	logger := zaptest.NewLogger(t, zaptest.Level(zapcore.ErrorLevel))
+
+	mk := func(name string) *namedBoard {
+		return &namedBoard{
+			TestBoard: &TestBoard{log: logger, hasRendered: atomic.NewBool(false), enabler: enabler.New()},
+			name:      name,
+		}
+	}
+
+	nhl, mlb, uefa, clock, sys, stray := mk("NHL"), mk("MLB"), mk("UEFA"), mk("Clock"), mk("Sys"), mk("Stray")
+	nhlHeadlines := newHeadlines(t, logger, "nhl")
+
+	s := &SportsMatrix{
+		// the order the boards were built in, which is not the file's
+		boards:        []board.Board{nhl, nhlHeadlines, mlb, uefa, stray, clock},
+		betweenBoards: []board.Board{sys},
+	}
+	s.SetBoardSections(map[board.Board]string{
+		nhl:          "nhlConfig",
+		nhlHeadlines: "nhlConfig",
+		mlb:          "mlbConfig",
+		uefa:         "uefaConfig",
+		clock:        "clockConfig",
+		sys:          "sysConfig",
+	}, []string{"sportsMatrixConfig", "ClockConfig", "sysConfig", "mlbConfig", "nhlConfig"})
+
+	resp, err := (&Server{sm: s}).ListBoards(context.Background(), nil)
+	require.NoError(t, err)
+
+	type row struct {
+		name, section   string
+		inFile, between bool
+	}
+	var got []row
+	for _, b := range resp.Boards {
+		got = append(got, row{b.Name, b.Section, b.InConfigFile, b.InBetween})
+	}
+
+	require.Equal(t, []row{
+		{"Clock", "clockConfig", true, false},
+		{"Sys", "sysConfig", true, true},
+		{"MLB", "mlbConfig", true, false},
+		{"NHL", "nhlConfig", true, false},
+		{"NHL Headlines", "nhlConfig", true, false},
+		// not in the file: last, in the order they were built
+		{"UEFA", "uefaConfig", false, false},
+		{"Stray", "", false, false},
+	}, got)
+}

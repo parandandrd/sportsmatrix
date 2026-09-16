@@ -79,6 +79,35 @@ func (l *Logo) ThumbnailFilename(size image.Rectangle) string {
 	return filepath.Join(l.targetDirectory, fmt.Sprintf("%s.tiff", l.key))
 }
 
+// saveThumbnail writes the thumbnail to a temporary file alongside the target
+// and renames it into place.
+//
+// This runs on a goroutine while GetThumbnail has already returned, so a caller
+// coming straight back round -- the text board renders its logo once per
+// headline -- would stat a file that existed but was still being written and
+// decode a partial image. Reads failed with "unexpected EOF" or "unknown
+// format" within a render or two. A rename is atomic on the same filesystem, so
+// a reader now sees either no file at all or a complete one.
+func saveThumbnail(img image.Image, thumbFile string) error {
+	f, err := os.CreateTemp(filepath.Dir(thumbFile), filepath.Base(thumbFile)+".tmp*")
+	if err != nil {
+		return fmt.Errorf("failed to create temp file for thumbnail: %w", err)
+	}
+	tmp := f.Name()
+	// Harmless once the rename below has succeeded and tmp no longer exists.
+	defer os.Remove(tmp)
+
+	if err := imaging.Encode(f, img, imaging.TIFF); err != nil {
+		f.Close()
+		return fmt.Errorf("failed to encode thumbnail: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("failed to close thumbnail temp file: %w", err)
+	}
+
+	return os.Rename(tmp, thumbFile)
+}
+
 // GetThumbnail returns the resized image
 func (l *Logo) GetThumbnail(ctx context.Context, size image.Rectangle) (image.Image, error) {
 	if l.thumbnail != nil {
@@ -126,7 +155,7 @@ func (l *Logo) GetThumbnail(ctx context.Context, size image.Rectangle) (image.Im
 			go func() {
 				l.ensureLogger()
 				l.log.Info("saving thumbnail logo", zap.String("filename", thumbFile))
-				if err := imaging.Save(l.thumbnail, thumbFile); err != nil {
+				if err := saveThumbnail(l.thumbnail, thumbFile); err != nil {
 					l.log.Error("failed to save logo to file", zap.Error(err))
 				}
 			}()

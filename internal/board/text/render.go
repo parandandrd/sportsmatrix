@@ -49,6 +49,11 @@ func (s *TextBoard) renderLogo(ctx context.Context, canvas board.Canvas) error {
 				Zoom: 1,
 			},
 		})
+		// Without this the map stays empty, a fresh Logo is built on every
+		// render, and its in-memory thumbnail is never reused -- so each
+		// headline re-read and re-decoded the thumbnail from disk. The sport
+		// board already stores its logos this way.
+		s.logos[key] = l
 	}
 
 	i, err := l.GetThumbnail(ctx, zeroed)

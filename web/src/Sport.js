@@ -50,69 +50,43 @@ class Sport extends React.Component {
         }
     }
     getStatus = async () => {
-        await MatrixPostRet(this.props.sport + "/sport.v1.Sport/GetStatus", '{}').then((resp) => {
-            if (resp.ok) {
-                return resp.text()
-            }
-            throw resp
-        }).then((data) => {
-            if (this.props.sport === "nhl") {
-                console.log("Got MatrixPostRet", data);
-            }
-            var dat = jsonToStatus(data);
-            this.setState({
-                "status": dat,
-            })
-        });
-
-        await MatrixPostRet("stat/" + this.props.sport + "/board.v1.BasicBoard/GetStatus", '{}').then((resp) => {
-            if (resp.ok) {
-                return resp.text();
-            }
-            throw resp
-        }).then((data) => {
-            if (this.props.sport === "nhl") {
-                console.log("Got MatrixPost from stat GetStatus", data);
-            }
-            try {
-                var dat = JSONToStatus(data);
-                this.setState({
-                    "stats": dat,
-                    "has_stats": true,
-                })
-            } catch (e) {
-                this.setState({
-                    "has_stats": false,
-                });
-            }
-        }).catch(error => {
-            this.setState({
-                "has_stats": false,
-            });
-        });
-
-        await MatrixPostRet("headlines/" + this.props.sport + "/board.v1.BasicBoard/GetStatus", '{}').then((resp) => {
+        const fetchStatus = (path) => MatrixPostRet(path, '{}').then((resp) => {
             if (resp.ok) {
                 return resp.text();
             }
             throw resp;
-        }).then((data) => {
-            try {
-                var dat = JSONToStatus(data);
-                this.setState({
-                    "headlines": dat,
-                    "has_headlines": true,
-                })
-            } catch (e) {
-                this.setState({
-                    "has_headlines": false,
-                });
-            }
-        }).catch(error => {
-            this.setState({
-                "has_headlines": false,
-            });
         });
+        // stats and headlines are false when this league is known not to have
+        // those boards, and undefined when nobody said
+        const maybe = (present, path) => (present === false
+            ? Promise.reject(new Error("no such board"))
+            : fetchStatus(path));
+
+        // Three services with nothing to wait on each other for. These went one
+        // after another, a round trip to the Pi apiece.
+        const [sport, stats, headlines] = await Promise.allSettled([
+            fetchStatus(this.props.sport + "/sport.v1.Sport/GetStatus"),
+            maybe(this.props.stats, "stat/" + this.props.sport + "/board.v1.BasicBoard/GetStatus"),
+            maybe(this.props.headlines, "headlines/" + this.props.sport + "/board.v1.BasicBoard/GetStatus"),
+        ]);
+
+        const next = {};
+        if (sport.status === "fulfilled") {
+            next.status = jsonToStatus(sport.value);
+        }
+        try {
+            next.stats = JSONToStatus(stats.value);
+            next.has_stats = true;
+        } catch (e) {
+            next.has_stats = false;
+        }
+        try {
+            next.headlines = JSONToStatus(headlines.value);
+            next.has_headlines = true;
+        } catch (e) {
+            next.has_headlines = false;
+        }
+        this.setState(next);
     }
 
     updateStatus = async () => {
@@ -128,10 +102,13 @@ class Sport extends React.Component {
         hreq.setStatus(this.state.headlines);
         await MatrixPostRet("headlines/" + this.props.sport + "/board.v1.BasicBoard/SetStatus", JSON.stringify(hreq.toObject()));
         await this.getStatus();
+        this.props.doSync?.();
     }
 
     doJump = async () => {
-        await JumpToBoard(this.props.sport);
+        // Jump wants the board's name, which for NCAA Basketball, Ligue 1 and
+        // others is not the slug in its path
+        await JumpToBoard(this.props.name || this.props.sport);
         console.log("Syncing from sport")
         this.props.doSync?.();
     }

@@ -50,10 +50,11 @@ class Sport extends React.Component {
         req.setStatus(this.state.status);
         await MatrixPostRet(this.props.sport + "/racing.v1.Racing/SetStatus", JSON.stringify(req.toObject()));
         await this.getStatus();
+        this.props.doSync?.();
     }
 
     doJump = async () => {
-        await JumpToBoard(this.props.sport);
+        await JumpToBoard(this.props.name || this.props.sport);
         console.log("Syncing from racing")
         this.props.doSync?.();
     }

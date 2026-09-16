@@ -7,16 +7,22 @@ import BasicBoard from './BasicBoard.js';
 // BoardPanel renders the settings for one board. Which component to use comes
 // from the board's own RPC path, reported by ListBoards, so nothing here has to
 // know the list of leagues.
-export default function BoardPanel({ board, onChange }) {
+//
+// group, when given, is the board's config section. It says whether a league
+// has stats or headlines boards at all, so the panel doesn't ask services that
+// aren't there.
+export default function BoardPanel({ board, group, onChange }) {
     const sync = onChange || (() => { });
+    const has = (prefix) => (group ? group.subs.some((b) => b.path.startsWith(prefix)) : undefined);
 
     switch (board.kind) {
         case 'sport':
-            return <Sport sport={board.path} id={board.path} doSync={sync} />;
+            return <Sport sport={board.path} name={board.name} id={board.path}
+                stats={has('stat/')} headlines={has('headlines/')} doSync={sync} />;
         case 'racing':
-            return <Racing sport={board.path} id={board.path} doSync={sync} />;
+            return <Racing sport={board.path} name={board.name} id={board.path} doSync={sync} />;
         case 'image':
-            return <ImageBoard id={board.name} doSync={sync} />;
+            return <ImageBoard id={board.name} name={board.name} doSync={sync} />;
         case 'basic':
             return <BasicBoard id={board.name} name={board.name} path={board.path} doSync={sync} />;
         default:

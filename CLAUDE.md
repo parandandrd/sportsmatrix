@@ -39,6 +39,9 @@ Things that will waste your time if you don't know them:
   any new test or you will get `address already in use` and a confusing hang.
 - `SportsMatrix.Close()` sends on an unbuffered channel. Don't `defer s.Close()`
   in a test where `Serve` isn't running its normal loop -- it deadlocks.
+- **Go's race detector won't start on a Raspberry Pi 5 kernel**
+  (`ThreadSanitizer: unsupported VMA range`, from its 47-bit address space). A
+  test for a concurrency fix has to fail without `-race` to prove anything there.
 
 ## Architecture worth knowing before you optimize
 
@@ -58,10 +61,24 @@ Things that will waste your time if you don't know them:
 - Boards implement `board.Board`, canvases implement `board.Canvas`. Board
   enable/disable goes through `board.Enabler`, whose `SetStateChangeCallback`
   wakes the serve loop when every board is off.
-- RPC is Twirp over JSON. `ListBoards`, `SetBoardEnabled` and `Jump` are what
-  the web UI drives. The React app in `web/` is built and embedded into the
-  binary.
-- Runtime config is `/etc/sportsmatrix.conf` (viper). The `.deb` ships one.
+- RPC is Twirp over JSON, and the React app in `web/` is built and embedded
+  into the binary. The web UI drives `ListBoards`, `SetBoardEnabled`,
+  `SetBoardOrder` and `Jump`; the matrix settings `GetSettings`,
+  `SetBrightness` and `SetScreenSchedule`; `GetBoardSettings` and
+  `SetBoardSettings`; and each board's own service for its switches.
+- Runtime config is `/etc/sportsmatrix.conf`, read with `ghodss/yaml` -- YAML
+  1.1 rules, so a plain `NO` is `false`. The `.deb` ships one.
+  `setConfigDefaults` builds **every board the binary knows**, whether the file
+  has its section or not; `ListBoards` says which really are in the file.
+- **Settings changed through the API are written back to that file** by
+  `internal/conffile`, which edits the text in place so comments and blank
+  lines survive, and refuses any edit whose result doesn't decode to exactly the
+  old config plus the change. Board switches are saved by wrapping each board's
+  RPC service where `startHTTP` mounts it (`savingHandler`), comparing status
+  before and after. Hold `settingsLock` across changing a setting and saving it.
+- The panel cycles through boards in the order of their **sections in the
+  config file**, and `SetBoardOrder` moves the sections. The board list is
+  replaced, never sorted in place: read it with `boardList()`.
 
 ## Conventions
 
@@ -79,6 +96,12 @@ Things that will waste your time if you don't know them:
 
 Verified on the real Pi as of v0.0.3-beta.1: the dashboard, `ListBoards` /
 `SetBoardEnabled`, NWSL, Go 1.23, the repackaged `.deb`.
+
+Not verified on the Pi yet, only against a local `run -t` instance started with
+a copy of its config: everything written after v0.0.3-beta.1 -- the dashboard's
+grouping, the web UI's caching, the web board launcher, saving settings to the
+config file, reordering, brightness and the screen schedule, and board display
+times and teams.
 
 Not verified end to end: the sport, stat and racing boards' live data paths.
 ESPN's API is reachable from the Pi but was blocked from the sandbox these

@@ -137,15 +137,42 @@ func (s *Server) SetBoardEnabled(ctx context.Context, req *pb.SetBoardEnabledReq
 
 // SetBoardOrder rearranges boards by the config sections they come from.
 func (s *Server) SetBoardOrder(ctx context.Context, req *pb.SetBoardOrderReq) (*emptypb.Empty, error) {
-	switch err := s.sm.setBoardOrder(req.Sections); {
-	case err == nil:
-		return &emptypb.Empty{}, nil
-	case errors.Is(err, errUnknownSection):
-		return nil, twirp.NewError(twirp.InvalidArgument, err.Error())
+	if err := s.sm.setBoardOrder(req.Sections); err != nil {
+		return nil, settingsError(err)
+	}
+	return &emptypb.Empty{}, nil
+}
+
+// GetSettings reports the matrix-wide settings.
+func (s *Server) GetSettings(ctx context.Context, req *emptypb.Empty) (*pb.Settings, error) {
+	return s.sm.settings(), nil
+}
+
+// SetBrightness changes the panel's brightness now, and saves it.
+func (s *Server) SetBrightness(ctx context.Context, req *pb.SetBrightnessReq) (*emptypb.Empty, error) {
+	if err := s.sm.setBrightness(int(req.Brightness)); err != nil {
+		return nil, settingsError(err)
+	}
+	return &emptypb.Empty{}, nil
+}
+
+// SetScreenSchedule replaces when the screen turns itself on and off, and
+// saves it.
+func (s *Server) SetScreenSchedule(ctx context.Context, req *pb.ScreenSchedule) (*emptypb.Empty, error) {
+	if err := s.sm.setScreenSchedule(req.OnTimes, req.OffTimes); err != nil {
+		return nil, settingsError(err)
+	}
+	return &emptypb.Empty{}, nil
+}
+
+func settingsError(err error) error {
+	switch {
+	case errors.Is(err, errBadBrightness), errors.Is(err, errBadSchedule), errors.Is(err, errUnknownSection):
+		return twirp.NewError(twirp.InvalidArgument, err.Error())
 	case errors.Is(err, errNoConfigFile):
-		return nil, twirp.NewError(twirp.FailedPrecondition, err.Error())
+		return twirp.NewError(twirp.FailedPrecondition, err.Error())
 	default:
-		return nil, twirp.NewError(twirp.Internal, err.Error())
+		return twirp.NewError(twirp.Internal, err.Error())
 	}
 }
 

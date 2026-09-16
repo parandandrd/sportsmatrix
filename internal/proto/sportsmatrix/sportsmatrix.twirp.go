@@ -59,6 +59,12 @@ type Sportsmatrix interface {
 	SetBoardEnabled(context.Context, *SetBoardEnabledReq) (*google_protobuf.Empty, error)
 
 	SetBoardOrder(context.Context, *SetBoardOrderReq) (*google_protobuf.Empty, error)
+
+	GetSettings(context.Context, *google_protobuf.Empty) (*Settings, error)
+
+	SetBrightness(context.Context, *SetBrightnessReq) (*google_protobuf.Empty, error)
+
+	SetScreenSchedule(context.Context, *ScreenSchedule) (*google_protobuf.Empty, error)
 }
 
 // ============================
@@ -67,7 +73,7 @@ type Sportsmatrix interface {
 
 type sportsmatrixProtobufClient struct {
 	client      HTTPClient
-	urls        [13]string
+	urls        [16]string
 	interceptor twirp.Interceptor
 	opts        twirp.ClientOptions
 }
@@ -95,7 +101,7 @@ func NewSportsmatrixProtobufClient(baseURL string, client HTTPClient, opts ...tw
 	// Build method URLs: <baseURL>[<prefix>]/<package>.<Service>/<Method>
 	serviceURL := sanitizeBaseURL(baseURL)
 	serviceURL += baseServicePath(pathPrefix, "matrix.v1", "Sportsmatrix")
-	urls := [13]string{
+	urls := [16]string{
 		serviceURL + "Version",
 		serviceURL + "ScreenOn",
 		serviceURL + "ScreenOff",
@@ -109,6 +115,9 @@ func NewSportsmatrixProtobufClient(baseURL string, client HTTPClient, opts ...tw
 		serviceURL + "ListBoards",
 		serviceURL + "SetBoardEnabled",
 		serviceURL + "SetBoardOrder",
+		serviceURL + "GetSettings",
+		serviceURL + "SetBrightness",
+		serviceURL + "SetScreenSchedule",
 	}
 
 	return &sportsmatrixProtobufClient{
@@ -717,13 +726,151 @@ func (c *sportsmatrixProtobufClient) callSetBoardOrder(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *sportsmatrixProtobufClient) GetSettings(ctx context.Context, in *google_protobuf.Empty) (*Settings, error) {
+	ctx = ctxsetters.WithPackageName(ctx, "matrix.v1")
+	ctx = ctxsetters.WithServiceName(ctx, "Sportsmatrix")
+	ctx = ctxsetters.WithMethodName(ctx, "GetSettings")
+	caller := c.callGetSettings
+	if c.interceptor != nil {
+		caller = func(ctx context.Context, req *google_protobuf.Empty) (*Settings, error) {
+			resp, err := c.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*google_protobuf.Empty)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*google_protobuf.Empty) when calling interceptor")
+					}
+					return c.callGetSettings(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*Settings)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*Settings) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+	return caller(ctx, in)
+}
+
+func (c *sportsmatrixProtobufClient) callGetSettings(ctx context.Context, in *google_protobuf.Empty) (*Settings, error) {
+	out := new(Settings)
+	ctx, err := doProtobufRequest(ctx, c.client, c.opts.Hooks, c.urls[13], in, out)
+	if err != nil {
+		twerr, ok := err.(twirp.Error)
+		if !ok {
+			twerr = twirp.InternalErrorWith(err)
+		}
+		callClientError(ctx, c.opts.Hooks, twerr)
+		return nil, err
+	}
+
+	callClientResponseReceived(ctx, c.opts.Hooks)
+
+	return out, nil
+}
+
+func (c *sportsmatrixProtobufClient) SetBrightness(ctx context.Context, in *SetBrightnessReq) (*google_protobuf.Empty, error) {
+	ctx = ctxsetters.WithPackageName(ctx, "matrix.v1")
+	ctx = ctxsetters.WithServiceName(ctx, "Sportsmatrix")
+	ctx = ctxsetters.WithMethodName(ctx, "SetBrightness")
+	caller := c.callSetBrightness
+	if c.interceptor != nil {
+		caller = func(ctx context.Context, req *SetBrightnessReq) (*google_protobuf.Empty, error) {
+			resp, err := c.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*SetBrightnessReq)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*SetBrightnessReq) when calling interceptor")
+					}
+					return c.callSetBrightness(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*google_protobuf.Empty)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*google_protobuf.Empty) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+	return caller(ctx, in)
+}
+
+func (c *sportsmatrixProtobufClient) callSetBrightness(ctx context.Context, in *SetBrightnessReq) (*google_protobuf.Empty, error) {
+	out := new(google_protobuf.Empty)
+	ctx, err := doProtobufRequest(ctx, c.client, c.opts.Hooks, c.urls[14], in, out)
+	if err != nil {
+		twerr, ok := err.(twirp.Error)
+		if !ok {
+			twerr = twirp.InternalErrorWith(err)
+		}
+		callClientError(ctx, c.opts.Hooks, twerr)
+		return nil, err
+	}
+
+	callClientResponseReceived(ctx, c.opts.Hooks)
+
+	return out, nil
+}
+
+func (c *sportsmatrixProtobufClient) SetScreenSchedule(ctx context.Context, in *ScreenSchedule) (*google_protobuf.Empty, error) {
+	ctx = ctxsetters.WithPackageName(ctx, "matrix.v1")
+	ctx = ctxsetters.WithServiceName(ctx, "Sportsmatrix")
+	ctx = ctxsetters.WithMethodName(ctx, "SetScreenSchedule")
+	caller := c.callSetScreenSchedule
+	if c.interceptor != nil {
+		caller = func(ctx context.Context, req *ScreenSchedule) (*google_protobuf.Empty, error) {
+			resp, err := c.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*ScreenSchedule)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*ScreenSchedule) when calling interceptor")
+					}
+					return c.callSetScreenSchedule(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*google_protobuf.Empty)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*google_protobuf.Empty) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+	return caller(ctx, in)
+}
+
+func (c *sportsmatrixProtobufClient) callSetScreenSchedule(ctx context.Context, in *ScreenSchedule) (*google_protobuf.Empty, error) {
+	out := new(google_protobuf.Empty)
+	ctx, err := doProtobufRequest(ctx, c.client, c.opts.Hooks, c.urls[15], in, out)
+	if err != nil {
+		twerr, ok := err.(twirp.Error)
+		if !ok {
+			twerr = twirp.InternalErrorWith(err)
+		}
+		callClientError(ctx, c.opts.Hooks, twerr)
+		return nil, err
+	}
+
+	callClientResponseReceived(ctx, c.opts.Hooks)
+
+	return out, nil
+}
+
 // ========================
 // Sportsmatrix JSON Client
 // ========================
 
 type sportsmatrixJSONClient struct {
 	client      HTTPClient
-	urls        [13]string
+	urls        [16]string
 	interceptor twirp.Interceptor
 	opts        twirp.ClientOptions
 }
@@ -751,7 +898,7 @@ func NewSportsmatrixJSONClient(baseURL string, client HTTPClient, opts ...twirp.
 	// Build method URLs: <baseURL>[<prefix>]/<package>.<Service>/<Method>
 	serviceURL := sanitizeBaseURL(baseURL)
 	serviceURL += baseServicePath(pathPrefix, "matrix.v1", "Sportsmatrix")
-	urls := [13]string{
+	urls := [16]string{
 		serviceURL + "Version",
 		serviceURL + "ScreenOn",
 		serviceURL + "ScreenOff",
@@ -765,6 +912,9 @@ func NewSportsmatrixJSONClient(baseURL string, client HTTPClient, opts ...twirp.
 		serviceURL + "ListBoards",
 		serviceURL + "SetBoardEnabled",
 		serviceURL + "SetBoardOrder",
+		serviceURL + "GetSettings",
+		serviceURL + "SetBrightness",
+		serviceURL + "SetScreenSchedule",
 	}
 
 	return &sportsmatrixJSONClient{
@@ -1373,6 +1523,144 @@ func (c *sportsmatrixJSONClient) callSetBoardOrder(ctx context.Context, in *SetB
 	return out, nil
 }
 
+func (c *sportsmatrixJSONClient) GetSettings(ctx context.Context, in *google_protobuf.Empty) (*Settings, error) {
+	ctx = ctxsetters.WithPackageName(ctx, "matrix.v1")
+	ctx = ctxsetters.WithServiceName(ctx, "Sportsmatrix")
+	ctx = ctxsetters.WithMethodName(ctx, "GetSettings")
+	caller := c.callGetSettings
+	if c.interceptor != nil {
+		caller = func(ctx context.Context, req *google_protobuf.Empty) (*Settings, error) {
+			resp, err := c.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*google_protobuf.Empty)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*google_protobuf.Empty) when calling interceptor")
+					}
+					return c.callGetSettings(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*Settings)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*Settings) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+	return caller(ctx, in)
+}
+
+func (c *sportsmatrixJSONClient) callGetSettings(ctx context.Context, in *google_protobuf.Empty) (*Settings, error) {
+	out := new(Settings)
+	ctx, err := doJSONRequest(ctx, c.client, c.opts.Hooks, c.urls[13], in, out)
+	if err != nil {
+		twerr, ok := err.(twirp.Error)
+		if !ok {
+			twerr = twirp.InternalErrorWith(err)
+		}
+		callClientError(ctx, c.opts.Hooks, twerr)
+		return nil, err
+	}
+
+	callClientResponseReceived(ctx, c.opts.Hooks)
+
+	return out, nil
+}
+
+func (c *sportsmatrixJSONClient) SetBrightness(ctx context.Context, in *SetBrightnessReq) (*google_protobuf.Empty, error) {
+	ctx = ctxsetters.WithPackageName(ctx, "matrix.v1")
+	ctx = ctxsetters.WithServiceName(ctx, "Sportsmatrix")
+	ctx = ctxsetters.WithMethodName(ctx, "SetBrightness")
+	caller := c.callSetBrightness
+	if c.interceptor != nil {
+		caller = func(ctx context.Context, req *SetBrightnessReq) (*google_protobuf.Empty, error) {
+			resp, err := c.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*SetBrightnessReq)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*SetBrightnessReq) when calling interceptor")
+					}
+					return c.callSetBrightness(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*google_protobuf.Empty)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*google_protobuf.Empty) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+	return caller(ctx, in)
+}
+
+func (c *sportsmatrixJSONClient) callSetBrightness(ctx context.Context, in *SetBrightnessReq) (*google_protobuf.Empty, error) {
+	out := new(google_protobuf.Empty)
+	ctx, err := doJSONRequest(ctx, c.client, c.opts.Hooks, c.urls[14], in, out)
+	if err != nil {
+		twerr, ok := err.(twirp.Error)
+		if !ok {
+			twerr = twirp.InternalErrorWith(err)
+		}
+		callClientError(ctx, c.opts.Hooks, twerr)
+		return nil, err
+	}
+
+	callClientResponseReceived(ctx, c.opts.Hooks)
+
+	return out, nil
+}
+
+func (c *sportsmatrixJSONClient) SetScreenSchedule(ctx context.Context, in *ScreenSchedule) (*google_protobuf.Empty, error) {
+	ctx = ctxsetters.WithPackageName(ctx, "matrix.v1")
+	ctx = ctxsetters.WithServiceName(ctx, "Sportsmatrix")
+	ctx = ctxsetters.WithMethodName(ctx, "SetScreenSchedule")
+	caller := c.callSetScreenSchedule
+	if c.interceptor != nil {
+		caller = func(ctx context.Context, req *ScreenSchedule) (*google_protobuf.Empty, error) {
+			resp, err := c.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*ScreenSchedule)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*ScreenSchedule) when calling interceptor")
+					}
+					return c.callSetScreenSchedule(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*google_protobuf.Empty)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*google_protobuf.Empty) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+	return caller(ctx, in)
+}
+
+func (c *sportsmatrixJSONClient) callSetScreenSchedule(ctx context.Context, in *ScreenSchedule) (*google_protobuf.Empty, error) {
+	out := new(google_protobuf.Empty)
+	ctx, err := doJSONRequest(ctx, c.client, c.opts.Hooks, c.urls[15], in, out)
+	if err != nil {
+		twerr, ok := err.(twirp.Error)
+		if !ok {
+			twerr = twirp.InternalErrorWith(err)
+		}
+		callClientError(ctx, c.opts.Hooks, twerr)
+		return nil, err
+	}
+
+	callClientResponseReceived(ctx, c.opts.Hooks)
+
+	return out, nil
+}
+
 // ===========================
 // Sportsmatrix Server Handler
 // ===========================
@@ -1508,6 +1796,15 @@ func (s *sportsmatrixServer) ServeHTTP(resp http.ResponseWriter, req *http.Reque
 		return
 	case "SetBoardOrder":
 		s.serveSetBoardOrder(ctx, resp, req)
+		return
+	case "GetSettings":
+		s.serveGetSettings(ctx, resp, req)
+		return
+	case "SetBrightness":
+		s.serveSetBrightness(ctx, resp, req)
+		return
+	case "SetScreenSchedule":
+		s.serveSetScreenSchedule(ctx, resp, req)
 		return
 	default:
 		msg := fmt.Sprintf("no handler for path %q", req.URL.Path)
@@ -3856,6 +4153,546 @@ func (s *sportsmatrixServer) serveSetBoardOrderProtobuf(ctx context.Context, res
 	callResponseSent(ctx, s.hooks)
 }
 
+func (s *sportsmatrixServer) serveGetSettings(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	header := req.Header.Get("Content-Type")
+	i := strings.Index(header, ";")
+	if i == -1 {
+		i = len(header)
+	}
+	switch strings.TrimSpace(strings.ToLower(header[:i])) {
+	case "application/json":
+		s.serveGetSettingsJSON(ctx, resp, req)
+	case "application/protobuf":
+		s.serveGetSettingsProtobuf(ctx, resp, req)
+	default:
+		msg := fmt.Sprintf("unexpected Content-Type: %q", req.Header.Get("Content-Type"))
+		twerr := badRouteError(msg, req.Method, req.URL.Path)
+		s.writeError(ctx, resp, twerr)
+	}
+}
+
+func (s *sportsmatrixServer) serveGetSettingsJSON(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	var err error
+	ctx = ctxsetters.WithMethodName(ctx, "GetSettings")
+	ctx, err = callRequestRouted(ctx, s.hooks)
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+
+	d := json.NewDecoder(req.Body)
+	rawReqBody := json.RawMessage{}
+	if err := d.Decode(&rawReqBody); err != nil {
+		s.handleRequestBodyError(ctx, resp, "the json request could not be decoded", err)
+		return
+	}
+	reqContent := new(google_protobuf.Empty)
+	unmarshaler := protojson.UnmarshalOptions{DiscardUnknown: true}
+	if err = unmarshaler.Unmarshal(rawReqBody, reqContent); err != nil {
+		s.handleRequestBodyError(ctx, resp, "the json request could not be decoded", err)
+		return
+	}
+
+	handler := s.Sportsmatrix.GetSettings
+	if s.interceptor != nil {
+		handler = func(ctx context.Context, req *google_protobuf.Empty) (*Settings, error) {
+			resp, err := s.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*google_protobuf.Empty)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*google_protobuf.Empty) when calling interceptor")
+					}
+					return s.Sportsmatrix.GetSettings(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*Settings)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*Settings) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+
+	// Call service method
+	var respContent *Settings
+	func() {
+		defer ensurePanicResponses(ctx, resp, s.hooks)
+		respContent, err = handler(ctx, reqContent)
+	}()
+
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+	if respContent == nil {
+		s.writeError(ctx, resp, twirp.InternalError("received a nil *Settings and nil error while calling GetSettings. nil responses are not supported"))
+		return
+	}
+
+	ctx = callResponsePrepared(ctx, s.hooks)
+
+	marshaler := &protojson.MarshalOptions{UseProtoNames: !s.jsonCamelCase, EmitUnpopulated: !s.jsonSkipDefaults}
+	respBytes, err := marshaler.Marshal(respContent)
+	if err != nil {
+		s.writeError(ctx, resp, wrapInternal(err, "failed to marshal json response"))
+		return
+	}
+
+	ctx = ctxsetters.WithStatusCode(ctx, http.StatusOK)
+	resp.Header().Set("Content-Type", "application/json")
+	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
+	resp.WriteHeader(http.StatusOK)
+
+	if n, err := resp.Write(respBytes); err != nil {
+		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
+		twerr := twirp.NewError(twirp.Unknown, msg)
+		ctx = callError(ctx, s.hooks, twerr)
+	}
+	callResponseSent(ctx, s.hooks)
+}
+
+func (s *sportsmatrixServer) serveGetSettingsProtobuf(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	var err error
+	ctx = ctxsetters.WithMethodName(ctx, "GetSettings")
+	ctx, err = callRequestRouted(ctx, s.hooks)
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+
+	buf, err := io.ReadAll(req.Body)
+	if err != nil {
+		s.handleRequestBodyError(ctx, resp, "failed to read request body", err)
+		return
+	}
+	reqContent := new(google_protobuf.Empty)
+	if err = proto.Unmarshal(buf, reqContent); err != nil {
+		s.writeError(ctx, resp, malformedRequestError("the protobuf request could not be decoded"))
+		return
+	}
+
+	handler := s.Sportsmatrix.GetSettings
+	if s.interceptor != nil {
+		handler = func(ctx context.Context, req *google_protobuf.Empty) (*Settings, error) {
+			resp, err := s.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*google_protobuf.Empty)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*google_protobuf.Empty) when calling interceptor")
+					}
+					return s.Sportsmatrix.GetSettings(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*Settings)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*Settings) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+
+	// Call service method
+	var respContent *Settings
+	func() {
+		defer ensurePanicResponses(ctx, resp, s.hooks)
+		respContent, err = handler(ctx, reqContent)
+	}()
+
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+	if respContent == nil {
+		s.writeError(ctx, resp, twirp.InternalError("received a nil *Settings and nil error while calling GetSettings. nil responses are not supported"))
+		return
+	}
+
+	ctx = callResponsePrepared(ctx, s.hooks)
+
+	respBytes, err := proto.Marshal(respContent)
+	if err != nil {
+		s.writeError(ctx, resp, wrapInternal(err, "failed to marshal proto response"))
+		return
+	}
+
+	ctx = ctxsetters.WithStatusCode(ctx, http.StatusOK)
+	resp.Header().Set("Content-Type", "application/protobuf")
+	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
+	resp.WriteHeader(http.StatusOK)
+	if n, err := resp.Write(respBytes); err != nil {
+		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
+		twerr := twirp.NewError(twirp.Unknown, msg)
+		ctx = callError(ctx, s.hooks, twerr)
+	}
+	callResponseSent(ctx, s.hooks)
+}
+
+func (s *sportsmatrixServer) serveSetBrightness(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	header := req.Header.Get("Content-Type")
+	i := strings.Index(header, ";")
+	if i == -1 {
+		i = len(header)
+	}
+	switch strings.TrimSpace(strings.ToLower(header[:i])) {
+	case "application/json":
+		s.serveSetBrightnessJSON(ctx, resp, req)
+	case "application/protobuf":
+		s.serveSetBrightnessProtobuf(ctx, resp, req)
+	default:
+		msg := fmt.Sprintf("unexpected Content-Type: %q", req.Header.Get("Content-Type"))
+		twerr := badRouteError(msg, req.Method, req.URL.Path)
+		s.writeError(ctx, resp, twerr)
+	}
+}
+
+func (s *sportsmatrixServer) serveSetBrightnessJSON(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	var err error
+	ctx = ctxsetters.WithMethodName(ctx, "SetBrightness")
+	ctx, err = callRequestRouted(ctx, s.hooks)
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+
+	d := json.NewDecoder(req.Body)
+	rawReqBody := json.RawMessage{}
+	if err := d.Decode(&rawReqBody); err != nil {
+		s.handleRequestBodyError(ctx, resp, "the json request could not be decoded", err)
+		return
+	}
+	reqContent := new(SetBrightnessReq)
+	unmarshaler := protojson.UnmarshalOptions{DiscardUnknown: true}
+	if err = unmarshaler.Unmarshal(rawReqBody, reqContent); err != nil {
+		s.handleRequestBodyError(ctx, resp, "the json request could not be decoded", err)
+		return
+	}
+
+	handler := s.Sportsmatrix.SetBrightness
+	if s.interceptor != nil {
+		handler = func(ctx context.Context, req *SetBrightnessReq) (*google_protobuf.Empty, error) {
+			resp, err := s.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*SetBrightnessReq)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*SetBrightnessReq) when calling interceptor")
+					}
+					return s.Sportsmatrix.SetBrightness(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*google_protobuf.Empty)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*google_protobuf.Empty) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+
+	// Call service method
+	var respContent *google_protobuf.Empty
+	func() {
+		defer ensurePanicResponses(ctx, resp, s.hooks)
+		respContent, err = handler(ctx, reqContent)
+	}()
+
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+	if respContent == nil {
+		s.writeError(ctx, resp, twirp.InternalError("received a nil *google_protobuf.Empty and nil error while calling SetBrightness. nil responses are not supported"))
+		return
+	}
+
+	ctx = callResponsePrepared(ctx, s.hooks)
+
+	marshaler := &protojson.MarshalOptions{UseProtoNames: !s.jsonCamelCase, EmitUnpopulated: !s.jsonSkipDefaults}
+	respBytes, err := marshaler.Marshal(respContent)
+	if err != nil {
+		s.writeError(ctx, resp, wrapInternal(err, "failed to marshal json response"))
+		return
+	}
+
+	ctx = ctxsetters.WithStatusCode(ctx, http.StatusOK)
+	resp.Header().Set("Content-Type", "application/json")
+	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
+	resp.WriteHeader(http.StatusOK)
+
+	if n, err := resp.Write(respBytes); err != nil {
+		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
+		twerr := twirp.NewError(twirp.Unknown, msg)
+		ctx = callError(ctx, s.hooks, twerr)
+	}
+	callResponseSent(ctx, s.hooks)
+}
+
+func (s *sportsmatrixServer) serveSetBrightnessProtobuf(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	var err error
+	ctx = ctxsetters.WithMethodName(ctx, "SetBrightness")
+	ctx, err = callRequestRouted(ctx, s.hooks)
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+
+	buf, err := io.ReadAll(req.Body)
+	if err != nil {
+		s.handleRequestBodyError(ctx, resp, "failed to read request body", err)
+		return
+	}
+	reqContent := new(SetBrightnessReq)
+	if err = proto.Unmarshal(buf, reqContent); err != nil {
+		s.writeError(ctx, resp, malformedRequestError("the protobuf request could not be decoded"))
+		return
+	}
+
+	handler := s.Sportsmatrix.SetBrightness
+	if s.interceptor != nil {
+		handler = func(ctx context.Context, req *SetBrightnessReq) (*google_protobuf.Empty, error) {
+			resp, err := s.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*SetBrightnessReq)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*SetBrightnessReq) when calling interceptor")
+					}
+					return s.Sportsmatrix.SetBrightness(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*google_protobuf.Empty)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*google_protobuf.Empty) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+
+	// Call service method
+	var respContent *google_protobuf.Empty
+	func() {
+		defer ensurePanicResponses(ctx, resp, s.hooks)
+		respContent, err = handler(ctx, reqContent)
+	}()
+
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+	if respContent == nil {
+		s.writeError(ctx, resp, twirp.InternalError("received a nil *google_protobuf.Empty and nil error while calling SetBrightness. nil responses are not supported"))
+		return
+	}
+
+	ctx = callResponsePrepared(ctx, s.hooks)
+
+	respBytes, err := proto.Marshal(respContent)
+	if err != nil {
+		s.writeError(ctx, resp, wrapInternal(err, "failed to marshal proto response"))
+		return
+	}
+
+	ctx = ctxsetters.WithStatusCode(ctx, http.StatusOK)
+	resp.Header().Set("Content-Type", "application/protobuf")
+	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
+	resp.WriteHeader(http.StatusOK)
+	if n, err := resp.Write(respBytes); err != nil {
+		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
+		twerr := twirp.NewError(twirp.Unknown, msg)
+		ctx = callError(ctx, s.hooks, twerr)
+	}
+	callResponseSent(ctx, s.hooks)
+}
+
+func (s *sportsmatrixServer) serveSetScreenSchedule(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	header := req.Header.Get("Content-Type")
+	i := strings.Index(header, ";")
+	if i == -1 {
+		i = len(header)
+	}
+	switch strings.TrimSpace(strings.ToLower(header[:i])) {
+	case "application/json":
+		s.serveSetScreenScheduleJSON(ctx, resp, req)
+	case "application/protobuf":
+		s.serveSetScreenScheduleProtobuf(ctx, resp, req)
+	default:
+		msg := fmt.Sprintf("unexpected Content-Type: %q", req.Header.Get("Content-Type"))
+		twerr := badRouteError(msg, req.Method, req.URL.Path)
+		s.writeError(ctx, resp, twerr)
+	}
+}
+
+func (s *sportsmatrixServer) serveSetScreenScheduleJSON(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	var err error
+	ctx = ctxsetters.WithMethodName(ctx, "SetScreenSchedule")
+	ctx, err = callRequestRouted(ctx, s.hooks)
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+
+	d := json.NewDecoder(req.Body)
+	rawReqBody := json.RawMessage{}
+	if err := d.Decode(&rawReqBody); err != nil {
+		s.handleRequestBodyError(ctx, resp, "the json request could not be decoded", err)
+		return
+	}
+	reqContent := new(ScreenSchedule)
+	unmarshaler := protojson.UnmarshalOptions{DiscardUnknown: true}
+	if err = unmarshaler.Unmarshal(rawReqBody, reqContent); err != nil {
+		s.handleRequestBodyError(ctx, resp, "the json request could not be decoded", err)
+		return
+	}
+
+	handler := s.Sportsmatrix.SetScreenSchedule
+	if s.interceptor != nil {
+		handler = func(ctx context.Context, req *ScreenSchedule) (*google_protobuf.Empty, error) {
+			resp, err := s.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*ScreenSchedule)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*ScreenSchedule) when calling interceptor")
+					}
+					return s.Sportsmatrix.SetScreenSchedule(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*google_protobuf.Empty)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*google_protobuf.Empty) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+
+	// Call service method
+	var respContent *google_protobuf.Empty
+	func() {
+		defer ensurePanicResponses(ctx, resp, s.hooks)
+		respContent, err = handler(ctx, reqContent)
+	}()
+
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+	if respContent == nil {
+		s.writeError(ctx, resp, twirp.InternalError("received a nil *google_protobuf.Empty and nil error while calling SetScreenSchedule. nil responses are not supported"))
+		return
+	}
+
+	ctx = callResponsePrepared(ctx, s.hooks)
+
+	marshaler := &protojson.MarshalOptions{UseProtoNames: !s.jsonCamelCase, EmitUnpopulated: !s.jsonSkipDefaults}
+	respBytes, err := marshaler.Marshal(respContent)
+	if err != nil {
+		s.writeError(ctx, resp, wrapInternal(err, "failed to marshal json response"))
+		return
+	}
+
+	ctx = ctxsetters.WithStatusCode(ctx, http.StatusOK)
+	resp.Header().Set("Content-Type", "application/json")
+	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
+	resp.WriteHeader(http.StatusOK)
+
+	if n, err := resp.Write(respBytes); err != nil {
+		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
+		twerr := twirp.NewError(twirp.Unknown, msg)
+		ctx = callError(ctx, s.hooks, twerr)
+	}
+	callResponseSent(ctx, s.hooks)
+}
+
+func (s *sportsmatrixServer) serveSetScreenScheduleProtobuf(ctx context.Context, resp http.ResponseWriter, req *http.Request) {
+	var err error
+	ctx = ctxsetters.WithMethodName(ctx, "SetScreenSchedule")
+	ctx, err = callRequestRouted(ctx, s.hooks)
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+
+	buf, err := io.ReadAll(req.Body)
+	if err != nil {
+		s.handleRequestBodyError(ctx, resp, "failed to read request body", err)
+		return
+	}
+	reqContent := new(ScreenSchedule)
+	if err = proto.Unmarshal(buf, reqContent); err != nil {
+		s.writeError(ctx, resp, malformedRequestError("the protobuf request could not be decoded"))
+		return
+	}
+
+	handler := s.Sportsmatrix.SetScreenSchedule
+	if s.interceptor != nil {
+		handler = func(ctx context.Context, req *ScreenSchedule) (*google_protobuf.Empty, error) {
+			resp, err := s.interceptor(
+				func(ctx context.Context, req interface{}) (interface{}, error) {
+					typedReq, ok := req.(*ScreenSchedule)
+					if !ok {
+						return nil, twirp.InternalError("failed type assertion req.(*ScreenSchedule) when calling interceptor")
+					}
+					return s.Sportsmatrix.SetScreenSchedule(ctx, typedReq)
+				},
+			)(ctx, req)
+			if resp != nil {
+				typedResp, ok := resp.(*google_protobuf.Empty)
+				if !ok {
+					return nil, twirp.InternalError("failed type assertion resp.(*google_protobuf.Empty) when calling interceptor")
+				}
+				return typedResp, err
+			}
+			return nil, err
+		}
+	}
+
+	// Call service method
+	var respContent *google_protobuf.Empty
+	func() {
+		defer ensurePanicResponses(ctx, resp, s.hooks)
+		respContent, err = handler(ctx, reqContent)
+	}()
+
+	if err != nil {
+		s.writeError(ctx, resp, err)
+		return
+	}
+	if respContent == nil {
+		s.writeError(ctx, resp, twirp.InternalError("received a nil *google_protobuf.Empty and nil error while calling SetScreenSchedule. nil responses are not supported"))
+		return
+	}
+
+	ctx = callResponsePrepared(ctx, s.hooks)
+
+	respBytes, err := proto.Marshal(respContent)
+	if err != nil {
+		s.writeError(ctx, resp, wrapInternal(err, "failed to marshal proto response"))
+		return
+	}
+
+	ctx = ctxsetters.WithStatusCode(ctx, http.StatusOK)
+	resp.Header().Set("Content-Type", "application/protobuf")
+	resp.Header().Set("Content-Length", strconv.Itoa(len(respBytes)))
+	resp.WriteHeader(http.StatusOK)
+	if n, err := resp.Write(respBytes); err != nil {
+		msg := fmt.Sprintf("failed to write response, %d of %d bytes written: %s", n, len(respBytes), err.Error())
+		twerr := twirp.NewError(twirp.Unknown, msg)
+		ctx = callError(ctx, s.hooks, twerr)
+	}
+	callResponseSent(ctx, s.hooks)
+}
+
 func (s *sportsmatrixServer) ServiceDescriptor() ([]byte, int) {
 	return twirpFileDescriptor0, 0
 }
@@ -4437,45 +5274,54 @@ func callClientError(ctx context.Context, h *twirp.ClientHooks, err twirp.Error)
 }
 
 var twirpFileDescriptor0 = []byte{
-	// 635 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x5b, 0x6b, 0x13, 0x41,
-	0x14, 0x26, 0xbd, 0xa4, 0xd9, 0x93, 0x9a, 0xea, 0x50, 0x4a, 0xda, 0x50, 0x5a, 0x16, 0xa5, 0x45,
-	0x64, 0x83, 0x15, 0x0a, 0x2a, 0x5a, 0x1b, 0xad, 0x37, 0x8a, 0x91, 0x5d, 0xf0, 0xc1, 0x97, 0x65,
-	0x2f, 0x27, 0xe9, 0xc0, 0x66, 0x66, 0x9d, 0x9d, 0xa4, 0xcd, 0x8f, 0xf2, 0xc9, 0x3f, 0x28, 0x3b,
-	0x33, 0x1b, 0x77, 0x6b, 0xb7, 0x90, 0xb7, 0x3d, 0xd7, 0xf9, 0xce, 0x39, 0xdf, 0xb7, 0x70, 0x90,
-	0xa5, 0x5c, 0xc8, 0x6c, 0x12, 0x48, 0x41, 0x6f, 0xfa, 0x65, 0xc3, 0x49, 0x05, 0x97, 0x9c, 0x58,
-	0xc6, 0x9a, 0x3d, 0xdf, 0xeb, 0x8d, 0x39, 0x1f, 0x27, 0xd8, 0x57, 0x81, 0x70, 0x3a, 0xea, 0xe3,
-	0x24, 0x95, 0x73, 0x9d, 0x67, 0x1f, 0x41, 0xfb, 0x07, 0x8a, 0x8c, 0x72, 0xe6, 0x62, 0x96, 0x92,
-	0x2e, 0x6c, 0xcc, 0xb4, 0xd9, 0x6d, 0x1c, 0x36, 0x8e, 0x2d, 0xb7, 0x30, 0x6d, 0x0e, 0x4d, 0x4f,
-	0x06, 0x72, 0x9a, 0x91, 0x1e, 0x58, 0x59, 0x24, 0x10, 0x99, 0x6f, 0xb2, 0x5a, 0x6e, 0x4b, 0x3b,
-	0x86, 0x8c, 0x1c, 0x40, 0xfb, 0x1a, 0xc3, 0x90, 0x07, 0x22, 0xce, 0xc3, 0x2b, 0x2a, 0x0c, 0x85,
-	0x6b, 0xc8, 0xc8, 0x11, 0x6c, 0x45, 0x7c, 0x12, 0x52, 0x86, 0xb1, 0x9f, 0x45, 0x82, 0x27, 0x49,
-	0x77, 0x55, 0x25, 0x75, 0x0a, 0xb7, 0xa7, 0xbc, 0xf6, 0x13, 0xb0, 0x3c, 0x94, 0xe7, 0x49, 0xe2,
-	0xe2, 0xaf, 0x1c, 0x17, 0xb2, 0x20, 0x4c, 0x30, 0x36, 0x2f, 0x16, 0xa6, 0x7d, 0x00, 0x1b, 0x5f,
-	0xa7, 0x93, 0x34, 0x4f, 0xda, 0x86, 0x75, 0xf5, 0x8a, 0x81, 0xae, 0x0d, 0xfb, 0x29, 0xb4, 0x2f,
-	0xe9, 0x0c, 0x87, 0x2c, 0x99, 0xe7, 0x49, 0x3d, 0xb0, 0x12, 0x3a, 0x43, 0x9f, 0xb3, 0x64, 0x5e,
-	0xa0, 0x4f, 0x4c, 0xdc, 0xfe, 0xd3, 0x00, 0x6b, 0x90, 0x57, 0x7d, 0x61, 0x23, 0x4e, 0x08, 0xac,
-	0xb1, 0x60, 0x82, 0xa6, 0x9d, 0xfa, 0x2e, 0x03, 0x59, 0xa9, 0x00, 0x21, 0xfb, 0x00, 0x94, 0xf9,
-	0x21, 0xca, 0x6b, 0x44, 0x66, 0x66, 0xb2, 0x28, 0x1b, 0x68, 0x07, 0xd9, 0x85, 0x96, 0x48, 0x23,
-	0x3f, 0x0d, 0xe4, 0x55, 0x77, 0x4d, 0xaf, 0x56, 0xa4, 0xd1, 0xf7, 0x40, 0x5e, 0xe5, 0x3d, 0x33,
-	0x8c, 0x64, 0xbe, 0xf4, 0x75, 0x1d, 0x31, 0x26, 0x79, 0x0c, 0x1d, 0xca, 0xfc, 0x88, 0xb3, 0x11,
-	0x1d, 0xfb, 0x23, 0x9a, 0x60, 0xb7, 0xa9, 0xfa, 0x6e, 0x52, 0xf6, 0x5e, 0x39, 0x3f, 0xd2, 0x04,
-	0xed, 0xb7, 0xd0, 0xb9, 0xa4, 0x99, 0x54, 0xc0, 0x33, 0x75, 0xc6, 0x67, 0xd0, 0x54, 0xc3, 0x67,
-	0xdd, 0xc6, 0xe1, 0xea, 0x71, 0xfb, 0x64, 0xdb, 0x59, 0xd0, 0xc1, 0x59, 0xcc, 0xe7, 0x9a, 0x1c,
-	0x7b, 0x00, 0xc4, 0x43, 0x5d, 0x7e, 0xa1, 0x87, 0xc9, 0x17, 0xb5, 0xd4, 0xf4, 0xb6, 0x03, 0x0f,
-	0x8b, 0x1e, 0x43, 0x11, 0xa3, 0xc8, 0x3b, 0xec, 0x41, 0xcb, 0x0c, 0xa2, 0x71, 0x58, 0xee, 0xc2,
-	0x3e, 0xf9, 0xdd, 0x84, 0x4d, 0xaf, 0x44, 0x5b, 0xf2, 0x12, 0x36, 0x0c, 0x11, 0xc9, 0x8e, 0xa3,
-	0x19, 0xeb, 0x14, 0x8c, 0x75, 0x2e, 0x72, 0xc6, 0xee, 0xed, 0x94, 0xa6, 0x28, 0x93, 0xf6, 0x15,
-	0xb4, 0xbc, 0x82, 0x7f, 0xf5, 0xb5, 0x77, 0xfa, 0xc9, 0x6b, 0xb0, 0x4c, 0xed, 0x68, 0xb4, 0x74,
-	0xf1, 0x29, 0x58, 0x9f, 0x50, 0x1a, 0x59, 0xd4, 0x15, 0x3f, 0x2a, 0xa1, 0x36, 0xa9, 0xa7, 0x8a,
-	0xda, 0xc6, 0xf8, 0x3f, 0x7e, 0xcf, 0x7b, 0x4d, 0x2d, 0x09, 0x52, 0x3e, 0xe8, 0x42, 0x25, 0xb5,
-	0x75, 0x27, 0xb0, 0x96, 0x6b, 0x84, 0x90, 0x52, 0x95, 0x11, 0xcd, 0x7d, 0x8b, 0xf9, 0x86, 0x37,
-	0xfa, 0xa2, 0x4b, 0x2f, 0xe6, 0x1d, 0x74, 0x5c, 0xcc, 0x64, 0x20, 0xa4, 0x87, 0x62, 0x46, 0x23,
-	0x5c, 0xba, 0xc3, 0x1b, 0x68, 0x7b, 0x28, 0x0b, 0xe1, 0x92, 0xf2, 0xe9, 0x4b, 0x6a, 0xae, 0x2d,
-	0x3f, 0x03, 0xf8, 0x27, 0x89, 0xda, 0xc7, 0x77, 0x2b, 0x5d, 0x2b, 0x0a, 0xfa, 0x0c, 0x5b, 0xb7,
-	0x34, 0x41, 0xf6, 0xab, 0x3b, 0xbf, 0xa5, 0x97, 0x5a, 0x28, 0x1f, 0xe0, 0x41, 0x45, 0x19, 0xa4,
-	0x77, 0x47, 0x9f, 0x42, 0x33, 0x75, 0x5d, 0x06, 0xe7, 0x3f, 0xcf, 0xc6, 0x54, 0x5e, 0x4d, 0x43,
-	0x27, 0xe2, 0x93, 0x7e, 0x1a, 0x88, 0x80, 0xc5, 0x01, 0x8b, 0x45, 0x5c, 0xf9, 0xf9, 0xf7, 0x29,
-	0x93, 0x28, 0x58, 0x90, 0xe8, 0x9f, 0x7d, 0x25, 0x16, 0x36, 0x95, 0xef, 0xc5, 0xdf, 0x00, 0x00,
-	0x00, 0xff, 0xff, 0x4c, 0x2a, 0xe7, 0x8e, 0x3c, 0x06, 0x00, 0x00,
+	// 783 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x55, 0x5b, 0x8f, 0xdb, 0x44,
+	0x14, 0x56, 0xf6, 0x92, 0xc4, 0x27, 0x25, 0x4b, 0x87, 0xaa, 0xca, 0x6e, 0x54, 0xb6, 0xb2, 0x40,
+	0xad, 0x10, 0x72, 0x44, 0x90, 0x2a, 0x51, 0x04, 0xa5, 0x81, 0x96, 0x82, 0x2a, 0x82, 0x6c, 0xc4,
+	0x03, 0x2f, 0x96, 0x2f, 0xc7, 0xc9, 0x48, 0xce, 0x8c, 0x99, 0x99, 0xa4, 0xdd, 0x5f, 0xc1, 0x8f,
+	0xe1, 0xc7, 0xf1, 0x8a, 0xe6, 0xe2, 0xac, 0x1d, 0xea, 0xa2, 0xbc, 0xf9, 0xdc, 0xcf, 0x77, 0xe6,
+	0x9c, 0xcf, 0x70, 0x2d, 0x2b, 0x2e, 0x94, 0xdc, 0x24, 0x4a, 0xd0, 0xb7, 0xb3, 0xa6, 0x10, 0x54,
+	0x82, 0x2b, 0x4e, 0x3c, 0x27, 0xed, 0xbe, 0xb8, 0x9a, 0xae, 0x38, 0x5f, 0x95, 0x38, 0x33, 0x86,
+	0x74, 0x5b, 0xcc, 0x70, 0x53, 0xa9, 0x1b, 0xeb, 0xe7, 0x3f, 0x82, 0xd1, 0xef, 0x28, 0x24, 0xe5,
+	0x2c, 0x44, 0x59, 0x91, 0x09, 0x0c, 0x76, 0x56, 0x9c, 0xf4, 0x1e, 0xf6, 0x1e, 0x7b, 0x61, 0x2d,
+	0xfa, 0x1c, 0xfa, 0x91, 0x4a, 0xd4, 0x56, 0x92, 0x29, 0x78, 0x32, 0x13, 0x88, 0x2c, 0x76, 0x5e,
+	0xc3, 0x70, 0x68, 0x15, 0x4b, 0x46, 0xae, 0x61, 0xf4, 0x06, 0xd3, 0x94, 0x27, 0x22, 0xd7, 0xe6,
+	0x13, 0x63, 0x86, 0x5a, 0xb5, 0x64, 0xe4, 0x11, 0x5c, 0x64, 0x7c, 0x93, 0x52, 0x86, 0x79, 0x2c,
+	0x33, 0xc1, 0xcb, 0x72, 0x72, 0x6a, 0x9c, 0xc6, 0xb5, 0x3a, 0x32, 0x5a, 0xff, 0x53, 0xf0, 0x22,
+	0x54, 0xcf, 0xcb, 0x32, 0xc4, 0x3f, 0x75, 0x5f, 0xc8, 0x92, 0xb4, 0xc4, 0xdc, 0x55, 0xac, 0x45,
+	0xff, 0x1a, 0x06, 0x3f, 0x6f, 0x37, 0x95, 0x76, 0xba, 0x07, 0xe7, 0xa6, 0x8a, 0x6b, 0xdd, 0x0a,
+	0xfe, 0x67, 0x30, 0x7a, 0x4d, 0x77, 0xb8, 0x64, 0xe5, 0x8d, 0x76, 0x9a, 0x82, 0x57, 0xd2, 0x1d,
+	0xc6, 0x9c, 0x95, 0x37, 0x75, 0xf7, 0xa5, 0xb3, 0xfb, 0x7f, 0xf7, 0xc0, 0x5b, 0xe8, 0xa8, 0x9f,
+	0x58, 0xc1, 0x09, 0x81, 0x33, 0x96, 0x6c, 0xd0, 0xa5, 0x33, 0xdf, 0xcd, 0x46, 0x4e, 0x5a, 0x8d,
+	0x90, 0x07, 0x00, 0x94, 0xc5, 0x29, 0xaa, 0x37, 0x88, 0xcc, 0x61, 0xf2, 0x28, 0x5b, 0x58, 0x05,
+	0xb9, 0x84, 0xa1, 0xa8, 0xb2, 0xb8, 0x4a, 0xd4, 0x7a, 0x72, 0x66, 0x47, 0x2b, 0xaa, 0xec, 0xd7,
+	0x44, 0xad, 0x75, 0x4e, 0x89, 0x99, 0xd2, 0x43, 0x3f, 0xb7, 0x16, 0x27, 0x92, 0x4f, 0x60, 0x4c,
+	0x59, 0x9c, 0x71, 0x56, 0xd0, 0x55, 0x5c, 0xd0, 0x12, 0x27, 0x7d, 0x93, 0xf7, 0x0e, 0x65, 0xdf,
+	0x1b, 0xe5, 0x4b, 0x5a, 0xa2, 0xff, 0x2d, 0x8c, 0x5f, 0x53, 0xa9, 0x4c, 0xe3, 0xd2, 0x3c, 0xe3,
+	0xe7, 0xd0, 0x37, 0xe0, 0xe5, 0xa4, 0xf7, 0xf0, 0xf4, 0xf1, 0x68, 0x7e, 0x2f, 0xd8, 0xaf, 0x43,
+	0xb0, 0xc7, 0x17, 0x3a, 0x1f, 0x7f, 0x01, 0x24, 0x42, 0x1b, 0xfe, 0xc2, 0x82, 0xd1, 0x83, 0x3a,
+	0x0a, 0xbd, 0x1f, 0xc0, 0x87, 0x75, 0x8e, 0xa5, 0xc8, 0x51, 0xe8, 0x0c, 0x57, 0x30, 0x74, 0x40,
+	0x6c, 0x1f, 0x5e, 0xb8, 0x97, 0xfd, 0xbf, 0x7a, 0x30, 0x8c, 0x50, 0x29, 0xca, 0x56, 0x92, 0x7c,
+	0x0c, 0x90, 0x0a, 0xba, 0x5a, 0x2b, 0x86, 0x52, 0x9a, 0x82, 0xe7, 0x61, 0x43, 0x43, 0x16, 0x70,
+	0xe1, 0x36, 0x4e, 0x66, 0x6b, 0xcc, 0xb7, 0x25, 0x9a, 0xf2, 0xa3, 0xf9, 0x65, 0x03, 0x57, 0x64,
+	0x3c, 0x22, 0xe7, 0x10, 0x8e, 0x65, 0x4b, 0xd6, 0x8b, 0xd9, 0x9c, 0xe3, 0xa9, 0x41, 0x05, 0xd9,
+	0xed, 0x14, 0xe7, 0x16, 0xc1, 0xbe, 0xaa, 0x46, 0xf0, 0x3f, 0x8d, 0xf9, 0xaf, 0x60, 0xdc, 0x2e,
+	0xab, 0x9f, 0x99, 0xb3, 0x58, 0xd1, 0x0d, 0xd6, 0x98, 0x07, 0x9c, 0xfd, 0xa6, 0x45, 0xbd, 0x79,
+	0xbc, 0x28, 0x9c, 0xed, 0xc4, 0xce, 0x83, 0x17, 0x85, 0x31, 0xce, 0xff, 0x19, 0xc0, 0x9d, 0xa8,
+	0x71, 0xc6, 0xe4, 0x2b, 0x18, 0xb8, 0xc3, 0x24, 0xf7, 0x03, 0x7b, 0xc1, 0x41, 0x7d, 0xc1, 0xc1,
+	0x0b, 0x7d, 0xc1, 0x57, 0xf7, 0x1b, 0xe8, 0x9b, 0x47, 0xfc, 0x14, 0x86, 0x51, 0x7d, 0x8f, 0xdd,
+	0xb1, 0xef, 0xd4, 0x93, 0xaf, 0xc1, 0x73, 0xb1, 0x45, 0x71, 0x74, 0xf0, 0x13, 0xf0, 0x7e, 0x44,
+	0xe5, 0x68, 0xa2, 0x2b, 0xf8, 0x6e, 0xf3, 0xcd, 0xac, 0xeb, 0x13, 0x73, 0xea, 0x4e, 0xf8, 0xaf,
+	0xfd, 0x3d, 0xf5, 0xfa, 0x96, 0x22, 0x48, 0x73, 0xc1, 0xf7, 0xac, 0xd1, 0x19, 0x37, 0x87, 0x33,
+	0xcd, 0x19, 0x84, 0x34, 0xa2, 0x1c, 0x89, 0xbc, 0x6f, 0x30, 0xbf, 0xe0, 0x5b, 0xbb, 0xe1, 0x47,
+	0x0f, 0xe6, 0x3b, 0x18, 0x87, 0x28, 0x55, 0x22, 0x54, 0x84, 0x62, 0x47, 0x33, 0x3c, 0x3a, 0xc3,
+	0x37, 0x30, 0x8a, 0x50, 0xd5, 0x44, 0x46, 0x9a, 0x4f, 0xdf, 0x60, 0xb7, 0xce, 0xf0, 0x67, 0x00,
+	0xb7, 0x14, 0xd1, 0x59, 0xfc, 0xb2, 0x95, 0xb5, 0xc5, 0x28, 0xaf, 0xe0, 0xe2, 0x80, 0x23, 0xc8,
+	0x83, 0xf6, 0xcc, 0x0f, 0xf8, 0xa3, 0xb3, 0x95, 0x1f, 0xe0, 0x83, 0x16, 0x53, 0x90, 0xe9, 0x3b,
+	0xf2, 0xd4, 0x1c, 0xd2, 0x99, 0xe5, 0x29, 0x8c, 0xf4, 0xaa, 0xd5, 0x0c, 0xd2, 0x85, 0xe8, 0xa3,
+	0x76, 0x6e, 0xeb, 0xec, 0x3a, 0xb8, 0xe5, 0x97, 0xc3, 0x0e, 0x9a, 0x1c, 0xd0, 0xd9, 0xc1, 0x4b,
+	0xb8, 0xab, 0x97, 0xf6, 0xe0, 0xfc, 0x3b, 0x09, 0xa9, 0x2b, 0xcf, 0xe2, 0xf9, 0x1f, 0xcf, 0x56,
+	0x54, 0xad, 0xb7, 0x69, 0x90, 0xf1, 0xcd, 0xac, 0x4a, 0x44, 0xc2, 0xf2, 0x84, 0xe5, 0x22, 0x6f,
+	0xfd, 0xd6, 0x67, 0x94, 0x29, 0x14, 0x2c, 0x29, 0xed, 0x6f, 0xbc, 0x65, 0x4b, 0xfb, 0x46, 0xf7,
+	0xe5, 0xbf, 0x01, 0x00, 0x00, 0xff, 0xff, 0x3f, 0x42, 0xdc, 0x24, 0x16, 0x08, 0x00, 0x00,
 }

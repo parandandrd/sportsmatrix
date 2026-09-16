@@ -444,3 +444,115 @@ body .swagger-ui input[type=text] {
     opacity: 0.35;
     cursor: default;
 }
+
+/* Settings ------------------------------------------------------------ */
+
+.settings {
+    border: 1px solid var(--sm-line);
+    border-radius: 10px;
+    background: var(--sm-panel);
+}
+
+.setting {
+    padding: 11px 12px;
+    border-top: 1px solid var(--sm-line);
+}
+
+.setting:first-child {
+    border-top: none;
+}
+
+.setting label,
+.setting-name {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 6px;
+}
+
+.setting-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.setting-control input[type=range] {
+    flex: 1 1 auto;
+    accent-color: var(--sm-on);
+}
+
+.setting-value {
+    min-width: 28px;
+    text-align: right;
+    color: var(--sm-dim);
+    font-variant-numeric: tabular-nums;
+}
+
+.times {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 6px 0;
+}
+
+.times-label {
+    flex: 0 0 52px;
+    color: var(--sm-dim);
+    font-size: 13px;
+}
+
+.times-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.time {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--sm-line);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.time input,
+.time code {
+    background: var(--sm-bg);
+    border: none;
+    color: var(--sm-text);
+    padding: 3px 6px;
+    font-size: 14px;
+    color-scheme: dark;
+}
+
+.time button,
+.time-add {
+    background: none;
+    border: none;
+    color: var(--sm-dim);
+    padding: 3px 8px;
+    cursor: pointer;
+}
+
+.time-add {
+    border: 1px dashed var(--sm-line);
+    border-radius: 8px;
+    font-size: 13px;
+}
+
+.time button:hover,
+.time-add:hover {
+    color: var(--sm-text);
+}
+
+.setting-actions {
+    margin-top: 8px;
+}
+
+.section-note-inline {
+    color: var(--sm-dim);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-left: 12px;
+}

@@ -45,6 +45,7 @@ class BasicBoard extends React.Component {
         req.setStatus(this.state.status);
         await MatrixPostRet(this.state.path + "/board.v1.BasicBoard/SetStatus", JSON.stringify(req.toObject()));
         await this.getStatus();
+        this.props.doSync?.();
     }
 
     doJump = async () => {

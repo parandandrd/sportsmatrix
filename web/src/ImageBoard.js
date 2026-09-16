@@ -50,11 +50,12 @@ class ImageBoard extends React.Component {
         var req = new pb.SetStatusReq();
         req.setStatus(this.state.status);
         await MatrixPostRet("imageboard.v1.ImageBoard/SetStatus", JSON.stringify(req.toObject()));
-        this.getStatus();
+        await this.getStatus();
+        this.props.doSync?.();
     }
 
     doJump = async () => {
-        await JumpToBoard("img");
+        await JumpToBoard(this.props.name || "img");
         this.props.doSync?.();
     }
     render() {

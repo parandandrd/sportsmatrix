@@ -69,7 +69,20 @@ func (s *TextBoard) renderLogo(ctx context.Context, canvas board.Canvas) error {
 		return err
 	}
 
-	draw.Draw(canvas, zeroed, i, image.Point{}, draw.Over)
+	// The thumbnail keeps its aspect ratio, so a square logo comes back 32x32
+	// on a 64x32 panel. Drawing it into zeroed put its top-left at the panel's
+	// top-left and pinned it to the left edge; place it in the middle instead.
+	tb := i.Bounds()
+	offX := (zeroed.Dx() - tb.Dx()) / 2
+	offY := (zeroed.Dy() - tb.Dy()) / 2
+	centered := image.Rect(
+		zeroed.Min.X+offX,
+		zeroed.Min.Y+offY,
+		zeroed.Min.X+offX+tb.Dx(),
+		zeroed.Min.Y+offY+tb.Dy(),
+	)
+
+	draw.Draw(canvas, centered, i, tb.Min, draw.Over)
 
 	return nil
 }

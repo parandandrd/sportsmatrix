@@ -392,20 +392,42 @@ func (c *RGBLedMatrix) PreLoad(scene *matrix.MatrixScene) {
 	c.preloadLock.Lock()
 	defer c.preloadLock.Unlock()
 
-	prep := make([]C.uint32_t, c.width*c.height)
+	c.growPreload(scene.Index + 1)
+
+	// Reuse the buffer already at this index rather than allocating a frame's
+	// worth every time. A fresh buffer per frame was the largest single source
+	// of garbage in a scroll, and zeroing them showed on the profile besides.
+	prep := c.preload[scene.Index]
+	if len(prep) != c.width*c.height {
+		prep = make([]C.uint32_t, c.width*c.height)
+		c.preload[scene.Index] = prep
+	} else {
+		clear(prep)
+	}
 
 	for _, pt := range scene.Points {
 		position := c.position(pt.X, pt.Y)
 		prep[position] = C.uint32_t(rgbaToUint32(pt.Color))
 	}
+}
 
-	if len(c.preload) < scene.Index+1 {
-		newPreload := make([][]C.uint32_t, scene.Index+1)
-		copy(newPreload, c.preload)
-		c.preload = newPreload
+// growPreload extends the frame list to n, keeping the buffers already
+// allocated and doubling capacity, so a long scroll does not recopy the outer
+// slice on every frame.
+func (c *RGBLedMatrix) growPreload(n int) {
+	if len(c.preload) >= n {
+		return
 	}
 
-	c.preload[scene.Index] = prep
+	if cap(c.preload) >= n {
+		c.preload = c.preload[:n]
+
+		return
+	}
+
+	grown := make([][]C.uint32_t, n, 2*n)
+	copy(grown, c.preload)
+	c.preload = grown
 }
 
 func (c *RGBLedMatrix) ReversePreLoad() {
@@ -416,7 +438,9 @@ func (c *RGBLedMatrix) ReversePreLoad() {
 
 func (c *RGBLedMatrix) Play(ctx context.Context, startInterval time.Duration, interval <-chan time.Duration) error {
 	defer func() {
-		c.preload = [][]C.uint32_t{}
+		// Truncate rather than discard: the frame buffers stay in the backing
+		// array and the next scroll reuses them.
+		c.preload = c.preload[:0]
 	}()
 	waitInterval := startInterval
 	c.log.Info("Play matrix",

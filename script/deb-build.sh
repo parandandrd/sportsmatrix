@@ -116,10 +116,14 @@ chmod 755 DEBIAN/postinst
 
 cp "${ROOT}/sportsmatrix.conf.example" etc/sportsmatrix.conf
 
-chmod 666 etc/sportsmatrix.conf
+# This was 666, owned by whatever user ran the build, which on the release
+# runner is uid 1001: any local user could rewrite the config of a service
+# that runs as root. The service now writes the file itself when settings are
+# changed through the web UI, and drops group and world write when it does.
+chmod 644 etc/sportsmatrix.conf
 
 cd "${tmp}"
-dpkg-deb --build "${d}"
+dpkg-deb --root-owner-group --build "${d}"
 
 mv "${d}.deb" "${ROOT}/"
 

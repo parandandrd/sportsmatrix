@@ -1,5 +1,5 @@
 import { DescribeBoard } from './util';
-import { GroupBoards, SubLabel } from './boards';
+import { GroupBoards, MoveSection, SubLabel } from './boards';
 
 // what the real Pi's ListBoards reported, trimmed, in the order the new server
 // sends it: the config file's
@@ -61,4 +61,30 @@ test('with no config file, nothing is singled out as missing from it', () => {
 
 test('GroupBoards copes with no list yet', () => {
     expect(GroupBoards(null)).toEqual([]);
+});
+
+test('MoveSection moves a group past the neighbour shown next to it', () => {
+    const groups = GroupBoards([
+        board('Clock', '/clock/board.v1.BasicBoard/', 'clockConfig', { enabled: true }),
+        board('Sys', '/sys/board.v1.BasicBoard/', 'sysConfig'),
+        board('NCAAF', '/ncaaf/sport.v1.Sport/', 'ncaafConfig', { enabled: true }),
+        board('NHL', '/nhl/sport.v1.Sport/', 'nhlConfig', { enabled: true }),
+        board('UEFA', '/uefa/sport.v1.Sport/', 'uefaConfig', { in_config_file: false }),
+    ]);
+    const on = groups.filter((g) => g.enabled);
+
+    // NCAAF up past the clock; Sys, which isn't shown, stays put
+    expect(MoveSection(groups, on, 'ncaafConfig', -1))
+        .toEqual(['ncaafConfig', 'clockConfig', 'sysConfig', 'nhlConfig']);
+    // the clock down past NCAAF
+    expect(MoveSection(groups, on, 'clockConfig', 1))
+        .toEqual(['sysConfig', 'ncaafConfig', 'clockConfig', 'nhlConfig']);
+    // nowhere to go
+    expect(MoveSection(groups, on, 'clockConfig', -1)).toBeNull();
+    expect(MoveSection(groups, on, 'nhlConfig', 1)).toBeNull();
+
+    // a section the file doesn't have is only named when it is the one moving
+    const off = groups.filter((g) => !g.enabled);
+    expect(MoveSection(groups, off, 'uefaConfig', -1))
+        .toEqual(['clockConfig', 'uefaConfig', 'sysConfig', 'ncaafConfig', 'nhlConfig']);
 });

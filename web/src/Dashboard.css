@@ -401,3 +401,46 @@ body .swagger-ui input[type=text] {
     padding: 0 12px 11px 44px;
     margin: -3px 0 0;
 }
+
+.section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.section-action {
+    background: none;
+    border: none;
+    color: var(--sm-dim);
+    font-size: 13px;
+    padding: 0 2px;
+    cursor: pointer;
+}
+
+.section-action:hover,
+.section-action[aria-pressed="true"] {
+    color: var(--sm-text);
+}
+
+.board-move {
+    display: flex;
+    gap: 4px;
+    flex: 0 0 auto;
+}
+
+.board-move button {
+    background: none;
+    border: 1px solid var(--sm-line);
+    color: var(--sm-text);
+    border-radius: 8px;
+    width: 32px;
+    height: 28px;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.board-move button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}

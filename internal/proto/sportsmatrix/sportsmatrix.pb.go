@@ -460,6 +460,55 @@ func (x *SetBoardEnabledReq) GetEnabled() bool {
 	return false
 }
 
+// SetBoardOrderReq puts boards in a new order by the config sections they come
+// from. The panel cycles through boards in that order, and the config file's
+// sections are rearranged to match, so the order outlasts a restart.
+type SetBoardOrderReq struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// sections as ListBoards reports them, in the order wanted. The sections
+	// named trade the places they had; any left out stay where they are.
+	Sections      []string `protobuf:"bytes,1,rep,name=sections,proto3" json:"sections,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SetBoardOrderReq) Reset() {
+	*x = SetBoardOrderReq{}
+	mi := &file_sportsmatrix_sportsmatrix_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SetBoardOrderReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SetBoardOrderReq) ProtoMessage() {}
+
+func (x *SetBoardOrderReq) ProtoReflect() protoreflect.Message {
+	mi := &file_sportsmatrix_sportsmatrix_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SetBoardOrderReq.ProtoReflect.Descriptor instead.
+func (*SetBoardOrderReq) Descriptor() ([]byte, []int) {
+	return file_sportsmatrix_sportsmatrix_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *SetBoardOrderReq) GetSections() []string {
+	if x != nil {
+		return x.Sections
+	}
+	return nil
+}
+
 var File_sportsmatrix_sportsmatrix_proto protoreflect.FileDescriptor
 
 var file_sportsmatrix_sportsmatrix_proto_rawDesc = string([]byte{
@@ -504,7 +553,10 @@ var file_sportsmatrix_sportsmatrix_proto_rawDesc = string([]byte{
 	0x52, 0x65, 0x71, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28,
 	0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c,
 	0x65, 0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x65, 0x6e, 0x61, 0x62, 0x6c, 0x65,
-	0x64, 0x32, 0xe7, 0x05, 0x0a, 0x0c, 0x53, 0x70, 0x6f, 0x72, 0x74, 0x73, 0x6d, 0x61, 0x74, 0x72,
+	0x64, 0x22, 0x2e, 0x0a, 0x10, 0x53, 0x65, 0x74, 0x42, 0x6f, 0x61, 0x72, 0x64, 0x4f, 0x72, 0x64,
+	0x65, 0x72, 0x52, 0x65, 0x71, 0x12, 0x1a, 0x0a, 0x08, 0x73, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e,
+	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x09, 0x52, 0x08, 0x73, 0x65, 0x63, 0x74, 0x69, 0x6f, 0x6e,
+	0x73, 0x32, 0xad, 0x06, 0x0a, 0x0c, 0x53, 0x70, 0x6f, 0x72, 0x74, 0x73, 0x6d, 0x61, 0x74, 0x72,
 	0x69, 0x78, 0x12, 0x39, 0x0a, 0x07, 0x56, 0x65, 0x72, 0x73, 0x69, 0x6f, 0x6e, 0x12, 0x16, 0x2e,
 	0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e,
 	0x45, 0x6d, 0x70, 0x74, 0x79, 0x1a, 0x16, 0x2e, 0x6d, 0x61, 0x74, 0x72, 0x69, 0x78, 0x2e, 0x76,
@@ -550,12 +602,16 @@ var file_sportsmatrix_sportsmatrix_proto_rawDesc = string([]byte{
 	0x62, 0x6c, 0x65, 0x64, 0x12, 0x1d, 0x2e, 0x6d, 0x61, 0x74, 0x72, 0x69, 0x78, 0x2e, 0x76, 0x31,
 	0x2e, 0x53, 0x65, 0x74, 0x42, 0x6f, 0x61, 0x72, 0x64, 0x45, 0x6e, 0x61, 0x62, 0x6c, 0x65, 0x64,
 	0x52, 0x65, 0x71, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x42, 0x41, 0x5a, 0x3f, 0x67,
-	0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x70, 0x61, 0x72, 0x61, 0x6e, 0x64,
-	0x61, 0x6e, 0x64, 0x72, 0x64, 0x2f, 0x73, 0x70, 0x6f, 0x72, 0x74, 0x73, 0x6d, 0x61, 0x74, 0x72,
-	0x69, 0x78, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x2f, 0x70, 0x72, 0x6f, 0x74,
-	0x6f, 0x2f, 0x73, 0x70, 0x6f, 0x72, 0x74, 0x73, 0x6d, 0x61, 0x74, 0x72, 0x69, 0x78, 0x62, 0x06,
-	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74, 0x79, 0x12, 0x44, 0x0a, 0x0d, 0x53,
+	0x65, 0x74, 0x42, 0x6f, 0x61, 0x72, 0x64, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x12, 0x1b, 0x2e, 0x6d,
+	0x61, 0x74, 0x72, 0x69, 0x78, 0x2e, 0x76, 0x31, 0x2e, 0x53, 0x65, 0x74, 0x42, 0x6f, 0x61, 0x72,
+	0x64, 0x4f, 0x72, 0x64, 0x65, 0x72, 0x52, 0x65, 0x71, 0x1a, 0x16, 0x2e, 0x67, 0x6f, 0x6f, 0x67,
+	0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e, 0x45, 0x6d, 0x70, 0x74,
+	0x79, 0x42, 0x41, 0x5a, 0x3f, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f,
+	0x70, 0x61, 0x72, 0x61, 0x6e, 0x64, 0x61, 0x6e, 0x64, 0x72, 0x64, 0x2f, 0x73, 0x70, 0x6f, 0x72,
+	0x74, 0x73, 0x6d, 0x61, 0x74, 0x72, 0x69, 0x78, 0x2f, 0x69, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61,
+	0x6c, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2f, 0x73, 0x70, 0x6f, 0x72, 0x74, 0x73, 0x6d, 0x61,
+	0x74, 0x72, 0x69, 0x78, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 })
 
 var (
@@ -570,7 +626,7 @@ func file_sportsmatrix_sportsmatrix_proto_rawDescGZIP() []byte {
 	return file_sportsmatrix_sportsmatrix_proto_rawDescData
 }
 
-var file_sportsmatrix_sportsmatrix_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_sportsmatrix_sportsmatrix_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_sportsmatrix_sportsmatrix_proto_goTypes = []any{
 	(*VersionResp)(nil),        // 0: matrix.v1.VersionResp
 	(*Status)(nil),             // 1: matrix.v1.Status
@@ -580,36 +636,39 @@ var file_sportsmatrix_sportsmatrix_proto_goTypes = []any{
 	(*BoardInfo)(nil),          // 5: matrix.v1.BoardInfo
 	(*ListBoardsResp)(nil),     // 6: matrix.v1.ListBoardsResp
 	(*SetBoardEnabledReq)(nil), // 7: matrix.v1.SetBoardEnabledReq
-	(*empty.Empty)(nil),        // 8: google.protobuf.Empty
+	(*SetBoardOrderReq)(nil),   // 8: matrix.v1.SetBoardOrderReq
+	(*empty.Empty)(nil),        // 9: google.protobuf.Empty
 }
 var file_sportsmatrix_sportsmatrix_proto_depIdxs = []int32{
 	5,  // 0: matrix.v1.ListBoardsResp.boards:type_name -> matrix.v1.BoardInfo
-	8,  // 1: matrix.v1.Sportsmatrix.Version:input_type -> google.protobuf.Empty
-	8,  // 2: matrix.v1.Sportsmatrix.ScreenOn:input_type -> google.protobuf.Empty
-	8,  // 3: matrix.v1.Sportsmatrix.ScreenOff:input_type -> google.protobuf.Empty
-	8,  // 4: matrix.v1.Sportsmatrix.GetStatus:input_type -> google.protobuf.Empty
+	9,  // 1: matrix.v1.Sportsmatrix.Version:input_type -> google.protobuf.Empty
+	9,  // 2: matrix.v1.Sportsmatrix.ScreenOn:input_type -> google.protobuf.Empty
+	9,  // 3: matrix.v1.Sportsmatrix.ScreenOff:input_type -> google.protobuf.Empty
+	9,  // 4: matrix.v1.Sportsmatrix.GetStatus:input_type -> google.protobuf.Empty
 	1,  // 5: matrix.v1.Sportsmatrix.SetStatus:input_type -> matrix.v1.Status
 	2,  // 6: matrix.v1.Sportsmatrix.SetAll:input_type -> matrix.v1.SetAllReq
 	3,  // 7: matrix.v1.Sportsmatrix.Jump:input_type -> matrix.v1.JumpReq
-	8,  // 8: matrix.v1.Sportsmatrix.NextBoard:input_type -> google.protobuf.Empty
-	8,  // 9: matrix.v1.Sportsmatrix.RestartService:input_type -> google.protobuf.Empty
+	9,  // 8: matrix.v1.Sportsmatrix.NextBoard:input_type -> google.protobuf.Empty
+	9,  // 9: matrix.v1.Sportsmatrix.RestartService:input_type -> google.protobuf.Empty
 	4,  // 10: matrix.v1.Sportsmatrix.SetLiveOnly:input_type -> matrix.v1.LiveOnlyReq
-	8,  // 11: matrix.v1.Sportsmatrix.ListBoards:input_type -> google.protobuf.Empty
+	9,  // 11: matrix.v1.Sportsmatrix.ListBoards:input_type -> google.protobuf.Empty
 	7,  // 12: matrix.v1.Sportsmatrix.SetBoardEnabled:input_type -> matrix.v1.SetBoardEnabledReq
-	0,  // 13: matrix.v1.Sportsmatrix.Version:output_type -> matrix.v1.VersionResp
-	8,  // 14: matrix.v1.Sportsmatrix.ScreenOn:output_type -> google.protobuf.Empty
-	8,  // 15: matrix.v1.Sportsmatrix.ScreenOff:output_type -> google.protobuf.Empty
-	1,  // 16: matrix.v1.Sportsmatrix.GetStatus:output_type -> matrix.v1.Status
-	8,  // 17: matrix.v1.Sportsmatrix.SetStatus:output_type -> google.protobuf.Empty
-	8,  // 18: matrix.v1.Sportsmatrix.SetAll:output_type -> google.protobuf.Empty
-	8,  // 19: matrix.v1.Sportsmatrix.Jump:output_type -> google.protobuf.Empty
-	8,  // 20: matrix.v1.Sportsmatrix.NextBoard:output_type -> google.protobuf.Empty
-	8,  // 21: matrix.v1.Sportsmatrix.RestartService:output_type -> google.protobuf.Empty
-	8,  // 22: matrix.v1.Sportsmatrix.SetLiveOnly:output_type -> google.protobuf.Empty
-	6,  // 23: matrix.v1.Sportsmatrix.ListBoards:output_type -> matrix.v1.ListBoardsResp
-	8,  // 24: matrix.v1.Sportsmatrix.SetBoardEnabled:output_type -> google.protobuf.Empty
-	13, // [13:25] is the sub-list for method output_type
-	1,  // [1:13] is the sub-list for method input_type
+	8,  // 13: matrix.v1.Sportsmatrix.SetBoardOrder:input_type -> matrix.v1.SetBoardOrderReq
+	0,  // 14: matrix.v1.Sportsmatrix.Version:output_type -> matrix.v1.VersionResp
+	9,  // 15: matrix.v1.Sportsmatrix.ScreenOn:output_type -> google.protobuf.Empty
+	9,  // 16: matrix.v1.Sportsmatrix.ScreenOff:output_type -> google.protobuf.Empty
+	1,  // 17: matrix.v1.Sportsmatrix.GetStatus:output_type -> matrix.v1.Status
+	9,  // 18: matrix.v1.Sportsmatrix.SetStatus:output_type -> google.protobuf.Empty
+	9,  // 19: matrix.v1.Sportsmatrix.SetAll:output_type -> google.protobuf.Empty
+	9,  // 20: matrix.v1.Sportsmatrix.Jump:output_type -> google.protobuf.Empty
+	9,  // 21: matrix.v1.Sportsmatrix.NextBoard:output_type -> google.protobuf.Empty
+	9,  // 22: matrix.v1.Sportsmatrix.RestartService:output_type -> google.protobuf.Empty
+	9,  // 23: matrix.v1.Sportsmatrix.SetLiveOnly:output_type -> google.protobuf.Empty
+	6,  // 24: matrix.v1.Sportsmatrix.ListBoards:output_type -> matrix.v1.ListBoardsResp
+	9,  // 25: matrix.v1.Sportsmatrix.SetBoardEnabled:output_type -> google.protobuf.Empty
+	9,  // 26: matrix.v1.Sportsmatrix.SetBoardOrder:output_type -> google.protobuf.Empty
+	14, // [14:27] is the sub-list for method output_type
+	1,  // [1:14] is the sub-list for method input_type
 	1,  // [1:1] is the sub-list for extension type_name
 	1,  // [1:1] is the sub-list for extension extendee
 	0,  // [0:1] is the sub-list for field type_name
@@ -626,7 +685,7 @@ func file_sportsmatrix_sportsmatrix_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_sportsmatrix_sportsmatrix_proto_rawDesc), len(file_sportsmatrix_sportsmatrix_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -67,7 +67,7 @@ func (s *SportsMatrix) startHTTP() chan error {
 		register("sportsmatrix", h)
 	}
 
-	allBoards := append(s.boards, s.betweenBoards...)
+	allBoards := append(append([]board.Board(nil), s.boardList()...), s.betweenBoards...)
 
 	rpcPaths := make(map[string]struct{})
 

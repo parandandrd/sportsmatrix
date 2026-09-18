@@ -277,6 +277,7 @@ type RGBLedMatrix struct {
 	buffer      *C.struct_LedCanvas
 	leds        []C.uint32_t
 	preload     [][]C.uint32_t
+	mirror      *matrix.Mirror
 	closed      *atomic.Bool
 	log         *zap.Logger
 	preloadLock sync.Mutex
@@ -304,6 +305,7 @@ func NewRGBLedMatrix(config *HardwareConfig, rtOptions *RuntimeOptions, logger *
 		matrix: m,
 		buffer: b,
 		leds:   make([]C.uint32_t, w*h),
+		mirror: matrix.NewMirror(w, h),
 		closed: atomic.NewBool(false),
 		log:    logger,
 	}
@@ -365,7 +367,14 @@ func (c *RGBLedMatrix) renderLocked(leds []C.uint32_t) error {
 		(*C.uint32_t)(unsafe.Pointer(&leds[0])),
 	)
 
+	c.mirror.Capture(unsafe.Slice((*uint32)(unsafe.Pointer(&leds[0])), len(leds)))
+
 	return nil
+}
+
+// Mirror is a copy of what the panel is showing, for the web board.
+func (c *RGBLedMatrix) Mirror() *matrix.Mirror {
+	return c.mirror
 }
 
 // At return an Color which allows access to the LED display data as

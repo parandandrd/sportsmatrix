@@ -1,71 +1,27 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { BACKEND, CallRPC, MatrixPostRet, SetBoardEnabled, JumpToBoard } from './util';
+import { CallRPC, MatrixPostRet, SetBoardEnabled, JumpToBoard } from './util';
+import { useFrames, usePageVisible } from './frames';
 import { GroupBoards, MoveSection, RefreshBoards, SubLabel, useBoards } from './boards';
 import BoardPanel from './BoardPanel.js';
 import MatrixSettings from './MatrixSettings.js';
 import { LogoSrc } from './Logo';
 import './Dashboard.css';
 
-// LivePreview shows what is on the panel right now. Each request keeps the Pi
-// drawing every board a second time, at the web board's size, so it only polls
-// while the page can actually be seen: not from a background tab, or a phone
-// locked with the dashboard still open.
+// LivePreview shows the panel's own frames: exactly what is on the LEDs, at no
+// cost to the Pi. It only follows them while the page can be seen.
 function LivePreview() {
-    const [t, setT] = useState(() => Date.now());
-    const [broken, setBroken] = useState(false);
-
-    useEffect(() => {
-        let id = null;
-
-        const disable = () => {
-            fetch(`${BACKEND}/api/imgcanvas/disable`, { method: 'GET', mode: 'cors' })
-                .catch(() => { /* going away anyway */ });
-        };
-        const start = () => {
-            if (id === null) {
-                id = setInterval(() => setT(Date.now()), 2000);
-            }
-        };
-        const stop = () => {
-            if (id !== null) {
-                clearInterval(id);
-                id = null;
-            }
-            disable();
-        };
-        const onVisibility = () => {
-            if (document.hidden) {
-                stop();
-            } else {
-                setT(Date.now());
-                start();
-            }
-        };
-
-        if (!document.hidden) {
-            start();
-        }
-        document.addEventListener('visibilitychange', onVisibility);
-
-        return () => {
-            document.removeEventListener('visibilitychange', onVisibility);
-            stop();
-        };
-    }, []);
+    const visible = usePageVisible();
+    const frame = useFrames('panel', visible);
 
     return (
         <div className="section">
             <h2>Live</h2>
             <div className="preview">
-                {broken
-                    ? <p className="dash-msg">No preview available.</p>
-                    : <img
-                        src={`${BACKEND}/api/imgcanvas/board?${t}`}
-                        alt="Current matrix output"
-                        onError={() => setBroken(true)}
-                    />}
+                {frame.src
+                    ? <img src={frame.src} alt="What the panel is showing" />
+                    : <p className="dash-msg">Waiting for the panel...</p>}
             </div>
-            <p className="preview-note">Updates every 2 seconds.</p>
+            <p className="preview-note">What the panel is showing now.</p>
         </div>
     );
 }

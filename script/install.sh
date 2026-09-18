@@ -5,6 +5,8 @@
 #
 #   - switches off the onboard sound, which uses the same PWM hardware as the
 #     matrix. The library refuses to start while snd_bcm2835 is loaded.
+#   - reserves CPU 3 for the panel refresh (isolcpus=3), which the library
+#     asks for every time it starts
 #   - sets the GPIO mapping for your board
 #   - enables the service so it comes back after a reboot
 #
@@ -115,6 +117,22 @@ if lsmod 2>/dev/null | grep -q '^snd_bcm2835'; then
   NEED_REBOOT=yes
 fi
 
+# ------------------------------------------------------------- refresh core
+# The library refreshes the panel from a realtime thread pinned to CPU 3.
+# isolcpus=3 keeps everything else off that CPU, which steadies the refresh,
+# and the library suggests it every time it starts until it is set. The line
+# must stay one line: the firmware only reads the first. /boot/cmdline.txt is
+# a "DO NOT EDIT" note on newer systems, hence the check for root=.
+for f in /boot/firmware/cmdline.txt /boot/cmdline.txt; do
+  [ -f "${f}" ] && grep -q 'root=' "${f}" || continue
+  if ! grep -q 'isolcpus=' "${f}"; then
+    say "Reserving CPU 3 for the panel refresh in ${f}"
+    sed -i '1 s/$/ isolcpus=3/' "${f}"
+    NEED_REBOOT=yes
+  fi
+  break
+done
+
 # ------------------------------------------------------------- GPIO mapping
 if [ -n "${MAPPING}" ]; then
   if [ -f "${CONF}" ]; then
@@ -148,5 +166,5 @@ echo "    sudo nano ${CONF}     # then: sudo systemctl restart sportsmatrix"
 
 if [ "${NEED_REBOOT}" = "yes" ]; then
   echo
-  warn "Reboot required to release the sound hardware: sudo reboot"
+  warn "Reboot required to finish the setup: sudo reboot"
 fi

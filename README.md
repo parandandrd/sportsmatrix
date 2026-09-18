@@ -108,7 +108,9 @@ not do by itself, so `dpkg -i` alone will usually leave you with a dark panel:
   `regular`.
 
 `script/install.sh` does both, installs the latest release for your
-architecture, and enables the service so it survives a reboot:
+architecture, and enables the service so it survives a reboot. It also adds
+`isolcpus=3` to the kernel command line, reserving CPU 3 for the thread that
+refreshes the panel -- the library suggests it every time it starts:
 
 ```shell
 git clone https://github.com/parandandrd/sportsmatrix

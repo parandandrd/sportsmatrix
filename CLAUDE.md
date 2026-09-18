@@ -39,6 +39,10 @@ Things that will waste your time if you don't know them:
   any new test or you will get `address already in use` and a confusing hang.
 - `SportsMatrix.Close()` sends on an unbuffered channel. Don't `defer s.Close()`
   in a test where `Serve` isn't running its normal loop -- it deadlocks.
+- **The head of `/var/log/sportsmatrix_out.log` on the Pi can be an older
+  run's.** The unit's `StandardOutput=file:` writes from the start of the file
+  without truncating it, so a run that prints less leaves the last one's lines
+  after its own.
 - **Go's race detector won't start on a Raspberry Pi 5 kernel**
   (`ThreadSanitizer: unsupported VMA range`, from its 47-bit address space). A
   test for a concurrency fix has to fail without `-race` to prove anything there.
@@ -48,7 +52,9 @@ Things that will waste your time if you don't know them:
 - The panel refresh runs on a **raw pthread at `SCHED_FIFO` priority 99 pinned
   to core 3** (`updater_->Start(99, (1<<3))` in the vendored `led-matrix.cc`),
   outside the Go runtime. Go's GC cannot stall the display. Allocation work is
-  therefore a CPU and memory question, not a flicker question.
+  therefore a CPU and memory question, not a flicker question. `install.sh`
+  adds `isolcpus=3` to the kernel command line so nothing else runs on that
+  core; the Go runtime then sees three CPUs.
 - One cgo call per frame: `led_matrix_swap`. The per-pixel loop is in C.
 - A scroll **preloads every frame up front** into `Matrix.PreLoad`, then `Play`
   walks them on a timer. Frame buffers are reused across scrolls; `Play`
@@ -125,7 +131,8 @@ time), bad values are refused without touching the file, and the file ends up
 board's panel view follows the panel; full-res frames change every 10.0s at a
 10s display time and stay 0.7-0.9s behind the panel through a board (they
 were 11s apart and slipped 1.1s a game before), and full-res stops drawing 20s
-after the last request.
+after the last request. `isolcpus=3` is set on it, and the refresh thread has
+CPU 3 to itself.
 
 Not verified on the Pi: anything only a person looking at it can see -- the
 panel dimming, the dashboard and the web board's toggle in a browser -- and the

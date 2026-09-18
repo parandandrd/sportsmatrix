@@ -1,17 +1,10 @@
 package imgcanvas
 
 import (
-	// embed
-	_ "embed"
 	"net/http"
-
-	"go.uber.org/zap"
 
 	"github.com/parandandrd/sportsmatrix/internal/board"
 )
-
-//go:embed assets/loading.gif
-var loading []byte
 
 // GetHTTPHandlers ...
 func (i *ImgCanvas) GetHTTPHandlers() ([]*board.HTTPHandler, error) {
@@ -29,31 +22,15 @@ func (i *ImgCanvas) GetHTTPHandlers() ([]*board.HTTPHandler, error) {
 			i.Disable()
 		},
 	}
+	// Asking for a frame is what keeps the canvas drawing. It answers 204 No
+	// Content until a board has drawn one; see FramePNG.
 	render := &board.HTTPHandler{
 		Path: "/api/imgcanvas/board",
 		Handler: func(w http.ResponseWriter, req *http.Request) {
-			i.Enable()
-
-			i.log.Debug("getting image for web board")
-
-			if len(i.lastPng) == 0 {
-				i.log.Warn("web board is not ready yet, loading")
-				w.Header().Set("Content-Type", "image/gif")
-				if _, err := w.Write(loading); err != nil {
-					i.log.Error("failed to copy loading.gif", zap.Error(err))
-				}
-				return
+			if i.Enable() {
+				i.log.Info("drawing the full-size web board from the next board on")
 			}
-
-			w.Header().Set("Content-Type", "image/png")
-
-			i.Lock()
-			defer i.Unlock()
-			if _, err := w.Write(i.lastPng); err != nil {
-				i.log.Error("failed to copy png for /api/imgcanvas/board", zap.Error(err))
-				return
-			}
-			i.log.Debug("web board image sent")
+			board.ServeFrame(w, req, i)
 		},
 	}
 

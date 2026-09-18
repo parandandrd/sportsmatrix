@@ -57,7 +57,21 @@ Things that will waste your time if you don't know them:
 - `doBoard` renders **every canvas concurrently**, one goroutine each. There are
   always at least two: the real matrix and an `imgcanvas` backing the browser
   `/board` view. Anything a board touches during `Render` needs to be safe for
-  that.
+  that. A board that shows several things in turn must time each with
+  `board.Hold(ctx, start, delay)` from when it began drawing it, not sleep the
+  delay after drawing: the 800px canvas takes over a second longer per item on
+  a Pi 3, and sleeping afterwards put the web board further behind the panel
+  with every game.
+- **The web board has two views.** *Panel* is `/api/panel/frame`: the frames
+  the matrix driver actually swapped, kept by `matrix.Mirror`, costing nothing
+  extra. *Full-res* is `/api/imgcanvas/board`: every board drawn again on the
+  800px `imgcanvas`, the most expensive thing the service does. The imgcanvas
+  only draws while a browser asks for frames -- it stops at once on
+  `/api/imgcanvas/disable`, or 20s after the last request -- and a board only
+  draws to canvases that were on when it started, so full-res begins with the
+  next board. Both endpoints go through `board.ServeFrame`: ETag and 304, a
+  `?wait=` long-poll that holds the request until the frame changes, and 204
+  while there is no frame yet. The dashboard's preview uses the panel view.
 - Boards implement `board.Board`, canvases implement `board.Canvas`. Board
   enable/disable goes through `board.Enabler`, whose `SetStateChangeCallback`
   wakes the serve loop when every board is off.

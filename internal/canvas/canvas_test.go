@@ -2,11 +2,17 @@ package canvas
 
 import (
 	"context"
+	"image"
 	"image/color"
+	"image/png"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 
 	"github.com/parandandrd/sportsmatrix/internal/matrix"
 )
@@ -129,4 +135,36 @@ func (m *MatrixMock) ReversePreLoad()                   {}
 
 func (m *MatrixMock) Play(ctx context.Context, defInterval time.Duration, ch <-chan time.Duration) error {
 	return nil
+}
+
+func TestPanelFrame(t *testing.T) {
+	t.Parallel()
+
+	c := NewCanvas(matrix.NewConsoleMatrix(4, 2, io.Discard, zap.NewNop()))
+	handlers, err := c.GetHTTPHandlers()
+	require.NoError(t, err)
+	require.Len(t, handlers, 1)
+	require.Equal(t, "/api/panel/frame", handlers[0].Path)
+
+	c.Set(3, 1, color.RGBA{0, 0xff, 0, 0xff})
+	require.NoError(t, c.Render(context.Background()))
+
+	rec := httptest.NewRecorder()
+	handlers[0].Handler(rec, httptest.NewRequest(http.MethodGet, "/api/panel/frame", nil))
+	require.Equal(t, http.StatusOK, rec.Code)
+	require.NotEmpty(t, rec.Header().Get("ETag"))
+
+	img, err := png.Decode(rec.Body)
+	require.NoError(t, err)
+	require.Equal(t, image.Rect(0, 0, 4, 2), img.Bounds())
+	r, g, b, _ := img.At(3, 1).RGBA()
+	require.Equal(t, []uint32{0, 0xffff, 0}, []uint32{r, g, b})
+}
+
+func TestNoPanelFrameWithoutAMirror(t *testing.T) {
+	t.Parallel()
+
+	handlers, err := NewCanvas(NewMatrixMock(4, 2)).GetHTTPHandlers()
+	require.NoError(t, err)
+	require.Empty(t, handlers)
 }

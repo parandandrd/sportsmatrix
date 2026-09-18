@@ -20,6 +20,7 @@ type ConsoleMatrix struct {
 	height      int
 	out         io.Writer
 	preload     [][]uint32
+	mirror      *Mirror
 	log         *zap.Logger
 	preloadLock sync.Mutex
 }
@@ -30,6 +31,7 @@ func NewConsoleMatrix(width int, height int, out io.Writer, logger *zap.Logger) 
 		width:  width,
 		height: height,
 		matrix: make([]uint32, (width * height)),
+		mirror: NewMirror(width, height),
 		out:    out,
 		log:    logger,
 	}
@@ -165,7 +167,14 @@ func (c *ConsoleMatrix) Render() error {
 	return c.render(c.matrix)
 }
 
+// Mirror is a copy of what the matrix is showing, for the web board.
+func (c *ConsoleMatrix) Mirror() *Mirror {
+	return c.mirror
+}
+
 func (c *ConsoleMatrix) render(leds []uint32) error {
+	c.mirror.Capture(leds)
+
 	rendered := []string{
 		strings.Repeat("_ ", c.width+1),
 	}

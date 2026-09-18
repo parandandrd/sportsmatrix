@@ -52,6 +52,7 @@ func TestMirrorWait(t *testing.T) {
 }
 
 // Capture runs on every frame the panel shows, scroll frames included.
+// nolint: paralleltest // AllocsPerRun counts allocations across the whole process
 func TestMirrorCaptureDoesNotAllocate(t *testing.T) {
 	m := NewMirror(64, 32)
 	frame := make([]uint32, 64*32)

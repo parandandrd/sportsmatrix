@@ -651,16 +651,15 @@ OUTER:
 	defer func() { _ = canvas.Clear() }()
 
 	if s.config.ShowLeagueLogo.Load() {
+		shown := time.Now()
 		if err := s.renderLeagueLogo(ctx, canvas); err != nil {
 			return err
 		}
 		if err := canvas.Render(ctx); err != nil {
 			return err
 		}
-		select {
-		case <-s.renderCtx.Done():
-			return context.Canceled
-		case <-time.After(s.config.boardDelay.Load()):
+		if err := board.Hold(s.renderCtx, shown, s.config.boardDelay.Load()); err != nil {
+			return err
 		}
 	}
 
@@ -715,6 +714,8 @@ GAMES:
 			continue GAMES
 		}
 
+		shown := time.Now()
+
 		counter, err := s.RenderGameCounter(canvas, len(games), gameIndex)
 		if err != nil {
 			s.log.Error("failed to render game counter", zap.Error(err))
@@ -744,10 +745,8 @@ GAMES:
 				continue GAMES
 			}
 
-			select {
-			case <-s.renderCtx.Done():
-				return context.Canceled
-			case <-time.After(s.config.boardDelay.Load()):
+			if err := board.Hold(s.renderCtx, shown, s.config.boardDelay.Load()); err != nil {
+				return err
 			}
 
 			if !(isFav && s.config.FavoriteSticky.Load()) {
@@ -758,6 +757,7 @@ GAMES:
 			}
 
 			// Update the game data in sticky mode
+			shown = time.Now()
 			cachedGame, err = cachedGame.GetUpdate(s.renderCtx)
 			if err != nil {
 				s.log.Error("failed to update live game during sticky",
@@ -809,6 +809,7 @@ func (s *SportBoard) renderGrid(ctx context.Context, canvas board.Canvas, games 
 			return context.Canceled
 		default:
 		}
+		shown := time.Now()
 		endIndex := i + numCells
 		if endIndex > len(games)-1 {
 			endIndex = len(games)
@@ -830,10 +831,8 @@ func (s *SportBoard) renderGrid(ctx context.Context, canvas board.Canvas, games 
 		}
 		gridIndex++
 
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case <-time.After(gridDelay):
+		if err := board.Hold(ctx, shown, gridDelay); err != nil {
+			return err
 		}
 	}
 

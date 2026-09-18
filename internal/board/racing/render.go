@@ -67,6 +67,7 @@ EVENTS:
 			return context.Canceled
 		default:
 		}
+		shown := time.Now()
 		img, err := s.renderEvent(s.boardCtx, canvas.Bounds(), event, s.leagueLogo, scheduleWriter)
 		if err != nil {
 			s.log.Error("failed to render racing event",
@@ -84,10 +85,8 @@ EVENTS:
 			continue EVENTS
 		}
 
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case <-time.After(s.config.boardDelay.Load()):
+		if err := board.Hold(ctx, shown, s.config.boardDelay.Load()); err != nil {
+			return err
 		}
 	}
 

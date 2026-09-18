@@ -62,6 +62,7 @@ EVENTS:
 			return context.Canceled
 		default:
 		}
+		shown := time.Now()
 		img, err := s.renderEvent(s.boardCtx, canvas.Bounds(), event, scheduleWriter)
 		if err != nil {
 			s.log.Error("failed to render calendar event",
@@ -79,10 +80,8 @@ EVENTS:
 			continue EVENTS
 		}
 
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case <-time.After(s.config.boardDelay.Load()):
+		if err := board.Hold(ctx, shown, s.config.boardDelay.Load()); err != nil {
+			return err
 		}
 	}
 

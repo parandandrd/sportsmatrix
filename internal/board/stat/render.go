@@ -202,11 +202,16 @@ func (s *StatBoard) doRender(ctx context.Context, canvas board.Canvas, players [
 
 	row := 0
 	i := 0
+	var shown time.Time
 	for {
 		select {
 		case <-ctx.Done():
 			return context.Canceled
 		default:
+		}
+
+		if row == 0 {
+			shown = time.Now()
 		}
 
 		if row == 0 && s.withTitleRow {
@@ -247,10 +252,8 @@ func (s *StatBoard) doRender(ctx context.Context, canvas board.Canvas, players [
 
 		s.log.Debug("delaying stat board", zap.Int("seconds", int(delay.Seconds())))
 
-		select {
-		case <-ctx.Done():
-			return context.Canceled
-		case <-time.After(delay):
+		if err := board.Hold(ctx, shown, delay); err != nil {
+			return err
 		}
 
 		row = 0

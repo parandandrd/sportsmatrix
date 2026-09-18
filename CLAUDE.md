@@ -116,11 +116,20 @@ Things that will waste your time if you don't know them:
 Verified on the real Pi as of v0.0.3-beta.1: the dashboard, `ListBoards` /
 `SetBoardEnabled`, NWSL, Go 1.23, the repackaged `.deb`.
 
-Not verified on the Pi yet, only against a local `run -t` instance started with
-a copy of its config: everything written after v0.0.3-beta.1 -- the dashboard's
-grouping, the web UI's caching, the web board launcher, saving settings to the
-config file, reordering, brightness and the screen schedule, and board display
-times and teams.
+Verified on the real Pi 3 on 2026-09-18, with the PR build
+0.0.3-beta.1-19-g910404e, through the API: settings changed through it are
+written to the config file one line at a time and survive a restart
+(brightness, the screen schedule, a board switch, the board order, a display
+time), bad values are refused without touching the file, and the file ends up
+644 root. The web UI is served gzipped with the caching headers. The web
+board's panel view follows the panel; full-res frames change every 10.0s at a
+10s display time and stay 0.7-0.9s behind the panel through a board (they
+were 11s apart and slipped 1.1s a game before), and full-res stops drawing 20s
+after the last request.
+
+Not verified on the Pi: anything only a person looking at it can see -- the
+panel dimming, the dashboard and the web board's toggle in a browser -- and the
+web board launcher, which is off in the Pi's config.
 
 Not verified end to end: the sport, stat and racing boards' live data paths.
 ESPN's API is reachable from the Pi but was blocked from the sandbox these

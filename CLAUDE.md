@@ -85,6 +85,11 @@ Things that will waste your time if you don't know them:
 - **History is linear.** PRs are rebase-merged. Don't add merge commits.
 - **CI only runs on `pull_request`** (`.github/workflows/go.yml`). Pushing a
   branch on its own gets you no CI at all.
+- **Each PR run also builds the arm64 `.deb`** on `ubuntu-24.04-arm` and keeps
+  it as the run artifact `sportsmatrix-arm64-deb`. That is how to try a PR on
+  the Pi before it merges, without a release: `gh run download <run-id> -n
+  sportsmatrix-arm64-deb`, then `dpkg -i --force-confold`, which keeps the Pi's
+  own `/etc/sportsmatrix.conf` instead of stopping to ask about it.
 - **Releases are manual.** `release.yml` is `workflow_dispatch` with a version
   input (plus tag push). It runs on `ubuntu-24.04-arm` so the aarch64 build is
   native -- that took the build step from ~12 minutes under QEMU to ~17

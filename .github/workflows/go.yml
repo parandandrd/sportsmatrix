@@ -61,3 +61,49 @@ jobs:
 
     - name: Build
       run: ./script/build
+
+  deb:
+    # The Pi runs arm64, which the build job above does not produce. This builds
+    # the package natively on an arm64 runner and keeps it as a run artifact, so
+    # a pull request can be installed on the Pi and tried before it merges,
+    # without cutting a release for it.
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        # The branch head rather than the merge commit a pull_request run checks
+        # out by default, so the version names a commit that exists. All of
+        # history, because the version comes from git describe and needs tags.
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 0
+
+    - uses: actions/setup-go@v5
+      with:
+        go-version-file: go.mod
+        cache-dependency-path: go.sum
+
+    - uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+        cache: 'npm'
+        cache-dependency-path: "web/package-lock.json"
+
+    - run: npm ci --legacy-peer-deps
+      working-directory: "./web"
+
+    - run: npm run build
+      working-directory: "./web"
+
+    # v0.0.3-beta.1-16-g3e892a1 becomes 0.0.3-beta.1-16-g3e892a1: newer than the
+    # release it follows and older than the next one, so dpkg installs it as an
+    # upgrade and a later release upgrades over it.
+    - name: Build the package
+      run: |
+        VERSION="$(git describe --tags --match 'v*')"
+        BUILDARCH=aarch64 DEB_BUILD=yes VERSION="${VERSION#v}" ./script/build
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: sportsmatrix-arm64-deb
+        path: "*.deb"
+        if-no-files-found: error

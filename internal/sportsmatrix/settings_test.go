@@ -127,7 +127,7 @@ func TestSettingsAreSavedToTheConfigFile(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, dat, 0o644))
 	file := conffile.New(path)
 
-	cfg := &Config{ServeWebUI: false, HTTPListenPort: 18204, WebBoardWidth: 1}
+	cfg := &Config{ServeWebUI: false, HTTPListenPort: 18204}
 	cfg.Defaults()
 	canvas := board.NewBlankCanvas(1, 1, logger)
 	canvas.Enable()
@@ -354,7 +354,6 @@ func TestBrightnessAndScreenSchedule(t *testing.T) {
 	require.NoError(t, os.WriteFile(path, dat, 0o644))
 
 	cfg := &Config{
-		WebBoardWidth:  1,
 		ScreenOnTimes:  []string{"0 19 * * *"},
 		ScreenOffTimes: []string{"0 0 * * *"},
 		HardwareConfig: &rgb.HardwareConfig{Brightness: 60},

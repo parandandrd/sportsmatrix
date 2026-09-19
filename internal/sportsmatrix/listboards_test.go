@@ -59,7 +59,7 @@ func TestListBoardsOverHTTP(t *testing.T) {
 	defer cancel()
 
 	logger := zaptest.NewLogger(t, zaptest.Level(zapcore.ErrorLevel))
-	cfg := &Config{ServeWebUI: false, HTTPListenPort: 8099, WebBoardWidth: 1}
+	cfg := &Config{ServeWebUI: false, HTTPListenPort: 8099}
 	cfg.Defaults()
 
 	canvas := board.NewBlankCanvas(1, 1, logger)

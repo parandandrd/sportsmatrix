@@ -60,24 +60,23 @@ Things that will waste your time if you don't know them:
   walks them on a timer. Frame buffers are reused across scrolls; `Play`
   truncates the list rather than discarding it. Don't reintroduce a per-frame
   allocation there -- it was 52% of allocation and 2.2GB per 2000 scrolls.
-- `doBoard` renders **every canvas concurrently**, one goroutine each. There are
-  always at least two: the real matrix and an `imgcanvas` backing the browser
-  `/board` view. Anything a board touches during `Render` needs to be safe for
-  that. A board that shows several things in turn must time each with
-  `board.Hold(ctx, start, delay)` from when it began drawing it, not sleep the
-  delay after drawing: the 800px canvas takes over a second longer per item on
-  a Pi 3, and sleeping afterwards put the web board further behind the panel
-  with every game.
-- **The web board has two views.** *Panel* is `/api/panel/frame`: the frames
-  the matrix driver actually swapped, kept by `matrix.Mirror`, costing nothing
-  extra. *Full-res* is `/api/imgcanvas/board`: every board drawn again on the
-  800px `imgcanvas`, the most expensive thing the service does. The imgcanvas
-  only draws while a browser asks for frames -- it stops at once on
-  `/api/imgcanvas/disable`, or 20s after the last request -- and a board only
-  draws to canvases that were on when it started, so full-res begins with the
-  next board. Both endpoints go through `board.ServeFrame`: ETag and 304, a
-  `?wait=` long-poll that holds the request until the frame changes, and 204
-  while there is no frame yet. The dashboard's preview uses the panel view.
+- `doBoard` renders **every canvas concurrently**, one goroutine each. There is
+  one canvas now, the matrix. A board that shows several things in turn times
+  each with `board.Hold(ctx, start, delay)` from when it began drawing it, so
+  drawing time comes out of the display time rather than adding to it.
+- **The web UI shows the panel's own frames.** `/api/panel/frame` is served by
+  `matrix.Mirror`, which keeps a copy of each frame the matrix driver swaps in:
+  exactly what the LEDs show, costing nothing extra. It answers with an ETag
+  and 304, and `?wait=` holds the request until the frame changes. The
+  dashboard preview and the `/board` page both use it.
+- **There used to be a second, 800px canvas** (`internal/imgcanvas`) drawing
+  every board again for a "full-res" web view. It was removed on 2026-09-18
+  because the owner prefers the panel view; `git log --diff-filter=D --
+  internal/imgcanvas` finds it. If something like it comes back: a second
+  canvas means every board renders twice, concurrently -- that is where the
+  "concurrent map writes" crash came from -- a board only draws to canvases
+  that were on when it started, and it should only draw while someone is
+  watching.
 - Boards implement `board.Board`, canvases implement `board.Canvas`. Board
   enable/disable goes through `board.Enabler`, whose `SetStateChangeCallback`
   wakes the serve loop when every board is off.
@@ -127,16 +126,14 @@ Verified on the real Pi 3 on 2026-09-18, with the PR build
 written to the config file one line at a time and survive a restart
 (brightness, the screen schedule, a board switch, the board order, a display
 time), bad values are refused without touching the file, and the file ends up
-644 root. The web UI is served gzipped with the caching headers. The web
-board's panel view follows the panel; full-res frames change every 10.0s at a
-10s display time and stay 0.7-0.9s behind the panel through a board (they
-were 11s apart and slipped 1.1s a game before), and full-res stops drawing 20s
-after the last request. `isolcpus=3` is set on it, and the refresh thread has
-CPU 3 to itself.
+644 root. The web UI is served gzipped with the caching headers. The panel
+frames endpoint follows the panel. `isolcpus=3` is set on it, and the refresh
+thread has CPU 3 to itself. v0.0.4-beta.1 was installed on it with
+`install.sh`, which found the Pi already set up.
 
 Not verified on the Pi: anything only a person looking at it can see -- the
-panel dimming, the dashboard and the web board's toggle in a browser -- and the
-web board launcher, which is off in the Pi's config.
+panel dimming, the dashboard and `/board` in a browser -- and the web board
+launcher, which is off in the Pi's config.
 
 Not verified end to end: the sport, stat and racing boards' live data paths.
 ESPN's API is reachable from the Pi but was blocked from the sandbox these

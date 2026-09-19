@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 
 	"github.com/parandandrd/sportsmatrix/internal/board"
-	"github.com/parandandrd/sportsmatrix/internal/imgcanvas"
 )
 
 func TestSetForegroundPriority(t *testing.T) {
@@ -192,7 +192,7 @@ func TestRender(t *testing.T) {
 		},
 	))
 
-	require.NoError(t, layers.Draw(context.Background(), imgcanvas.New(1, 1, nil)))
+	require.NoError(t, layers.Draw(context.Background(), board.NewBlankCanvas(1, 1, zap.NewNop())))
 	require.True(t, layer1)
 	require.True(t, layer2)
 	require.Equal(t, []string{"layer", "text"}, renderedLayers)
@@ -230,7 +230,7 @@ func TestBadRender(t *testing.T) {
 		},
 	))
 
-	err = layers.Draw(context.Background(), imgcanvas.New(1, 2, nil))
+	err = layers.Draw(context.Background(), board.NewBlankCanvas(1, 2, zap.NewNop()))
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "render failed")
 }

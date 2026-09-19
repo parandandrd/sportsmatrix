@@ -12,40 +12,7 @@
     height: auto;
     max-height: 100vh;
     object-fit: contain;
-}
-
-/* the panel is a handful of pixels wide -- keep them square, not smeared */
-.webboard-frame.pixelated {
+    /* the panel is a handful of pixels wide -- keep them square, not smeared */
     image-rendering: crisp-edges;
     image-rendering: pixelated;
-}
-
-.webboard-controls {
-    position: fixed;
-    top: 12px;
-    right: 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 6px;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-}
-
-/* Out of the way on a screen left showing the board, back on hover or focus.
-   A touch screen has no hover, so it keeps them showing. */
-@media (hover: hover) {
-    .webboard-controls {
-        opacity: 0.15;
-    }
-
-    .webboard-controls:hover,
-    .webboard-controls:focus-within {
-        opacity: 1;
-    }
-}
-
-.webboard-note {
-    color: #aab;
-    font-size: 12px;
 }

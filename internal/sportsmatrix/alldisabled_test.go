@@ -39,7 +39,7 @@ func TestAllDisabledDoesNotSpin(t *testing.T) {
 
 	logger := zaptest.NewLogger(t, zaptest.Level(zapcore.FatalLevel))
 
-	cfg := &Config{ServeWebUI: false, HTTPListenPort: 18201, WebBoardWidth: 1}
+	cfg := &Config{ServeWebUI: false, HTTPListenPort: 18201}
 	cfg.Defaults()
 
 	canvas := board.NewBlankCanvas(1, 1, logger)

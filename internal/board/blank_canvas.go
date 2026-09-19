@@ -92,7 +92,7 @@ func (i *BlankCanvas) Bounds() image.Rectangle {
 func (i *BlankCanvas) At(x, y int) color.Color {
 	pos := i.position(x, y)
 	if pos > len(i.pixels)-1 || pos < 0 {
-		i.log.Debug("imgcanvas no pixel", zap.Int("x", x), zap.Int("y", y))
+		i.log.Debug("blank canvas no pixel", zap.Int("x", x), zap.Int("y", y))
 		return color.Black
 	}
 	return uint32ToColor(i.pixels[pos])

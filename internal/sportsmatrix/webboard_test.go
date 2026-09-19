@@ -147,7 +147,7 @@ func TestWebBoardOverHTTP(t *testing.T) {
 	me, err := user.Current()
 	require.NoError(t, err)
 
-	cfg := &Config{ServeWebUI: false, HTTPListenPort: 18203, WebBoardWidth: 1, WebBoardUser: me.Username}
+	cfg := &Config{ServeWebUI: false, HTTPListenPort: 18203, WebBoardUser: me.Username}
 	cfg.Defaults()
 
 	canvas := board.NewBlankCanvas(1, 1, logger)

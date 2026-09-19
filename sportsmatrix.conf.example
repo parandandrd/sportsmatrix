@@ -38,7 +38,9 @@ sportsMatrixConfig:
     # progressive or interlaced
     #scanMode: progressive
 
-    # Limit the LED panel refresh rate. 0 for no limit
+    # Limit the LED panel refresh rate. 0 for no limit. The refresh sleeps
+    # out the rest of each frame, which frees CPU -- the panel is dark
+    # meanwhile, so a limit well under its natural rate dims it.
     #limitRefreshRateHz: 0
 
     # Number of Matrices chained

@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { CallRPC, MatrixPostRet, SetBoardEnabled, JumpToBoard } from './util';
 import { useFrame, usePageVisible } from './frames';
+import { useFullscreen } from './fullscreen';
 import { GroupBoards, MoveSection, RefreshBoards, SubLabel, useBoards } from './boards';
 import BoardPanel from './BoardPanel.js';
 import MatrixSettings from './MatrixSettings.js';
@@ -8,20 +9,28 @@ import { LogoSrc } from './Logo';
 import './Dashboard.css';
 
 // LivePreview shows the panel's own frames: exactly what is on the LEDs, at no
-// cost to the Pi. It only follows them while the page can be seen.
+// cost to the Pi. It only follows them while the page can be seen, and goes full
+// screen from its button or a double click.
 function LivePreview() {
     const visible = usePageVisible();
     const src = useFrame(visible);
+    const box = useRef(null);
+    const full = useFullscreen(box);
 
     return (
         <div className="section">
             <h2>Live</h2>
-            <div className="preview">
+            <div className="preview" ref={box} onDoubleClick={full.supported ? full.toggle : undefined}>
                 {src
                     ? <img src={src} alt="What the panel is showing" />
                     : <p className="dash-msg">Waiting for the panel...</p>}
             </div>
-            <p className="preview-note">What the panel is showing now.</p>
+            <div className="preview-foot">
+                <p className="preview-note">What the panel is showing now.</p>
+                {full.supported
+                    ? <button className="btn-sm-matrix" onClick={full.toggle}>Full screen</button>
+                    : null}
+            </div>
         </div>
     );
 }

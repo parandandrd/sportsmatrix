@@ -58,6 +58,29 @@ body {
     margin: 6px 2px 0;
 }
 
+.preview-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.preview-foot .btn-sm-matrix {
+    margin-top: 6px;
+}
+
+/* Full screen: the frame fills the screen, still with square pixels. */
+.preview:fullscreen {
+    border: none;
+    border-radius: 0;
+}
+
+.preview:fullscreen img {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+}
+
 /* Controls ------------------------------------------------------------ */
 
 .section {

@@ -16,3 +16,20 @@
     image-rendering: crisp-edges;
     image-rendering: pixelated;
 }
+
+.webboard-fullscreen {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    padding: 4px 12px;
+    font-size: 13px;
+    color: #fff;
+    background: rgba(40, 44, 58, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 6px;
+}
+
+.webboard-fullscreen:hover,
+.webboard-fullscreen:focus-visible {
+    background: rgba(70, 76, 96, 0.95);
+}

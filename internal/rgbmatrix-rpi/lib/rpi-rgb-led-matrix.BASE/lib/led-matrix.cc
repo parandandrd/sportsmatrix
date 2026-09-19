@@ -199,8 +199,17 @@ public:
       ++low_bit_sequence;
 
       if (target_frame_usec_) {
-        while ((GetMicrosecondCounter() - start_time_us) < target_frame_usec_) {
-          // busy wait. We have our dedicated core, so ok to burn cycles.
+        // Sleep, rather than spin, until the next frame is due. The last
+        // pulse of the frame is already running and ends on its own, so
+        // waking a little late only makes the frame a little longer -- and a
+        // spinning wait takes the whole core, which on a single-core Pi is
+        // everything else's too.
+        const uint32_t spent_us = GetMicrosecondCounter() - start_time_us;
+        if (spent_us < target_frame_usec_) {
+          const uint32_t wait_us = target_frame_usec_ - spent_us;
+          struct timespec wait = { (time_t)(wait_us / 1000000),
+                                   (long)(wait_us % 1000000) * 1000 };
+          nanosleep(&wait, NULL);
         }
       }
 

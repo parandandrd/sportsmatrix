@@ -119,7 +119,10 @@ type HardwareConfig struct {
 	HardwareMapping string `json:"hardwareMapping"`
 
 	// Limit refresh rate of LED panel. This will help on a loaded system
-	// to keep a constant refresh rate. <= 0 for no limit.
+	// to keep a constant refresh rate. <= 0 for no limit. The refresh thread
+	// sleeps out the rest of each frame, leaving the CPU to everything else,
+	// but the panel is dark while it does, so a limit well under the panel's
+	// own rate dims it.
 	LimitRefreshRateHz int `json:"limitRefreshRateHz"`
 
 	// Type of multiplexing. 0 = direct, 1 = stripe, 2 = checker,...

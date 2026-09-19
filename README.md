@@ -211,14 +211,11 @@ sudo sportsmatrix.bin nhltest
 
 ## Web UI
 
-There is a (very) basic web UI frontend for managing the board. It is bundled with the binary and served as a single-page app. The UI gives buttons for all the backend [API Endpoints](#api-endpoints). You can also view a rendered version of the board in the "Board" section (make sure your configuration enables this). Front-end dev is not my strongsuit, so it's not particularly pretty.
+There is a (very) basic web UI frontend for managing the board. It is bundled with the binary and served as a single-page app. The UI gives buttons for all the backend [API Endpoints](#api-endpoints). Its Live section shows exactly what the panel is showing, and the Live Board page (`/board`) shows it on its own -- both have a Full screen button, for leaving the board up on a tablet or a TV's browser. Front-end dev is not my strongsuit, so it's not particularly pretty.
 
 The Web UI is accessible at `http://[HOSTNAME OR IP]:[PORT]`, where port is whatever you configure the `httpListenPort` in your config file to be. For example, if your Pi's hostname is `mypi` and your configured listen port is `8080`, `http://mypi:8080`
 
 ![example1](assets/images/ui4.png) ![example2](assets/images/ui3.png) ![example3](assets/images/ui2.png) ![example4](assets/images/ui1.png)
-
-Example of the Web Board:<br>
-![webboard](assets/images/tv_nhl.jpg)
 
 ## API endpoints
 

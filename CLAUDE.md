@@ -68,7 +68,9 @@ Things that will waste your time if you don't know them:
   `matrix.Mirror`, which keeps a copy of each frame the matrix driver swaps in:
   exactly what the LEDs show, costing nothing extra. It answers with an ETag
   and 304, and `?wait=` holds the request until the frame changes. The
-  dashboard preview and the `/board` page both use it.
+  dashboard preview and the `/board` page both use it, and both have a Full
+  screen button (`web/src/fullscreen.js`), offered only where the browser
+  allows it -- not iPhone Safari, which only does full screen for video.
 - **There used to be a second, 800px canvas** (`internal/imgcanvas`) drawing
   every board again for a "full-res" web view. It was removed on 2026-09-18
   because the owner prefers the panel view; `git log --diff-filter=D --
@@ -135,7 +137,8 @@ thread has CPU 3 to itself. v0.0.4-beta.1 was installed on it with
 `install.sh`, which found the Pi already set up.
 
 Not verified on the Pi: anything only a person looking at it can see -- the
-panel dimming, and the dashboard and `/board` in a browser.
+panel dimming, and the dashboard and `/board` in a browser, full screen
+included.
 
 Not verified end to end: the sport, stat and racing boards' live data paths.
 ESPN's API is reachable from the Pi but was blocked from the sandbox these

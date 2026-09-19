@@ -77,7 +77,6 @@ func TestSportsMatrix(t *testing.T) {
 	cfg := &Config{
 		ServeWebUI:     false,
 		HTTPListenPort: 8080,
-		WebBoardWidth:  1,
 	}
 	cfg.Defaults()
 
@@ -160,7 +159,6 @@ func TestScreenSwitch(t *testing.T) {
 	cfg := &Config{
 		ServeWebUI:     false,
 		HTTPListenPort: 8080,
-		WebBoardWidth:  1,
 	}
 	cfg.Defaults()
 

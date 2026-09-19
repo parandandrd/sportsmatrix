@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CallRPC, MatrixPostRet, SetBoardEnabled, JumpToBoard } from './util';
-import { useFrames, usePageVisible } from './frames';
+import { useFrame, usePageVisible } from './frames';
 import { GroupBoards, MoveSection, RefreshBoards, SubLabel, useBoards } from './boards';
 import BoardPanel from './BoardPanel.js';
 import MatrixSettings from './MatrixSettings.js';
@@ -11,14 +11,14 @@ import './Dashboard.css';
 // cost to the Pi. It only follows them while the page can be seen.
 function LivePreview() {
     const visible = usePageVisible();
-    const frame = useFrames('panel', visible);
+    const src = useFrame(visible);
 
     return (
         <div className="section">
             <h2>Live</h2>
             <div className="preview">
-                {frame.src
-                    ? <img src={frame.src} alt="What the panel is showing" />
+                {src
+                    ? <img src={src} alt="What the panel is showing" />
                     : <p className="dash-msg">Waiting for the panel...</p>}
             </div>
             <p className="preview-note">What the panel is showing now.</p>

@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"net/http"
 
 	"go.uber.org/atomic"
 
@@ -130,40 +129,17 @@ func (c *Canvas) SetStateChangeCallback(s func()) {
 }
 
 // GetHTTPHandlers serves the frame on the panel, when the matrix keeps one, so
-// the web board can show exactly what the panel shows.
+// the web UI can show exactly what the panel shows.
 func (c *Canvas) GetHTTPHandlers() ([]*board.HTTPHandler, error) {
 	m, ok := c.m.(matrix.Mirrored)
 	if !ok {
 		return nil, nil
 	}
-	frames := panelFrames{m.Mirror()}
 
 	return []*board.HTTPHandler{
 		{
-			Path: "/api/panel/frame",
-			Handler: func(w http.ResponseWriter, req *http.Request) {
-				board.ServeFrame(w, req, frames)
-			},
+			Path:    "/api/panel/frame",
+			Handler: m.Mirror().ServeHTTP,
 		},
 	}, nil
-}
-
-// panelFrames serves the panel's own frames as a board.FrameSource.
-type panelFrames struct {
-	m *matrix.Mirror
-}
-
-func (p panelFrames) FrameTag() string {
-	return p.m.Tag()
-}
-
-func (p panelFrames) WaitFrame(ctx context.Context, tag string) bool {
-	return p.m.Wait(ctx, tag)
-}
-
-func (p panelFrames) FramePNG() ([]byte, string, error) {
-	img, tag := p.m.Snapshot()
-	frame, err := board.EncodeFrame(img)
-
-	return frame, tag, err
 }

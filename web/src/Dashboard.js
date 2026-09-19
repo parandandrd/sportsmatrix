@@ -157,7 +157,6 @@ function GroupList({ groups, onChanged, tagUnconfigured, onMove, moving }) {
 export default function Dashboard() {
     const { boards, error } = useBoards();
     const [screenOn, setScreenOn] = useState(true);
-    const [webBoardOn, setWebBoardOn] = useState(false);
     const [restarting, setRestarting] = useState(false);
     const [showOff, setShowOff] = useState(false);
     const [problem, setProblem] = useState('');
@@ -172,7 +171,6 @@ export default function Dashboard() {
             if (resp.ok) {
                 const dat = await resp.json();
                 setScreenOn(Boolean(dat.screen_on));
-                setWebBoardOn(Boolean(dat.webboard_on));
             }
         } catch (err) {
             console.log('failed to get matrix status', err);
@@ -184,7 +182,7 @@ export default function Dashboard() {
     useEffect(() => { refreshStatus(); }, [refreshStatus]);
 
     // A failed call shows the server's reason, which is what the person
-    // pressing the button needs -- "chromium is not installed", not "412".
+    // pressing the button needs, not just a status code.
     const call = async (method, body) => {
         setPending(method);
         try {
@@ -198,10 +196,7 @@ export default function Dashboard() {
         await refresh();
     };
 
-    // SetStatus carries the whole status, so a field left out reads as false
-    // and turns that thing off. Always send both.
-    const setStatus = (screen, webBoard) =>
-        call('SetStatus', JSON.stringify({ screen_on: screen, webboard_on: webBoard }));
+    const setScreen = (on) => call('SetStatus', JSON.stringify({ screen_on: on }));
 
     const restart = async () => {
         setRestarting(true);
@@ -245,16 +240,12 @@ export default function Dashboard() {
             <div className="section">
                 <h2>Matrix</h2>
                 <div className="controls">
-                    <button className="btn-sm-matrix" onClick={() => setStatus(!screenOn, webBoardOn)}>
-                        {screenOn ? 'Turn screen off' : 'Turn screen on'}
-                    </button>
                     <button
                         className="btn-sm-matrix"
-                        onClick={() => setStatus(screenOn, !webBoardOn)}
+                        onClick={() => setScreen(!screenOn)}
                         disabled={pending === 'SetStatus'}
-                        title="Shows the board full screen on a display plugged into the Pi"
                     >
-                        {webBoardOn ? 'Stop web board' : 'Start web board'}
+                        {screenOn ? 'Turn screen off' : 'Turn screen on'}
                     </button>
                     <button className="btn-sm-matrix" onClick={() => call('NextBoard')}>Next board</button>
                     <button className="btn-sm-matrix" onClick={() =>

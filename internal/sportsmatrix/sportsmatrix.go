@@ -28,8 +28,6 @@ type SportsMatrix struct {
 	canvases           []board.Canvas
 	boards             []board.Board
 	screenIsOn         *atomic.Bool
-	webBoardIsOn       *atomic.Bool
-	webBoardSettle     time.Duration
 	serveBlock         chan struct{}
 	boardStateChange   chan struct{}
 	log                *zap.Logger
@@ -42,7 +40,6 @@ type SportsMatrix struct {
 	httpEndpoints      []string
 	jumpLock           sync.Mutex
 	boardLock          sync.Mutex
-	webBoardLock       sync.Mutex
 	screenSwitch       chan struct{}
 	jumpTo             chan string
 	betweenBoards      []board.Board
@@ -51,9 +48,7 @@ type SportsMatrix struct {
 	switchedOn         int
 	switchedOff        int
 	switchTestSleep    bool
-	webBoardWasOn      *atomic.Bool
 	serveContext       context.Context
-	webBoardCancel     context.CancelFunc
 	liveOnly           *atomic.Bool
 	cron               *cron.Cron
 	screenJobs         []cron.EntryID
@@ -73,8 +68,6 @@ type Config struct {
 	RuntimeOptions *rgb.RuntimeOptions `json:"runtimeOptions"`
 	ScreenOffTimes []string            `json:"screenOffTimes"`
 	ScreenOnTimes  []string            `json:"screenOnTimes"`
-	LaunchWebBoard bool                `json:"launchWebBoard"`
-	WebBoardUser   string              `json:"webBoardUser"`
 	PreloadThreads int                 `json:"preloadThreads"`
 }
 
@@ -92,9 +85,6 @@ func (c *Config) Defaults() {
 
 	if c.HTTPListenPort == 0 {
 		c.HTTPListenPort = 8080
-	}
-	if c.WebBoardUser == "" {
-		c.WebBoardUser = "pi"
 	}
 
 	if c.HardwareConfig == nil {
@@ -148,14 +138,11 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config, canvases []board.
 		boardStateChange: make(chan struct{}, 1),
 		close:            make(chan struct{}),
 		screenIsOn:       atomic.NewBool(true),
-		webBoardIsOn:     atomic.NewBool(false),
-		webBoardSettle:   defaultWebBoardSettle,
 		isServing:        make(chan struct{}, 1),
 		jumpTo:           make(chan string, 1),
 		canvases:         canvases,
 		jumping:          atomic.NewBool(false),
 		screenSwitch:     make(chan struct{}, 1),
-		webBoardWasOn:    atomic.NewBool(false),
 		liveOnly:         atomic.NewBool(false),
 	}
 
@@ -324,14 +311,6 @@ func (s *SportsMatrix) ScreenOn(ctx context.Context) error {
 		s.log.Error("timed out while trying to unblock serveBlock")
 	}
 
-	if s.webBoardWasOn.Load() {
-		ctx := s.serveContext
-		if ctx == nil {
-			ctx = context.Background()
-		}
-		go s.startWebBoardWithRetry(ctx)
-	}
-
 	return nil
 }
 
@@ -366,9 +345,6 @@ func (s *SportsMatrix) ScreenOff(ctx context.Context) error {
 	}
 
 	s.boardCtx, s.boardCancel = context.WithCancel(s.serveContext)
-
-	s.webBoardWasOn.Store(s.webBoardIsOn.Load())
-	s.stopWebBoard()
 
 	return nil
 }
@@ -434,10 +410,6 @@ func (s *SportsMatrix) Serve(ctx context.Context) error {
 
 	s.boardCtx, s.boardCancel = context.WithCancel(ctx)
 	defer s.boardCancel()
-
-	if s.cfg.LaunchWebBoard {
-		go s.startWebBoardWithRetry(ctx)
-	}
 
 	if len(s.boardList()) < 1 {
 		return fmt.Errorf("no boards configured")

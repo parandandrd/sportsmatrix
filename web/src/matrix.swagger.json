@@ -1125,16 +1125,13 @@
       }
     },
     "matrix.v1_Status": {
-      "description": "Fields: screen_on, webboard_on, combined_scroll",
+      "description": "Fields: screen_on, combined_scroll",
       "type": "object",
       "properties": {
         "combined_scroll": {
           "type": "boolean"
         },
         "screen_on": {
-          "type": "boolean"
-        },
-        "webboard_on": {
           "type": "boolean"
         }
       }

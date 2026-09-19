@@ -30,7 +30,10 @@ message VersionResp {
 
 message Status {
     bool screen_on = 1;
-    bool webboard_on = 2;
+    // webboard_on was the switch for a browser launched on a display attached
+    // to the Pi, which was removed.
+    reserved 2;
+    reserved "webboard_on";
     bool combined_scroll = 3;
 }
 

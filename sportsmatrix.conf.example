@@ -13,15 +13,6 @@ sportsMatrixConfig:
   # accessible at http://[IP or hostname of Pi]
   serveWebUI: true
 
-  # If set to true, it will open the browser and display the web-based
-  # board. A browser is heavy for a small Pi, so watch memory usage on
-  # weaker ones. Your Pi must have a desktop OS installed with
-  # chromium-browser installed.
-  launchWebBoard: false
-
-  # Change this to your user. Default for Raspberry Pi OS is "pi"
-  webBoardUser: pi
-
   # Port for the HTTP server to listen on. Defaults to 8080 if unset
   httpListenPort: 80
 

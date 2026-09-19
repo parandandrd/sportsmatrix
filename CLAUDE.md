@@ -76,7 +76,10 @@ Things that will waste your time if you don't know them:
   canvas means every board renders twice, concurrently -- that is where the
   "concurrent map writes" crash came from -- a board only draws to canvases
   that were on when it started, and it should only draw while someone is
-  watching.
+  watching. The **web board launcher** went the same day: it started Chromium
+  in kiosk mode on a display attached to the Pi (`launchWebBoard`, "Start web
+  board", `/api/webboardon`), and the Pi runs Lite with no desktop, no browser
+  and nothing on its HDMI port. `Status.webboard_on` is reserved in the proto.
 - Boards implement `board.Board`, canvases implement `board.Canvas`. Board
   enable/disable goes through `board.Enabler`, whose `SetStateChangeCallback`
   wakes the serve loop when every board is off.
@@ -132,8 +135,7 @@ thread has CPU 3 to itself. v0.0.4-beta.1 was installed on it with
 `install.sh`, which found the Pi already set up.
 
 Not verified on the Pi: anything only a person looking at it can see -- the
-panel dimming, the dashboard and `/board` in a browser -- and the web board
-launcher, which is off in the Pi's config.
+panel dimming, and the dashboard and `/board` in a browser.
 
 Not verified end to end: the sport, stat and racing boards' live data paths.
 ESPN's API is reachable from the Pi but was blocked from the sandbox these

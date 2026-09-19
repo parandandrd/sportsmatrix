@@ -238,25 +238,13 @@ func (s *Server) SetStatus(ctx context.Context, req *pb.Status) (*emptypb.Empty,
 		}
 	}
 
-	if req.WebboardOn {
-		// The usual reasons this fails are on the Pi, not in the request: no
-		// browser installed, or no display for it to draw on. Say which.
-		if err := s.sm.startWebBoard(); err != nil {
-			s.sm.log.Error("failed to start web board", zap.Error(err))
-			return nil, twirp.NewError(twirp.FailedPrecondition, fmt.Sprintf("could not start the web board: %s", err))
-		}
-	} else {
-		s.sm.stopWebBoard()
-	}
-
 	return &emptypb.Empty{}, nil
 }
 
 // GetStatus ...
 func (s *Server) GetStatus(ctx context.Context, req *emptypb.Empty) (*pb.Status, error) {
 	return &pb.Status{
-		ScreenOn:   s.sm.screenIsOn.Load(),
-		WebboardOn: s.sm.webBoardIsOn.Load(),
+		ScreenOn: s.sm.screenIsOn.Load(),
 	}, nil
 }
 

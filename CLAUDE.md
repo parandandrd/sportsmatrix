@@ -150,6 +150,21 @@ Verified on the Zero 2 W with the Bonnet on 2026-09-22, with v0.0.4-beta.4:
 other against its pull), `adafruit-hat-pwm` with GPIO 18 on hardware PWM, and
 the refresh thread on CPU 3 using 69% of it, against the Pi 3's 67%.
 
+On 2026-09-23, on the Zero 2 W with v0.0.4-beta.5, the owner swept
+`pwmlsbNanoseconds` by eye and picked 240. The library default is 130.
+
+| lsb (ns) | refresh | refresh thread CPU |
+|---|---|---|
+| 130 | ~214 Hz | 68% |
+| 240 | ~117 Hz | 49% |
+| 300 | ~94 Hz | 43% |
+| 360 | ~70 Hz | 47% |
+
+Past 300 the CPU stops falling while the refresh rate keeps dropping, so
+don't push it further to save CPU. The example config ships 240, but an
+existing `/etc/sportsmatrix.conf` keeps its own value; the Pi 3's still needs
+the line.
+
 Not verified on the Pi: anything only a person looking at it can see -- the
 panel dimming, and the dashboard and `/board` in a browser, full screen
 included.

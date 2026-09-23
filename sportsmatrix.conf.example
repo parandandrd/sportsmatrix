@@ -57,8 +57,12 @@ sportsMatrixConfig:
     # The lower bits can be time-dithered for higher refresh rate.
     #pwmDitherBits: 0
 
-    # High number gives more accurate color, but can reduce frame rate
-    #pwmlsbNanoseconds: 130
+    # High number gives more accurate color, but can reduce frame rate.
+    # Longer times also cut the refresh thread's CPU. The library default is
+    # 130; 240 took a Zero 2 W from about 214 Hz at 68% of a core to about
+    # 117 Hz at 49%. Past 300 the refresh rate drops under 100 Hz, where
+    # flicker starts to show, without saving more CPU.
+    pwmlsbNanoseconds: 240
 
     # Displays LED panel refresh rate to stdout
     #showRefreshRate: false

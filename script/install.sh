@@ -14,6 +14,7 @@
 # already correct.
 #
 #   sudo ./install.sh                     # keep the current GPIO mapping
+#                                         # (adafruit-hat-pwm on a new install)
 #   sudo ./install.sh --adafruit-hat      # Adafruit RGB Matrix HAT/Bonnet
 #   sudo ./install.sh --adafruit-hat-pwm  # ...with the GPIO 4-18 solder mod
 #   sudo ./install.sh --regular           # directly wired, no HAT
@@ -40,7 +41,7 @@ while [ $# -gt 0 ]; do
     --regular)          MAPPING="regular" ;;
     --mapping)          shift; MAPPING="${1:-}" ;;
     --tag)              shift; TAG="${1:-}" ;;
-    -h|--help)          sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)          sed -n '2,22p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)                  die "unknown option '$1' (try --help)" ;;
   esac
   shift
@@ -146,9 +147,15 @@ if [ -n "${MAPPING}" ]; then
     warn "${CONF} not found, cannot set the GPIO mapping"
   fi
 else
-  say "Leaving the GPIO mapping alone ($(grep -s '^ *hardwareMapping:' "${CONF}" | tr -d ' ' || echo unknown))"
-  say "  Using an Adafruit HAT? Re-run with --adafruit-hat, or"
-  say "  --adafruit-hat-pwm if you soldered GPIO 4 to GPIO 18."
+  current="$(grep -s '^ *hardwareMapping:' "${CONF}" | awk '{print $2}' || true)"
+  say "Leaving the GPIO mapping alone (${current:-unknown})"
+  if [ "${current}" = "adafruit-hat-pwm" ]; then
+    say "  That needs GPIO 4 wired to GPIO 18 on the HAT or Bonnet."
+    say "  No wire? Re-run with --adafruit-hat."
+  else
+    say "  Using an Adafruit HAT? Re-run with --adafruit-hat, or"
+    say "  --adafruit-hat-pwm if you soldered GPIO 4 to GPIO 18."
+  fi
 fi
 
 # ------------------------------------------------------------------- service

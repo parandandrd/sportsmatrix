@@ -105,7 +105,8 @@ not do by itself, so `dpkg -i` alone will usually leave you with a dark panel:
 - **The GPIO mapping has to match your wiring.** An Adafruit RGB Matrix
   HAT/Bonnet uses `adafruit-hat`, or `adafruit-hat-pwm` if you have soldered the
   anti-flicker wire between GPIO 4 and GPIO 18. Directly wired panels use
-  `regular`.
+  `regular`. The config the package ships uses `adafruit-hat-pwm`, because
+  both boards this fork runs on have the wire.
 
 `script/install.sh` does both, installs the latest release for your
 architecture, and enables the service so it survives a reboot. It also adds
@@ -114,18 +115,19 @@ refreshes the panel -- the library suggests it every time it starts:
 
 ```shell
 git clone https://github.com/parandandrd/sportsmatrix
-sudo ./sportsmatrix/script/install.sh --adafruit-hat
+sudo ./sportsmatrix/script/install.sh
 ```
 
 Or, without cloning, against whichever repo you want it to pull releases from:
 
 ```shell
 curl -fsSL https://raw.githubusercontent.com/parandandrd/sportsmatrix/master/script/install.sh \
-  | sudo bash -s -- --adafruit-hat
+  | sudo bash
 ```
 
-Pass `--adafruit-hat-pwm`, `--regular`, or `--mapping <name>` to suit your
-board, or no flag at all to leave the mapping alone. It is safe to re-run; it
+With no flag, a new install gets `adafruit-hat-pwm` and an existing one keeps
+the mapping it has. Pass `--adafruit-hat` for a HAT or Bonnet without the wire,
+or `--regular` or `--mapping <name>` to suit your board. It is safe to re-run; it
 only changes what is not already correct. Reboot afterwards if it tells you to.
 
 Piping a remote script into `sudo bash` is worth being suspicious of, so read

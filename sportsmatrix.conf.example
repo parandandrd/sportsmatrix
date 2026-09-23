@@ -22,7 +22,7 @@ sportsMatrixConfig:
 
   # Cron schedule for times to turn on the screen
   screenOnTimes:
-  - "0 19 * * *"
+  - "20 16 * * *"
 
   # Hardware config. See https://github.com/hzeller/rpi-rgb-led-matrix
   hardwareConfig:
@@ -33,7 +33,9 @@ sportsMatrixConfig:
     brightness: 60
 
     # Name of the GPIO mapping used. See https://github.com/hzeller/rpi-rgb-led-matrix#changing-parameters-via-command-line-flags
-    hardwareMapping: adafruit-hat
+    # adafruit-hat-pwm is an Adafruit HAT or Bonnet with GPIO 4 wired to GPIO 18,
+    # as both of this build's boards are. Without that wire, use adafruit-hat.
+    hardwareMapping: adafruit-hat-pwm
 
     # progressive or interlaced
     #scanMode: progressive

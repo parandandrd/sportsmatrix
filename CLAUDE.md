@@ -6,6 +6,9 @@ one person's build. See `## About this fork` in the README.
 
 Target hardware: Pi 3 (Cortex-A53, 64-bit), Adafruit RGB Matrix HAT with the
 GPIO 4<->18 anti-flicker mod, 64x32 panel, running Debian Trixie. 64-bit only.
+A second build is a Pi Zero 2 W with an Adafruit RGB Matrix Bonnet, also with
+the 4<->18 wire; the library's model table puts the Zero 2 W (revision type
+`0x12`) in `PI_MODEL_2`, which maps the same peripheral base as the Pi 3.
 The Pi 5 is not supported -- the vendored matrix library's model table stops at
 `PI_MODEL_4` and a Pi 5 falls through to the Pi 3 branch and maps the wrong
 peripheral base.
@@ -35,6 +38,12 @@ Things that will waste your time if you don't know them:
   not work -- `script/test` and `script/build` drop a `placeholder` in.
 - **`npm ci` needs `--legacy-peer-deps`.** swagger-ui-react declares a peer
   range of react `>=16.8.0 <19` while the project is on react 19.
+- **`adafruit-hat-pwm` won't start while the onboard sound is loaded;
+  `adafruit-hat` doesn't check.** With the `-pwm` mapping the library uses
+  the PWM hardware the sound module also wants, and exits with a
+  `snd_bcm2835` message, so systemd restarts it every second. A Pi set up with
+  a bare `dpkg -i` works on `adafruit-hat` and crash-loops the moment it is
+  switched to `-pwm`. `install.sh` turns the sound off; it takes a reboot.
 - Tests in `internal/sportsmatrix` bind a real TCP port. Pick an unused one in
   any new test or you will get `address already in use` and a confusing hang.
 - `SportsMatrix.Close()` sends on an unbuffered channel. Don't `defer s.Close()`
@@ -135,6 +144,11 @@ time), bad values are refused without touching the file, and the file ends up
 frames endpoint follows the panel. `isolcpus=3` is set on it, and the refresh
 thread has CPU 3 to itself. v0.0.4-beta.1 was installed on it with
 `install.sh`, which found the Pi already set up.
+
+Verified on the Zero 2 W with the Bonnet on 2026-09-22, with v0.0.4-beta.4:
+`install.sh`'s setup, GPIO 4 and 18 found wired together (drive one, read the
+other against its pull), `adafruit-hat-pwm` with GPIO 18 on hardware PWM, and
+the refresh thread on CPU 3 using 69% of it, against the Pi 3's 67%.
 
 Not verified on the Pi: anything only a person looking at it can see -- the
 panel dimming, and the dashboard and `/board` in a browser, full screen

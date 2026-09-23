@@ -11,6 +11,10 @@ on:
     - 'web/**'
     - 'proto/**'
     - 'pkg/**'
+    # The tests read the example config, and the .deb ships it.
+    - sportsmatrix.conf.example
+    - 'script/**'
+    - .github/workflows/go.yml
 jobs:
   build:
     runs-on: ubuntu-latest

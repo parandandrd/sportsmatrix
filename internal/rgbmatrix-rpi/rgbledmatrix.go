@@ -5,10 +5,13 @@ package rgbmatrix
 #cgo LDFLAGS: -lrgbmatrix -L${SRCDIR}/lib/rpi-rgb-led-matrix/lib -lstdc++ -lm
 #include <led-matrix-c.h>
 
-void led_matrix_swap(struct RGBLedMatrix *matrix, struct LedCanvas *offscreen_canvas,
-                     int width, int height, const uint32_t pixels[]) {
-
-
+// led_matrix_swap draws pixels into the offscreen canvas and puts it on the
+// panel at the next vsync. It returns the canvas the panel was showing until
+// then, which is the one to draw the next frame into.
+struct LedCanvas *led_matrix_swap(struct RGBLedMatrix *matrix,
+                                  struct LedCanvas *offscreen_canvas,
+                                  int width, int height,
+                                  const uint32_t pixels[]) {
   int i, x, y;
   uint32_t color;
   for (x = 0; x < width; ++x) {
@@ -21,7 +24,7 @@ void led_matrix_swap(struct RGBLedMatrix *matrix, struct LedCanvas *offscreen_ca
     }
   }
 
-  offscreen_canvas = led_matrix_swap_on_vsync(matrix, offscreen_canvas);
+  return led_matrix_swap_on_vsync(matrix, offscreen_canvas);
 }
 
 void set_show_refresh_rate(struct RGBLedMatrixOptions *o, int show_refresh_rate) {
@@ -362,13 +365,25 @@ func (c *RGBLedMatrix) renderLocked(leds []C.uint32_t) error {
 		return fmt.Errorf("led buffer is empty")
 	}
 
-	C.led_matrix_swap(
+	// Keep the canvas the swap hands back and draw the next frame there. This
+	// used to be thrown away, so every frame after the first was drawn into the
+	// canvas on the panel while it was being refreshed. A pixel drawn while its
+	// row was going out showed the old frame's low bits with the new frame's
+	// high bits for that refresh, so logo mid-tones flashed on every change of
+	// picture. Text on black never did: when one side is off, any mix of the
+	// two lies between them.
+	next := C.led_matrix_swap(
 		c.matrix,
 		c.buffer,
 		C.int(c.width),
 		C.int(c.height),
 		(*C.uint32_t)(unsafe.Pointer(&leds[0])),
 	)
+	// NULL only when the matrix has no refresh thread, and then nothing was
+	// swapped.
+	if next != nil {
+		c.buffer = next
+	}
 
 	c.mirror.Capture(unsafe.Slice((*uint32)(unsafe.Pointer(&leds[0])), len(leds)))
 

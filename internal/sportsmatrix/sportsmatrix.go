@@ -47,7 +47,6 @@ type SportsMatrix struct {
 	switchedOn         int
 	switchedOff        int
 	switchTestSleep    bool
-	serveContext       context.Context
 	liveOnly           *atomic.Bool
 	cron               *cron.Cron
 	screenJobs         []cron.EntryID
@@ -144,8 +143,6 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config, canvases []board.
 		screenSwitch:     make(chan struct{}, 1),
 		liveOnly:         atomic.NewBool(false),
 	}
-
-	s.boardCtx, s.boardCancel = context.WithCancel(context.Background())
 
 	for _, b := range s.boards {
 		s.log.Info("Registering board", zap.String("board", b.Name()))
@@ -342,14 +339,42 @@ func (s *SportsMatrix) ScreenOff(ctx context.Context) error {
 		s.switchedOff++
 	}
 
-	s.boardCancel()
-	for _, canvas := range s.canvases {
-		_ = canvas.Clear()
-	}
-
-	s.boardCtx, s.boardCancel = context.WithCancel(s.serveContext)
+	// Only stop the boards. The serve loop clears the screen once they have
+	// stopped: clearing it here, while a board could still be finishing a
+	// frame, left that frame lit until the screen came back on.
+	s.stopBoards()
 
 	return nil
+}
+
+// boardContext is the context boards run under until the screen next goes
+// off, and whether the screen is on; there is no context while it is off.
+// Only the serve loop calls this, and ScreenOff only cancels what it makes,
+// both under the lock. ScreenOff marks the screen off before taking the lock,
+// so either it cancels the context made here or this sees the screen off and
+// makes none.
+func (s *SportsMatrix) boardContext(ctx context.Context) (context.Context, bool) {
+	s.Lock()
+	defer s.Unlock()
+
+	if !s.screenIsOn.Load() {
+		return nil, false
+	}
+	if s.boardCtx == nil || s.boardCtx.Err() != nil {
+		s.boardCtx, s.boardCancel = context.WithCancel(ctx)
+	}
+
+	return s.boardCtx, true
+}
+
+// stopBoards cancels the context boards are running under, if there is one.
+func (s *SportsMatrix) stopBoards() {
+	s.Lock()
+	defer s.Unlock()
+
+	if s.boardCancel != nil {
+		s.boardCancel()
+	}
 }
 
 // startServices starts the HTTP/RPC services for the boards and the matrix itself
@@ -411,9 +436,6 @@ func (s *SportsMatrix) notifyBoardStateChange() {
 
 // Serve blocks until the context is canceled
 func (s *SportsMatrix) Serve(ctx context.Context) error {
-	// Set before the HTTP server starts, since its handlers read it.
-	s.serveContext = ctx
-
 	if err := s.startServices(ctx); err != nil {
 		return err
 	}
@@ -424,8 +446,7 @@ func (s *SportsMatrix) Serve(ctx context.Context) error {
 		}
 	}()
 
-	s.boardCtx, s.boardCancel = context.WithCancel(ctx)
-	defer s.boardCancel()
+	defer s.stopBoards()
 
 	if len(s.boardList()) < 1 {
 		return fmt.Errorf("no boards configured")
@@ -493,8 +514,17 @@ func (s *SportsMatrix) Serve(ctx context.Context) error {
 
 		clearer = sync.Once{}
 
-		if !s.screenIsOn.Load() {
+		boardCtx, on := s.boardContext(ctx)
+		if !on {
 			s.log.Warn("screen is turned off")
+
+			// The board that was showing has stopped by now, since serveLoop
+			// waits for it, so nothing draws over this.
+			for _, canvas := range s.canvases {
+				if err := canvas.Clear(); err != nil {
+					s.log.Error("failed to clear matrix when the screen went off", zap.Error(err))
+				}
+			}
 
 			// Block until the screen is turned back on
 			select {
@@ -509,7 +539,6 @@ func (s *SportsMatrix) Serve(ctx context.Context) error {
 
 		setServingOnce.Do(setServing)
 
-		boardCtx := s.boardCtx
 		start := time.Now()
 		s.serveLoop(boardCtx)
 

@@ -133,7 +133,7 @@ func New(ctx context.Context, logger *zap.Logger, cfg *Config, canvases []board.
 		boards:           boards,
 		cfg:              cfg,
 		log:              logger,
-		serveBlock:       make(chan struct{}),
+		serveBlock:       make(chan struct{}, 1),
 		boardStateChange: make(chan struct{}, 1),
 		close:            make(chan struct{}),
 		screenIsOn:       atomic.NewBool(true),
@@ -304,10 +304,14 @@ func (s *SportsMatrix) ScreenOn(ctx context.Context) error {
 		s.switchedOn++
 	}
 	s.log.Warn("screen turning on")
+	// Leave word for the serve loop rather than waiting for it to take it. It
+	// only waits for this after seeing the screen off, and a jump turns the
+	// screen off and straight back on, usually before it has looked: waiting
+	// here held every jump for ten seconds. A word it didn't need is harmless,
+	// since it checks the screen again after taking one.
 	select {
 	case s.serveBlock <- struct{}{}:
-	case <-time.After(10 * time.Second):
-		s.log.Error("timed out while trying to unblock serveBlock")
+	default:
 	}
 
 	return nil

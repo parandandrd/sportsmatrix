@@ -382,6 +382,10 @@ func (s *SportsMatrix) startServices(ctx context.Context) error {
 // board is disabled and no Enabler has reported a state change.
 const allDisabledWait = 5 * time.Second
 
+// boardStopWait is how long a board that was told to stop gets to finish
+// drawing before the next one starts anyway.
+const boardStopWait = 5 * time.Second
+
 // notifyBoardStateChange wakes the serve loop when a board is enabled or
 // disabled. It runs on whatever goroutine flipped the board -- an RPC handler,
 // usually -- so the send must never block.
@@ -635,7 +639,17 @@ CANVASES:
 	s.log.Debug("waiting for canvases to be rendered to")
 	select {
 	case <-ctx.Done():
-		s.log.Error("context canceled waiting for canvases to render")
+		// Let the board stop before the next one starts. Both draw into the
+		// same canvas, and the matrix's pixel buffer takes no lock, so a board
+		// still finishing a frame would scribble over the next one's.
+		select {
+		case <-done:
+		case <-time.After(boardStopWait):
+			s.log.Warn("board still drawing after being told to stop",
+				zap.String("board", b.Name()),
+				zap.Duration("waited", boardStopWait),
+			)
+		}
 		return context.Canceled
 	case <-done:
 	}

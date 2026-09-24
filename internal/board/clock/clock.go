@@ -182,12 +182,23 @@ func (c *Clock) render(ctx context.Context, canvas board.Canvas) error {
 	update := make(chan struct{})
 
 	clockCtx, cancel := context.WithCancel(ctx)
-	defer cancel()
 
+	// Don't return until both goroutines have: the next board starts drawing
+	// the moment this returns, and a clock frame still being drawn would land
+	// on top of it.
+	var wg sync.WaitGroup
+	defer func() {
+		cancel()
+		wg.Wait()
+	}()
+
+	wg.Add(2)
 	go func() {
+		defer wg.Done()
 		prevTime := ""
 		thisTime := ""
 		ticker := time.NewTicker(500 * time.Millisecond)
+		defer ticker.Stop()
 		for {
 			select {
 			case <-clockCtx.Done():
@@ -207,6 +218,7 @@ func (c *Clock) render(ctx context.Context, canvas board.Canvas) error {
 	}()
 
 	go func() {
+		defer wg.Done()
 		for {
 			c.log.Debug("waiting for update")
 			select {

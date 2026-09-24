@@ -250,9 +250,7 @@ func (s *Server) GetStatus(ctx context.Context, req *emptypb.Empty) (*pb.Status,
 
 // NextBoard jumps to the next board in the sequence
 func (s *Server) NextBoard(ctx context.Context, req *emptypb.Empty) (*emptypb.Empty, error) {
-	s.sm.Lock()
-	defer s.sm.Unlock()
-	s.sm.currentBoardCancel()
+	s.sm.nextBoard()
 	return &emptypb.Empty{}, nil
 }
 

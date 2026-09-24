@@ -261,7 +261,7 @@ func (s *SportsMatrix) httpHandlers() []*board.HTTPHandler {
 		{
 			Path: "/api/nextboard",
 			Handler: func(w http.ResponseWriter, req *http.Request) {
-				s.currentBoardCancel()
+				s.nextBoard()
 			},
 		},
 	}

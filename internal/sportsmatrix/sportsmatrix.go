@@ -33,7 +33,6 @@ type SportsMatrix struct {
 	log                *zap.Logger
 	boardCtx           context.Context
 	boardCancel        context.CancelFunc
-	currentBoardCtx    context.Context
 	currentBoardCancel context.CancelFunc
 	server             http.Server
 	close              chan struct{}
@@ -497,6 +496,17 @@ func (s *SportsMatrix) Serve(ctx context.Context) error {
 	}
 }
 
+// nextBoard skips the board showing now, if there is one. currentBoardCancel
+// is only set and called under the lock.
+func (s *SportsMatrix) nextBoard() {
+	s.Lock()
+	defer s.Unlock()
+
+	if s.currentBoardCancel != nil {
+		s.currentBoardCancel()
+	}
+}
+
 func (s *SportsMatrix) serveLoop(ctx context.Context) {
 BOARDS:
 	for _, b := range s.boardList() {
@@ -506,9 +516,13 @@ BOARDS:
 		default:
 		}
 
-		s.currentBoardCtx, s.currentBoardCancel = context.WithCancel(ctx)
-		if err := s.doBoard(s.currentBoardCtx, b); err != nil {
-			s.currentBoardCancel()
+		boardCtx, boardCancel := context.WithCancel(ctx)
+		s.Lock()
+		s.currentBoardCancel = boardCancel
+		s.Unlock()
+
+		if err := s.doBoard(boardCtx, b); err != nil {
+			boardCancel()
 			continue BOARDS
 		}
 
@@ -518,7 +532,7 @@ BOARDS:
 				select {
 				case <-ctx.Done():
 					return
-				case <-s.currentBoardCtx.Done():
+				case <-boardCtx.Done():
 					s.log.Debug("current board context canceled while rendering in-between boards",
 						zap.String("board", b.Name()),
 						zap.String("in-between", between.Name()),
@@ -530,13 +544,13 @@ BOARDS:
 					zap.String("board", between.Name()),
 					zap.String("prior board", b.Name()),
 				)
-				if err := s.doBoard(s.currentBoardCtx, between); err != nil {
+				if err := s.doBoard(boardCtx, between); err != nil {
 					continue BETWEEN_BOARDS
 				}
 			}
 		}
 
-		s.currentBoardCancel()
+		boardCancel()
 	}
 }
 
@@ -599,7 +613,7 @@ CANVASES:
 		go func(canvas board.Canvas) {
 			defer wg.Done()
 			s.log.Debug("rendering board", zap.String("board", b.Name()))
-			if err := b.Render(s.currentBoardCtx, canvas); err != nil {
+			if err := b.Render(ctx, canvas); err != nil {
 				errLock.Lock()
 				if boardErr == nil {
 					boardErr = err

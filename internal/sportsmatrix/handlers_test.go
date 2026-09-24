@@ -11,6 +11,7 @@ import (
 	"go.uber.org/atomic"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/parandandrd/sportsmatrix/internal/enabler"
 )
@@ -56,4 +57,19 @@ func TestJumpBadBody(t *testing.T) {
 		jump(rec, httptest.NewRequest(http.MethodPost, "/api/jump", strings.NewReader(body)))
 		require.Equal(t, http.StatusBadRequest, rec.Code, "body %q", body)
 	}
+}
+
+// TestNextBoardBeforeAnyBoard covers skipping to the next board before the
+// first one has started. The cancel func it called was still nil.
+//
+// nolint: paralleltest
+func TestNextBoardBeforeAnyBoard(t *testing.T) {
+	s := newIdleMatrix(t)
+
+	rec := httptest.NewRecorder()
+	handler(t, s, "/api/nextboard")(rec, httptest.NewRequest(http.MethodGet, "/api/nextboard", nil))
+	require.Equal(t, http.StatusOK, rec.Code)
+
+	_, err := (&Server{sm: s}).NextBoard(context.Background(), &emptypb.Empty{})
+	require.NoError(t, err)
 }

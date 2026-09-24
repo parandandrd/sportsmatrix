@@ -304,6 +304,12 @@ func NewRGBLedMatrix(config *HardwareConfig, rtOptions *RuntimeOptions, logger *
 
 	w, h := config.geometry()
 	m := C.led_matrix_create_from_options_and_rt_options(config.toC(), rtOptions.toC())
+	// Check before going any further: the library returns NULL for options it
+	// refuses or a GPIO it can't open, and making a canvas on NULL crashes in C,
+	// where recover can't catch it.
+	if m == nil {
+		return nil, fmt.Errorf("unable to create the matrix; the library's reason is on stderr")
+	}
 	b := C.led_matrix_create_offscreen_canvas(m)
 	c = &RGBLedMatrix{
 		Config: config,
@@ -314,9 +320,6 @@ func NewRGBLedMatrix(config *HardwareConfig, rtOptions *RuntimeOptions, logger *
 		mirror: matrix.NewMirror(w, h),
 		closed: atomic.NewBool(false),
 		log:    logger,
-	}
-	if m == nil {
-		return nil, fmt.Errorf("unable to allocate memory")
 	}
 
 	return c, nil

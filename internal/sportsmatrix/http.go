@@ -241,12 +241,13 @@ func (s *SportsMatrix) httpHandlers() []*board.HTTPHandler {
 					return
 				}
 
-				d := json.NewDecoder(req.Body)
-				var j *jumpRequest
-				if err := d.Decode(&j); err != nil {
+				var j jumpRequest
+				if err := json.NewDecoder(req.Body).Decode(&j); err != nil || j.Board == "" {
 					s.log.Error("failed to process /api/jump request",
 						zap.Error(err),
 					)
+					http.Error(w, `expected a body like {"board": "NHL"}`, http.StatusBadRequest)
+					return
 				}
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()

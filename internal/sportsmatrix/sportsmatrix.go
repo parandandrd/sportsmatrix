@@ -386,6 +386,15 @@ func (s *SportsMatrix) startServices(ctx context.Context) error {
 // board is disabled and no Enabler has reported a state change.
 const allDisabledWait = 5 * time.Second
 
+// minBoardPass is the shortest a pass through the boards can take and still
+// count as having shown something. Every board shows for at least a few
+// seconds, so a quicker pass means none of them had anything to show.
+const minBoardPass = time.Second
+
+// nothingToShowWait is how long the serve loop waits after a pass in which no
+// board showed anything before trying them all again.
+const nothingToShowWait = 5 * time.Second
+
 // boardStopWait is how long a board that was told to stop gets to finish
 // drawing before the next one starts anyway.
 const boardStopWait = 5 * time.Second
@@ -500,7 +509,27 @@ func (s *SportsMatrix) Serve(ctx context.Context) error {
 
 		setServingOnce.Do(setServing)
 
-		s.serveLoop(s.boardCtx)
+		boardCtx := s.boardCtx
+		start := time.Now()
+		s.serveLoop(boardCtx)
+
+		// A sport board with no games today returns straight away, and so
+		// does any board with nothing to show. When that is every enabled
+		// board, going straight round again spins a core flat out -- hundreds
+		// of thousands of passes a second, each logging an error. Wait
+		// instead, and wake early if a board is switched or the screen turned
+		// off, as a jump does.
+		if time.Since(start) < minBoardPass && boardCtx.Err() == nil {
+			s.log.Debug("no board had anything to show", zap.Duration("waiting", nothingToShowWait))
+			select {
+			case <-ctx.Done():
+				s.log.Warn("context canceled while no board had anything to show")
+				return context.Canceled
+			case <-boardCtx.Done():
+			case <-s.boardStateChange:
+			case <-time.After(nothingToShowWait):
+			}
+		}
 	}
 }
 

@@ -202,7 +202,7 @@ func TestOrderMovesSectionsWithTheirHeadings(t *testing.T) {
 	// the three trade the places they had, first, second and third among
 	// themselves; everything else is where it was
 	require.Equal(t, []string{"sportsMatrixConfig", "nhlConfig", "sysConfig", "ncaafConfig", "serieaConfig"}, keys[:5])
-	require.Equal(t, "clockConfig", keys[23])
+	require.Equal(t, "clockConfig", keys[22])
 
 	after := read(t, path)
 	require.True(t, strings.HasPrefix(after, "---\n# This config file is in YAML format, which means indention matters.\n\n# Main matrix config\nsportsMatrixConfig:\n"))

@@ -23,7 +23,6 @@ import (
 	yamlv2 "gopkg.in/yaml.v2"
 
 	"github.com/parandandrd/sportsmatrix/internal/board"
-	calendarboard "github.com/parandandrd/sportsmatrix/internal/board/calendar"
 	"github.com/parandandrd/sportsmatrix/internal/board/clock"
 	imageboard "github.com/parandandrd/sportsmatrix/internal/board/image"
 	racingboard "github.com/parandandrd/sportsmatrix/internal/board/racing"
@@ -104,7 +103,7 @@ func TestStatusSettingsAreConfigKeys(t *testing.T) {
 
 	configs := map[string][]any{
 		"sport.v1.Sport":           {sportboard.Config{}},
-		"board.v1.BasicBoard":      {clock.Config{}, sysboard.Config{}, textboard.Config{}, statboard.Config{}, calendarboard.Config{}},
+		"board.v1.BasicBoard":      {clock.Config{}, sysboard.Config{}, textboard.Config{}, statboard.Config{}},
 		"racing.v1.Racing":         {racingboard.Config{}},
 		"imageboard.v1.ImageBoard": {imageboard.Config{}},
 	}

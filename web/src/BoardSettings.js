@@ -107,9 +107,86 @@ function LocationSetting({ board, location, place, onSave }) {
     );
 }
 
+// ShowPicker is the TV shows a board follows. A show is added by searching
+// TVmaze and picking it from what comes back, so that it is the show meant and
+// not just one with a similar name.
+function ShowPicker({ board, shows, onChange, onError }) {
+    const [query, setQuery] = useState('');
+    const [found, setFound] = useState(null);
+    const [busy, setBusy] = useState(false);
+    const following = new Set(shows.map((s) => s.id));
+
+    const search = async () => {
+        if (!query.trim()) {
+            return;
+        }
+        setBusy(true);
+        try {
+            const resp = await CallRPC('matrix.v1.Sportsmatrix/SearchShows', { name: board.name, query: query.trim() });
+            setFound(resp.shows || []);
+            onError?.('');
+        } catch (err) {
+            onError?.(err.message);
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const add = async (show) => {
+        await onChange([...shows, show]);
+        setFound(null);
+        setQuery('');
+    };
+
+    const about = (s) => [s.network, s.premiered].filter(Boolean).join(', ');
+
+    return (
+        <div className="show-picker">
+            <span className="setting-name">Shows</span>
+            <div className="chips">
+                {shows.map((s) =>
+                    <span className="chip" key={s.id || s.name} title={about(s)}>
+                        {s.name}
+                        <button onClick={() => onChange(shows.filter((x) => x !== s))} aria-label={`Stop following ${s.name}`}>&times;</button>
+                    </span>)}
+                {shows.length === 0 ? <span className="chip-empty">None yet</span> : null}
+            </div>
+            <div className="show-search">
+                <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') search(); }}
+                    placeholder="Find a show"
+                    aria-label="Find a show to follow"
+                    autoComplete="off"
+                />
+                <button className="time-add" onClick={search} disabled={!query.trim() || busy}>
+                    {busy ? 'Searching\u2026' : 'Search'}
+                </button>
+            </div>
+            {found
+                ? <ul className="show-results">
+                    {found.length === 0 ? <li className="chip-empty">Nothing on TVmaze by that name</li> : null}
+                    {found.map((s) =>
+                        <li key={s.id}>
+                            <span>
+                                {s.name}
+                                {about(s) ? <span className="show-about"> {about(s)}</span> : null}
+                            </span>
+                            {following.has(s.id)
+                                ? <span className="chip-empty">Following</span>
+                                : <button className="time-add" onClick={() => add(s)}>Add</button>}
+                        </li>)}
+                </ul>
+                : null}
+            <p className="setting-hint">Only new episodes are shown, never reruns.</p>
+        </div>
+    );
+}
+
 // BoardSettings are a board's display time, for a league the teams it shows
-// and its favorites, and for the weather its location. Each change is saved as
-// it is made.
+// and its favorites, for the weather its location, and for the TV board its
+// shows. Each change is saved as it is made.
 export default function BoardSettings({ board, onError }) {
     const [settings, setSettings] = useState(null);
 
@@ -133,7 +210,7 @@ export default function BoardSettings({ board, onError }) {
         await load();
     };
 
-    if (!settings || (!settings.has_board_delay && !settings.has_teams && !settings.has_location)) {
+    if (!settings || (!settings.has_board_delay && !settings.has_teams && !settings.has_location && !settings.has_shows)) {
         return null;
     }
 
@@ -146,7 +223,7 @@ export default function BoardSettings({ board, onError }) {
             {settings.has_board_delay
                 ? <div className="setting-row">
                     <label htmlFor={`delay-${board.name}`}>
-                        {settings.has_teams ? 'Show each game for' : 'Show for'}
+                        {settings.has_teams ? 'Show each game for' : settings.has_shows ? 'Show each episode for' : 'Show for'}
                     </label>
                     <select
                         id={`delay-${board.name}`}
@@ -174,6 +251,14 @@ export default function BoardSettings({ board, onError }) {
                         onChange={(next) => save({ has_teams: true, watch_teams: watch, favorite_teams: next })}
                     />
                 </>
+                : null}
+            {settings.has_shows
+                ? <ShowPicker
+                    board={board}
+                    shows={settings.shows || []}
+                    onChange={(next) => save({ has_shows: true, shows: next.map((x) => ({ id: x.id, name: x.name })) })}
+                    onError={onError}
+                />
                 : null}
             {settings.has_location
                 ? <LocationSetting

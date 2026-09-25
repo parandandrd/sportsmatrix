@@ -26,6 +26,7 @@ import seriealogo from './seriea.png';
 import laligalogo from './laliga.png';
 import xfllogo from './xfl.png';
 import nwsllogo from './nwsl.png';
+import tvlogo from './tv.png';
 
 export function LogoSrc(sport) {
     if (sport === "nhl") {
@@ -84,5 +85,7 @@ export function LogoSrc(sport) {
         return xfllogo
     } else if (sport === "nwsl") {
         return nwsllogo
+    } else if (sport === "tv") {
+        return tvlogo
     }
 }

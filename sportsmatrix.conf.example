@@ -1753,3 +1753,28 @@ weatherConfig:
     # how many days to show, starting tomorrow: up to 6. Three fit on a
     # 64-wide panel at once.
     days: 3
+
+## TV shows: when the shows below have new episodes coming up, one to a
+## screen, from TVmaze. Reruns are never shown. When none of them has a new
+## episode within lookaheadDays, the board skips its turn.
+tvConfig:
+  enabled: false
+  # each episode shows for this long
+  boardDelay: "10s"
+
+  # how many days ahead to look for new episodes
+  lookaheadDays: 7
+
+  # Add shows in the web UI, in the TV Shows board's settings, which searches
+  # TVmaze and saves them here. A show typed here by name, without its
+  # "(tvmaze ...)" number, is looked up by name when the scoreboard starts.
+  shows:
+  - Family Guy (tvmaze 84)
+  - American Dad! (tvmaze 215)
+  - 9-1-1 (tvmaze 28152)
+  - "9-1-1: Nashville (tvmaze 82759)"
+
+  #onTimes:
+  #- 00 17 * * *
+  #offTimes:
+  #- 00 23 * * *

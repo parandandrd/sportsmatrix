@@ -88,6 +88,10 @@ with, endorsed by, or supported by ESPN or any league.
   Set the location in the web UI, in the Current Conditions board's settings,
   or as `location` in `weatherConfig`: a latitude and longitude, as Google Maps
   copies them when you right-click a spot.
+- TV Shows: new episodes of the shows you follow coming up in the next week,
+  from TVmaze, one to a screen, with PREMIERE on a season's first. Reruns are
+  never shown, and the board skips its turn when nothing new is coming. Add
+  shows in the web UI, in the board's settings, by searching TVmaze.
 
 ## Installation
 

@@ -182,12 +182,22 @@ func (s *Server) SetBoardSettings(ctx context.Context, req *pb.BoardSettings) (*
 	return &emptypb.Empty{}, nil
 }
 
+// SearchShows finds TV shows by name, for a board that follows shows.
+func (s *Server) SearchShows(ctx context.Context, req *pb.SearchShowsReq) (*pb.SearchShowsResp, error) {
+	shows, err := s.sm.searchShows(ctx, req.Name, req.Query)
+	if err != nil {
+		return nil, settingsError(err)
+	}
+	return &pb.SearchShowsResp{Shows: shows}, nil
+}
+
 func settingsError(err error) error {
 	switch {
 	case errors.Is(err, errUnknownBoard):
 		return twirp.NewError(twirp.NotFound, err.Error())
 	case errors.Is(err, errBadBrightness), errors.Is(err, errBadSchedule), errors.Is(err, errUnknownSection),
-		errors.Is(err, errNoSuchSetting), errors.Is(err, errBadDelay), errors.Is(err, errBadLocation):
+		errors.Is(err, errNoSuchSetting), errors.Is(err, errBadDelay), errors.Is(err, errBadLocation),
+		errors.Is(err, errBadShow):
 		return twirp.NewError(twirp.InvalidArgument, err.Error())
 	case errors.Is(err, errNoConfigFile):
 		return twirp.NewError(twirp.FailedPrecondition, err.Error())

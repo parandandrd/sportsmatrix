@@ -22,6 +22,7 @@ service Sportsmatrix {
        rpc SetScreenSchedule(ScreenSchedule) returns (google.protobuf.Empty);
        rpc GetBoardSettings(BoardSettingsReq) returns (BoardSettings);
        rpc SetBoardSettings(BoardSettings) returns (google.protobuf.Empty);
+       rpc SearchShows(SearchShowsReq) returns (SearchShowsResp);
 }
 
 message VersionResp {
@@ -158,6 +159,37 @@ message BoardSettings {
     // the place the weather provider says location is in, such as "Chicago,
     // IL", when it names one. Only in answers.
     string location_place = 11;
+
+    // set has_shows to change shows, the TV shows the TV board follows
+    bool has_shows = 12;
+    // shows are picked from SearchShows. Only id is needed to set them; the
+    // board saves each under the name TVmaze gives it.
+    repeated Show shows = 13;
+}
+
+// Show is a TV show, as TVmaze knows it.
+message Show {
+    // TVmaze's ID for the show
+    int32 id = 1;
+    string name = 2;
+    // the channel or streaming service it is on
+    string network = 3;
+    // the year it began
+    string premiered = 4;
+}
+
+// SearchShowsReq finds TV shows by name, for a board that follows them to pick
+// from.
+message SearchShowsReq {
+    // the board to search for, as ListBoards names it
+    string name = 1;
+    // a show's name, or part of it
+    string query = 2;
+}
+
+message SearchShowsResp {
+    // best match first
+    repeated Show shows = 1;
 }
 
 message Team {

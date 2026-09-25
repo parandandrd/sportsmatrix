@@ -1,0 +1,165 @@
+{
+    "@context": [
+        "https://geojson.org/geojson-ld/geojson-context.jsonld",
+        {
+            "@version": "1.1",
+            "wx": "https://api.weather.gov/ontology#",
+            "s": "https://schema.org/",
+            "geo": "http://www.opengis.net/ont/geosparql#",
+            "unit": "http://codes.wmo.int/common/unit/",
+            "@vocab": "https://api.weather.gov/ontology#",
+            "geometry": {
+                "@id": "s:GeoCoordinates",
+                "@type": "geo:wktLiteral"
+            },
+            "city": "s:addressLocality",
+            "state": "s:addressRegion",
+            "distance": {
+                "@id": "s:Distance",
+                "@type": "s:QuantitativeValue"
+            },
+            "bearing": {
+                "@type": "s:QuantitativeValue"
+            },
+            "value": {
+                "@id": "s:value"
+            },
+            "unitCode": {
+                "@id": "s:unitCode",
+                "@type": "@id"
+            },
+            "forecastOffice": {
+                "@type": "@id"
+            },
+            "forecastGridData": {
+                "@type": "@id"
+            },
+            "publicZone": {
+                "@type": "@id"
+            },
+            "county": {
+                "@type": "@id"
+            },
+            "observationStations": {
+                "@container": "@list",
+                "@type": "@id"
+            }
+        }
+    ],
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "id": "https://api.weather.gov/stations/KMDW",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -87.75528,
+                    41.78417
+                ]
+            },
+            "properties": {
+                "@id": "https://api.weather.gov/stations/KMDW",
+                "@type": "wx:ObservationStation",
+                "elevation": {
+                    "unitCode": "wmoUnit:m",
+                    "value": 188.0616
+                },
+                "stationIdentifier": "KMDW",
+                "name": "Chicago, Chicago Midway Airport",
+                "timeZone": "America/Chicago",
+                "provider": "ASOS-HFM",
+                "subProvider": "",
+                "distance": {
+                    "unitCode": "wmoUnit:m",
+                    "value": 15409.800798252
+                },
+                "bearing": {
+                    "unitCode": "wmoUnit:degree_(angle)",
+                    "value": 228
+                },
+                "forecast": "https://api.weather.gov/zones/forecast/ILZ104",
+                "county": "https://api.weather.gov/zones/county/ILC031",
+                "fireWeatherZone": "https://api.weather.gov/zones/fire/ILZ014"
+            }
+        },
+        {
+            "id": "https://api.weather.gov/stations/KORD",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -87.90444,
+                    41.97972
+                ]
+            },
+            "properties": {
+                "@id": "https://api.weather.gov/stations/KORD",
+                "@type": "wx:ObservationStation",
+                "elevation": {
+                    "unitCode": "wmoUnit:m",
+                    "value": 202.9968
+                },
+                "stationIdentifier": "KORD",
+                "name": "Chicago, Chicago-O'Hare International Airport",
+                "timeZone": "America/Chicago",
+                "provider": "ASOS-HFM",
+                "subProvider": "",
+                "distance": {
+                    "unitCode": "wmoUnit:m",
+                    "value": 26393.848331218
+                },
+                "bearing": {
+                    "unitCode": "wmoUnit:degree_(angle)",
+                    "value": 295
+                },
+                "forecast": "https://api.weather.gov/zones/forecast/ILZ104",
+                "county": "https://api.weather.gov/zones/county/ILC031",
+                "fireWeatherZone": "https://api.weather.gov/zones/fire/ILZ014"
+            }
+        },
+        {
+            "id": "https://api.weather.gov/stations/KGYY",
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -87.40908,
+                    41.61212
+                ]
+            },
+            "properties": {
+                "@id": "https://api.weather.gov/stations/KGYY",
+                "@type": "wx:ObservationStation",
+                "elevation": {
+                    "unitCode": "wmoUnit:m",
+                    "value": 178.0032
+                },
+                "stationIdentifier": "KGYY",
+                "name": "Gary Regional Airport",
+                "timeZone": "America/Chicago",
+                "provider": "OTHER-MTR",
+                "subProvider": "",
+                "distance": {
+                    "unitCode": "wmoUnit:m",
+                    "value": 34111.519048501
+                },
+                "bearing": {
+                    "unitCode": "wmoUnit:degree_(angle)",
+                    "value": 149
+                },
+                "forecast": "https://api.weather.gov/zones/forecast/INZ001",
+                "county": "https://api.weather.gov/zones/county/INC089",
+                "fireWeatherZone": "https://api.weather.gov/zones/fire/INZ001"
+            }
+        }
+    ],
+    "observationStations": [
+        "https://api.weather.gov/stations/KMDW",
+        "https://api.weather.gov/stations/KORD",
+        "https://api.weather.gov/stations/KGYY"
+    ],
+    "pagination": {
+        "next": "https://api.weather.gov/stations?id%5B0%5D=KAAA&id%5B1%5D=KARR&id%5B2%5D=KBEH&id%5B3%5D=KBMI&id%5B4%5D=KC09&id%5B5%5D=KC75&id%5B6%5D=KCWI&id%5B7%5D=KDKB&id%5B8%5D=KDNV&id%5B9%5D=KDPA&id%5B10%5D=KDVN&id%5B11%5D=KEFT&id%5B12%5D=KENW&id%5B13%5D=KFEP&id%5B14%5D=KGBG&id%5B15%5D=KGYY&id%5B16%5D=KIGQ&id%5B17%5D=KIKK&id%5B18%5D=KJOT&id%5B19%5D=KJVL&id%5B20%5D=KLAF&id%5B21%5D=KLOT&id%5B22%5D=KLWA&id%5B23%5D=KMDW&id%5B24%5D=KMKE&id%5B25%5D=KMLI&id%5B26%5D=KMRJ&id%5B27%5D=KORD&id%5B28%5D=KPIA&id%5B29%5D=KPNT&id%5B30%5D=KPWK&id%5B31%5D=KRAC&id%5B32%5D=KRFD&id%5B33%5D=KRPJ&id%5B34%5D=KSBN&id%5B35%5D=KSQI&id%5B36%5D=KTIP&id%5B37%5D=KUGN&id%5B38%5D=KVPZ&id%5B39%5D=KVYS&cursor=eyJzIjo1MDB9"
+    }
+}

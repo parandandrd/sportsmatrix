@@ -14,12 +14,16 @@ import (
 // TestPreviewIcons writes every icon to $PREVIEW_DIR, when it is set, for a
 // person to look at.
 func TestPreviewIcons(t *testing.T) {
+	t.Parallel()
+
 	dir := os.Getenv("PREVIEW_DIR")
 	if dir == "" {
 		t.Skip("PREVIEW_DIR not set")
 	}
-	kinds := []weather.Kind{weather.Clear, weather.Clear, weather.PartlyCloudy, weather.PartlyCloudy, weather.Cloudy,
-		weather.Rain, weather.Thunder, weather.Snow, weather.Sleet, weather.Fog, weather.Wind}
+	kinds := []weather.Kind{
+		weather.Clear, weather.Clear, weather.PartlyCloudy, weather.PartlyCloudy, weather.Cloudy,
+		weather.Rain, weather.Thunder, weather.Snow, weather.Sleet, weather.Fog, weather.Wind,
+	}
 	img := image.NewRGBA(image.Rect(0, 0, len(kinds)*(iconSize+2), iconSize))
 	for i, k := range kinds {
 		drawIcon(img, image.Pt(i*(iconSize+2), 0), iconFor(k, i%2 == 0 || i > 3), 1)
@@ -76,6 +80,8 @@ func writePNG(t *testing.T, name string, img image.Image) {
 
 // TestPreviewScreens writes each screen, at 64x32 and 128x64, to $PREVIEW_DIR.
 func TestPreviewScreens(t *testing.T) {
+	t.Parallel()
+
 	if os.Getenv("PREVIEW_DIR") == "" {
 		t.Skip("PREVIEW_DIR not set")
 	}

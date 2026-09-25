@@ -3,6 +3,7 @@ package sportsmatrix
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"image"
 	"io"
 	"net/http"
@@ -63,12 +64,15 @@ func TestBoardKey(t *testing.T) {
 	nhlHeadlines := mk("NHL Headlines", "/headlines/nhl/board.v1.BasicBoard/")
 	pga := mk("StatBoard: PGA", "/stat/pga/board.v1.BasicBoard/")
 	clockBoard := mk("Clock", "/clock/board.v1.BasicBoard/")
+	current := mk("Current Conditions", "/weather/board.v1.BasicBoard/")
+	forecast := mk("Forecast", "/forecast/weather/board.v1.BasicBoard/")
 	stray := mk("Stray", "")
 
 	s := &SportsMatrix{}
 	s.SetBoardSections(map[board.Board]string{
 		nhl: "nhlConfig", nhlStats: "nhlConfig", nhlHeadlines: "nhlConfig",
 		pga: "pga", clockBoard: "clockConfig",
+		current: "weatherConfig", forecast: "weatherConfig",
 	}, nil)
 
 	require.Equal(t, []string{"nhlConfig"}, s.boardKey(nhl))
@@ -77,6 +81,8 @@ func TestBoardKey(t *testing.T) {
 	// PGA's stats board is its whole section, not a part of a league's
 	require.Equal(t, []string{"pga"}, s.boardKey(pga))
 	require.Equal(t, []string{"clockConfig"}, s.boardKey(clockBoard))
+	require.Equal(t, []string{"weatherConfig"}, s.boardKey(current))
+	require.Equal(t, []string{"weatherConfig", "forecast"}, s.boardKey(forecast))
 	require.Nil(t, s.boardKey(stray))
 }
 
@@ -559,4 +565,99 @@ func TestBoardSettings(t *testing.T) {
 	_, err = svr.GetBoardSettings(ctx, &pb.BoardSettingsReq{Name: "Stocks"})
 	require.ErrorAs(t, err, &twerr)
 	require.Equal(t, twirp.NotFound, twerr.Code())
+}
+
+// placeBoard is a board with a location, as the weather boards have.
+type placeBoard struct {
+	*pathBoard
+	location string
+}
+
+func (b *placeBoard) Location(context.Context) (string, string) {
+	if b.location == "" {
+		return "", ""
+	}
+	return b.location, "Chicago, IL"
+}
+
+func (b *placeBoard) SetLocation(_ context.Context, loc string) (string, error) {
+	if strings.Contains(loc, "London") {
+		return "", errors.New("the Weather Service only covers the US")
+	}
+	b.location = strings.Join(strings.Fields(strings.ReplaceAll(loc, ",", " ")), ", ")
+	return b.location, nil
+}
+
+func TestLocationSettings(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	logger := zaptest.NewLogger(t, zaptest.Level(zapcore.FatalLevel))
+	mk := func(name, path string) *pathBoard {
+		return &pathBoard{TestBoard: &TestBoard{log: logger, hasRendered: atomic.NewBool(false), enabler: enabler.New()}, name: name, path: path}
+	}
+	current := &placeBoard{pathBoard: mk("Current Conditions", "/weather/board.v1.BasicBoard/")}
+	forecast := mk("Forecast", "/forecast/weather/board.v1.BasicBoard/")
+
+	dat, err := os.ReadFile("../../sportsmatrix.conf.example")
+	require.NoError(t, err)
+	path := filepath.Join(t.TempDir(), "sportsmatrix.conf")
+	require.NoError(t, os.WriteFile(path, dat, 0o644))
+	file := conffile.New(path)
+	sections, err := file.Sections()
+	require.NoError(t, err)
+
+	s := &SportsMatrix{log: logger, boards: []board.Board{current, forecast}}
+	s.SetBoardSections(map[board.Board]string{current: "weatherConfig", forecast: "weatherConfig"}, sections)
+	s.SetConfigFile(file)
+	svr := &Server{sm: s}
+
+	got, err := svr.GetBoardSettings(ctx, &pb.BoardSettingsReq{Name: "Current Conditions"})
+	require.NoError(t, err)
+	require.True(t, got.HasLocation)
+	require.Empty(t, got.Location)
+
+	got, err = svr.GetBoardSettings(ctx, &pb.BoardSettingsReq{Name: "Forecast"})
+	require.NoError(t, err)
+	require.False(t, got.HasLocation, "the location is set on the current conditions board")
+
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{Name: "Current Conditions", HasLocation: true, Location: "41.8858,-87.6181"})
+	require.NoError(t, err)
+
+	got, err = svr.GetBoardSettings(ctx, &pb.BoardSettingsReq{Name: "Current Conditions"})
+	require.NoError(t, err)
+	require.Equal(t, "41.8858, -87.6181", got.Location)
+	require.Equal(t, "Chicago, IL", got.LocationPlace)
+
+	raw, err := os.ReadFile(path)
+	require.NoError(t, err)
+	var cfg map[string]any
+	require.NoError(t, yamlv2.Unmarshal(raw, &cfg))
+	weather, ok := cfg["weatherConfig"].(map[any]any)
+	require.True(t, ok, "the weather section is in the file")
+	require.Equal(t, "41.8858, -87.6181", weather["location"])
+
+	var twerr twirp.Error
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{Name: "Current Conditions", HasLocation: true, Location: "London"})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.InvalidArgument, twerr.Code())
+	require.Equal(t, "the Weather Service only covers the US", twerr.Msg(), "the board's own words")
+	require.Equal(t, "41.8858, -87.6181", current.location)
+
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{Name: "Current Conditions", HasLocation: true, Location: " "})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.InvalidArgument, twerr.Code())
+
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{Name: "Forecast", HasLocation: true, Location: "41, -87"})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.InvalidArgument, twerr.Code())
+
+	// the forecast board's switch goes in its own block
+	require.NoError(t, s.setEnabled([]board.Board{forecast}, true))
+	raw, err = os.ReadFile(path)
+	require.NoError(t, err)
+	require.NoError(t, yamlv2.Unmarshal(raw, &cfg))
+	weather = cfg["weatherConfig"].(map[any]any)
+	require.Equal(t, true, weather["forecast"].(map[any]any)["enabled"])
+	require.Equal(t, false, weather["enabled"], "the current conditions board's switch is untouched")
 }

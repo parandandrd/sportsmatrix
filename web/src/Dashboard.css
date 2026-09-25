@@ -612,6 +612,27 @@ body .swagger-ui input[type=text] {
     margin: 8px 0 10px;
 }
 
+.location-setting {
+    margin: 8px 0 10px;
+}
+
+.location-edit {
+    display: flex;
+    gap: 6px;
+}
+
+.location-edit input {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-variant-numeric: tabular-nums;
+}
+
+.setting-hint {
+    color: var(--sm-dim);
+    font-size: 12px;
+    margin: 6px 0 0;
+}
+
 .chips {
     display: flex;
     flex-wrap: wrap;

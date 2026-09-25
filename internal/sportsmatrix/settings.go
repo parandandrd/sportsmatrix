@@ -65,6 +65,8 @@ func subKey(b board.Board) string {
 		return "stats"
 	case strings.HasPrefix(path, "/headlines/"):
 		return "headlines"
+	case strings.HasPrefix(path, "/forecast/"):
+		return "forecast"
 	default:
 		return ""
 	}
@@ -193,6 +195,7 @@ var (
 	errUnknownSection = errors.New("unknown section")
 	errBadSchedule    = errors.New("not a cron schedule")
 	errBadBrightness  = errors.New("brightness goes from 1 to 100")
+	errBadLocation    = errors.New("not a location that board can show")
 )
 
 // settings are the matrix-wide settings as they are now.
@@ -497,10 +500,18 @@ func (s *SportsMatrix) boardSettings(ctx context.Context, name string) (*pb.Boar
 		sort.Slice(out.Teams, func(i, j int) bool { return out.Teams[i].Name < out.Teams[j].Name })
 	}
 
+	if l, ok := b.(board.LocationSetter); ok {
+		out.HasLocation = true
+		// the place name comes with the weather, which can take a fetch
+		lctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		out.Location, out.LocationPlace = l.Location(lctx)
+	}
+
 	return out, nil
 }
 
-func (s *SportsMatrix) setBoardSettings(req *pb.BoardSettings) error {
+func (s *SportsMatrix) setBoardSettings(ctx context.Context, req *pb.BoardSettings) error {
 	b := s.findBoard(req.Name)
 	if b == nil {
 		return fmt.Errorf("%w called %q", errUnknownBoard, req.Name)
@@ -549,8 +560,37 @@ func (s *SportsMatrix) setBoardSettings(req *pb.BoardSettings) error {
 		}
 	}
 
+	if req.HasLocation {
+		l, ok := b.(board.LocationSetter)
+		if !ok {
+			return fmt.Errorf("%w: %s has no location", errNoSuchSetting, b.Name())
+		}
+		if strings.TrimSpace(req.Location) == "" {
+			return fmt.Errorf("%w: enter a latitude and longitude, like 41.8858, -87.6181", errBadLocation)
+		}
+		// checking the location asks the weather provider, which can be slow
+		lctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		defer cancel()
+		saved, err := l.SetLocation(lctx, req.Location)
+		if err != nil {
+			return &locationError{err: err}
+		}
+		if e := s.boardEdit(b, "location", saved); e != nil {
+			edits = append(edits, *e)
+		}
+	}
+
 	return s.save(edits...)
 }
+
+// locationError is a location a board refused. Its message is the board's own,
+// which is written for whoever typed the location.
+type locationError struct {
+	err error
+}
+
+func (e *locationError) Error() string   { return e.err.Error() }
+func (e *locationError) Unwrap() []error { return []error{errBadLocation, e.err} }
 
 // teamList tidies a list of teams as typed: abbreviations are matched as the
 // league writes them, which is in capitals.

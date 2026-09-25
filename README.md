@@ -79,6 +79,15 @@ with, endorsed by, or supported by ESPN or any league.
 - Image Board: Takes a list of directories containg images and displays them. Works with GIF's too!
 - Clock
 - Sys: Displays basic system info. Currently Mem and CPU usage
+- Weather, from the US National Weather Service or Open-Meteo, neither of which
+  needs an account:
+  - Current Conditions: the temperature and conditions now, today's high and
+    low, then the next few hours
+  - Forecast: the coming days, with each one's high and low
+
+  Set the location in the web UI, in the Current Conditions board's settings,
+  or as `location` in `weatherConfig`: a latitude and longitude, as Google Maps
+  copies them when you right-click a spot.
 
 ## Installation
 

@@ -23,6 +23,7 @@ import (
 	statboard "github.com/parandandrd/sportsmatrix/internal/board/stat"
 	sysboard "github.com/parandandrd/sportsmatrix/internal/board/sys"
 	textboard "github.com/parandandrd/sportsmatrix/internal/board/text"
+	weatherboard "github.com/parandandrd/sportsmatrix/internal/board/weather"
 	"github.com/parandandrd/sportsmatrix/internal/config"
 	"github.com/parandandrd/sportsmatrix/internal/espnboard"
 	"github.com/parandandrd/sportsmatrix/internal/espnracing"
@@ -424,6 +425,13 @@ func (r *rootArgs) setConfigDefaults() {
 		}
 	}
 	r.config.CalenderConfig.SetDefaults()
+
+	if r.config.WeatherConfig == nil {
+		r.config.WeatherConfig = &weatherboard.Config{
+			StartEnabled: atomic.NewBool(false),
+		}
+	}
+	r.config.WeatherConfig.SetDefaults()
 
 	if r.config.NCAAWConfig == nil {
 		r.config.NCAAWConfig = &sportboard.Config{
@@ -1097,6 +1105,17 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 		boards = append(boards, b)
 
 		r.addSection(&r.config.CalenderConfig, boards[start:])
+	}
+
+	if r.config.WeatherConfig != nil {
+		start := len(boards)
+		current, forecast, err := weatherboard.New(r.config.WeatherConfig, logger)
+		if err != nil {
+			return nil, err
+		}
+		boards = append(boards, current, forecast)
+
+		r.addSection(&r.config.WeatherConfig, boards[start:])
 	}
 
 	if r.config.NCAAWConfig != nil {

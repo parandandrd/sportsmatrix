@@ -176,7 +176,7 @@ func (s *Server) GetBoardSettings(ctx context.Context, req *pb.BoardSettingsReq)
 
 // SetBoardSettings changes one board's settings now, and saves them.
 func (s *Server) SetBoardSettings(ctx context.Context, req *pb.BoardSettings) (*emptypb.Empty, error) {
-	if err := s.sm.setBoardSettings(req); err != nil {
+	if err := s.sm.setBoardSettings(ctx, req); err != nil {
 		return nil, settingsError(err)
 	}
 	return &emptypb.Empty{}, nil
@@ -187,7 +187,7 @@ func settingsError(err error) error {
 	case errors.Is(err, errUnknownBoard):
 		return twirp.NewError(twirp.NotFound, err.Error())
 	case errors.Is(err, errBadBrightness), errors.Is(err, errBadSchedule), errors.Is(err, errUnknownSection),
-		errors.Is(err, errNoSuchSetting), errors.Is(err, errBadDelay):
+		errors.Is(err, errNoSuchSetting), errors.Is(err, errBadDelay), errors.Is(err, errBadLocation):
 		return twirp.NewError(twirp.InvalidArgument, err.Error())
 	case errors.Is(err, errNoConfigFile):
 		return twirp.NewError(twirp.FailedPrecondition, err.Error())

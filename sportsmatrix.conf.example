@@ -1720,3 +1720,36 @@ xflConfig:
 
   # Number of previous days to show scores for. Defaults to today only
   previousDays: 0
+
+## Weather: the current conditions board shows the weather now, then the next
+## few hours. Its forecast board shows the coming days.
+weatherConfig:
+  enabled: false
+  # each screen shows for this long: now, then the next few hours
+  boardDelay: "10s"
+
+  # Where the weather is for, as a latitude and longitude. To get them,
+  # right-click a spot in Google Maps and click the numbers at the top of the
+  # menu, which copies them. It can also be set in the web UI, in the Current
+  # Conditions board's settings. Until it is set, both boards skip their turn.
+  location: ""
+
+  # nws is the US National Weather Service, which only covers the US.
+  # open-meteo covers everywhere. Neither needs an account or a key.
+  provider: nws
+
+  # imperial (Fahrenheit) or metric (Celsius)
+  units: imperial
+
+  #onTimes:
+  #- 00 06 * * *
+  #offTimes:
+  #- 00 22 * * *
+
+  forecast:
+    enabled: false
+    # each screen of days shows for this long
+    boardDelay: "10s"
+    # how many days to show, starting tomorrow: up to 6. Three fit on a
+    # 64-wide panel at once.
+    days: 3

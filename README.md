@@ -74,7 +74,6 @@ with, endorsed by, or supported by ESPN or any league.
 - Racing. Currently just shows upcoming event schedule
   - F1
   - Indy Car
-- Google Calendar
 - Player Stats boards- currently supports MLB and NHL.
 - Image Board: Takes a list of directories containg images and displays them. Works with GIF's too!
 - Clock

@@ -1184,24 +1184,6 @@ irlConfig:
   #offTimes:
   #- 00 02 * * *
 
-# Google Calendar
-# See https://github.com/parandandrd/sportsmatrix/blob/master/GCAL.md for auth setup
-calendarConfig:
-  enabled: false
-
-  # If you leave this option empty, it will pull all the available calendar ID's in your account
-  #calendarIDs:
-  #- myemail@gmail.com
-
-  # Delay between each screen in non-scroll mode
-  boardDelay: "10s"
-
-  # Add cron strings to the list of onTimes/offTimes to schedule times for this board to turn off/on
-  #onTimes:
-  #- 00 18 * * *
-  #offTimes:
-  #- 00 02 * * *
-
 ## NCAA Womens Basketball Config
 ncaawConfig:
   enabled: false

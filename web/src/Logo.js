@@ -12,7 +12,6 @@ import clock from './clock.png';
 import stocks from './stock.png';
 import pga from './pga.png';
 import sys from './server.png';
-import cal from './cal.png';
 import weather from './weather.png';
 import imgimg from './image.png';
 import f1logo from './f1.png';
@@ -57,8 +56,6 @@ export function LogoSrc(sport) {
         return stocks
     } else if (sport === "sys") {
         return sys
-    } else if (sport === "gcal") {
-        return cal
     } else if (sport === "weather") {
         return weather
     } else if (sport === "img") {

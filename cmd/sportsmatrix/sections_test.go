@@ -51,7 +51,6 @@ func TestConfigKey(t *testing.T) {
 
 	require.Equal(t, "nhlConfig", configKey(c, &c.NHLConfig))
 	require.Equal(t, "pga", configKey(c, &c.PGA))
-	require.Equal(t, "calendarConfig", configKey(c, &c.CalenderConfig))
 
 	// a field of some other Config is not one of this one's sections
 	other := &config.Config{}

@@ -15,7 +15,6 @@ import (
 	"go.uber.org/zap/zapcore"
 
 	"github.com/parandandrd/sportsmatrix/internal/board"
-	calendarboard "github.com/parandandrd/sportsmatrix/internal/board/calendar"
 	"github.com/parandandrd/sportsmatrix/internal/board/clock"
 	imageboard "github.com/parandandrd/sportsmatrix/internal/board/image"
 	racingboard "github.com/parandandrd/sportsmatrix/internal/board/racing"
@@ -28,7 +27,6 @@ import (
 	"github.com/parandandrd/sportsmatrix/internal/config"
 	"github.com/parandandrd/sportsmatrix/internal/espnboard"
 	"github.com/parandandrd/sportsmatrix/internal/espnracing"
-	"github.com/parandandrd/sportsmatrix/internal/gcal"
 	"github.com/parandandrd/sportsmatrix/internal/logo"
 	"github.com/parandandrd/sportsmatrix/internal/matrix"
 	"github.com/parandandrd/sportsmatrix/internal/mlb"
@@ -157,8 +155,6 @@ func newRootCmd(args *rootArgs) *cobra.Command {
 	rootCmd.AddCommand(newRunCmd(args))
 	rootCmd.AddCommand(newNcaaMCmd(args))
 	rootCmd.AddCommand(newAbbrevCmd(args))
-	rootCmd.AddCommand(newCalCmd(args))
-	rootCmd.AddCommand(newGcalSetupCmd(args))
 
 	return rootCmd
 }
@@ -419,13 +415,6 @@ func (r *rootArgs) setConfigDefaults() {
 		}
 	}
 	r.config.IRLConfig.SetDefaults()
-
-	if r.config.CalenderConfig == nil {
-		r.config.CalenderConfig = &calendarboard.Config{
-			StartEnabled: atomic.NewBool(false),
-		}
-	}
-	r.config.CalenderConfig.SetDefaults()
 
 	if r.config.WeatherConfig == nil {
 		r.config.WeatherConfig = &weatherboard.Config{
@@ -1098,21 +1087,6 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 		boards = append(boards, b)
 
 		r.addSection(&r.config.IRLConfig, boards[start:])
-	}
-
-	if r.config.CalenderConfig != nil {
-		start := len(boards)
-		api, err := gcal.New(logger)
-		if err != nil {
-			return nil, err
-		}
-		b, err := calendarboard.New(api, logger, r.config.CalenderConfig)
-		if err != nil {
-			return nil, err
-		}
-		boards = append(boards, b)
-
-		r.addSection(&r.config.CalenderConfig, boards[start:])
 	}
 
 	if r.config.WeatherConfig != nil {

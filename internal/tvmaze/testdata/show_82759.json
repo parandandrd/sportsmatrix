@@ -1,0 +1,92 @@
+{
+ "id": 82759,
+ "url": "https://www.tvmaze.com/shows/82759/9-1-1-nashville",
+ "name": "9-1-1: Nashville",
+ "type": "Scripted",
+ "language": "English",
+ "genres": [
+  "Drama",
+  "Action",
+  "Crime"
+ ],
+ "status": "Running",
+ "runtime": 60,
+ "averageRuntime": 60,
+ "premiered": "2025-10-09",
+ "ended": null,
+ "officialSite": "https://abc.com/show/44708d60-70c7-4afc-96ad-90bd698246be",
+ "schedule": {
+  "time": "21:00",
+  "days": [
+   "Thursday"
+  ]
+ },
+ "rating": {
+  "average": 6.9
+ },
+ "weight": 99,
+ "network": {
+  "id": 3,
+  "name": "ABC",
+  "country": {
+   "name": "United States",
+   "code": "US",
+   "timezone": "America/New_York"
+  },
+  "officialSite": "https://abc.com/"
+ },
+ "webChannel": null,
+ "dvdCountry": null,
+ "externals": {
+  "tvrage": null,
+  "thetvdb": 460463,
+  "imdb": "tt33550053"
+ },
+ "image": {
+  "medium": "https://static.tvmaze.com/uploads/images/medium_portrait/642/1605098.jpg",
+  "original": "https://static.tvmaze.com/uploads/images/original_untouched/642/1605098.jpg"
+ },
+ "summary": "<p>A high-octane procedural about heroic first responders, as well as their family saga of power and glamour set in one of America's most diverse and dynamic cities.</p>",
+ "updated": 1790309025,
+ "_links": {
+  "self": {
+   "href": "https://api.tvmaze.com/shows/82759"
+  },
+  "previousepisode": {
+   "href": "https://api.tvmaze.com/episodes/3572924",
+   "name": "Intrusive Thoughts"
+  },
+  "nextepisode": {
+   "href": "https://api.tvmaze.com/episodes/3684584",
+   "name": "Going Rogue"
+  }
+ },
+ "_embedded": {
+  "nextepisode": {
+   "id": 3684584,
+   "url": "https://www.tvmaze.com/episodes/3684584/9-1-1-nashville-2x01-going-rogue",
+   "name": "Going Rogue",
+   "season": 2,
+   "number": 1,
+   "type": "regular",
+   "airdate": "2026-10-15",
+   "airtime": "21:00",
+   "airstamp": "2026-10-16T01:00:00+00:00",
+   "runtime": 60,
+   "rating": {
+    "average": null
+   },
+   "image": null,
+   "summary": null,
+   "_links": {
+    "self": {
+     "href": "https://api.tvmaze.com/episodes/3684584"
+    },
+    "show": {
+     "href": "https://api.tvmaze.com/shows/82759",
+     "name": "9-1-1: Nashville"
+    }
+   }
+  }
+ }
+}

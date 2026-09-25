@@ -1,0 +1,550 @@
+[
+ {
+  "id": 3304753,
+  "url": "https://www.tvmaze.com/episodes/3304753/9-1-1-nashville-1x01-pilot",
+  "name": "Pilot",
+  "season": 1,
+  "number": 1,
+  "type": "regular",
+  "airdate": "2025-10-09",
+  "airtime": "21:00",
+  "airstamp": "2025-10-10T01:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.1
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/595/1488045.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/595/1488045.jpg"
+  },
+  "summary": "<p>When a powerful tornado tears through Nashville and endangers a country music festival, Capt.Don Hart leads fire station 113 on a harrowing rescue mission. The Hart family contends with the fallout when a long-held secret is revealed.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3304753"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3304754,
+  "url": "https://www.tvmaze.com/episodes/3304754/9-1-1-nashville-1x02-hell-and-high-water",
+  "name": "Hell and High Water",
+  "season": 1,
+  "number": 2,
+  "type": "regular",
+  "airdate": "2025-10-16",
+  "airtime": "21:00",
+  "airstamp": "2025-10-17T01:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.6
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/593/1483036.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/593/1483036.jpg"
+  },
+  "summary": "<p>A tornado's path leads the Station 113 team to an intense rescue at a water tower. Ryan and his wife reach a turning point. Dixie has an assignment for Blue. Cammie coaches a distressed teenager through her mother's childbirth.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3304754"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3385815,
+  "url": "https://www.tvmaze.com/episodes/3385815/9-1-1-nashville-1x03-forces-of-nature",
+  "name": "Forces of Nature",
+  "season": 1,
+  "number": 3,
+  "type": "regular",
+  "airdate": "2025-10-23",
+  "airtime": "21:00",
+  "airstamp": "2025-10-24T01:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.4
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/594/1486019.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/594/1486019.jpg"
+  },
+  "summary": "<p>Amidst multiple crises, Ryan steps up to lead Station 113. the team responds to a dangerous call of a child trapped in a trailer hanging off a historic Nashville bridge. Blythe pays a long-overdue visit to Dixie.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3385815"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3389081,
+  "url": "https://www.tvmaze.com/episodes/3389081/9-1-1-nashville-1x04-bad-case-of-the-blues",
+  "name": "Bad Case of the Blues",
+  "season": 1,
+  "number": 4,
+  "type": "regular",
+  "airdate": "2025-10-30",
+  "airtime": "21:00",
+  "airstamp": "2025-10-31T01:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.7
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/595/1488967.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/595/1488967.jpg"
+  },
+  "summary": "<p>Don and the 113 team respond to emergencies at a waterpark and a sorority house. The crew puts Blue's skills and knowledge to the test as he trains for his firefighter exam. Blythe digs into Blue's past.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3389081"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3389082,
+  "url": "https://www.tvmaze.com/episodes/3389082/9-1-1-nashville-1x05-lost-children",
+  "name": "Lost Children",
+  "season": 1,
+  "number": 5,
+  "type": "regular",
+  "airdate": "2025-11-06",
+  "airtime": "21:00",
+  "airstamp": "2025-11-07T02:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.7
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/596/1491958.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/596/1491958.jpg"
+  },
+  "summary": "<p>With mounting pressure from his peers and family, Blue takes his firefighter exam. Roxie and Taylor search for the identity of an unconscious girl and respond to a high-stakes emergency involving two abducted children.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3389082"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3389083,
+  "url": "https://www.tvmaze.com/episodes/3389083/9-1-1-nashville-1x06-good-southern-manors",
+  "name": "Good Southern Manors",
+  "season": 1,
+  "number": 6,
+  "type": "regular",
+  "airdate": "2025-11-13",
+  "airtime": "21:00",
+  "airstamp": "2025-11-14T02:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.9
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/598/1495399.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/598/1495399.jpg"
+  },
+  "summary": "<p>As Don, Blue and Ryan take extreme measures to prevent a distillery explosion, the 9-1-1 call center is disrupted by budget cuts and hackers. Blythe faces an emergency of her own.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3389083"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3389084,
+  "url": "https://www.tvmaze.com/episodes/3389084/9-1-1-nashville-1x07-youve-been-boarded",
+  "name": "You've Been Boarded",
+  "season": 1,
+  "number": 7,
+  "type": "regular",
+  "airdate": "2026-01-08",
+  "airtime": "21:00",
+  "airstamp": "2026-01-09T02:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.6
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/607/1518815.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/607/1518815.jpg"
+  },
+  "summary": "<p>Nashville is under siege, with each missed ransom escalating the stakes. As the city descends into chaos, Don grows desperate after losing contact with Blythe and races to find her before it's too late.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3389084"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3451984,
+  "url": "https://www.tvmaze.com/episodes/3451984/9-1-1-nashville-1x08-all-hands",
+  "name": "All Hands",
+  "season": 1,
+  "number": 8,
+  "type": "regular",
+  "airdate": "2026-01-15",
+  "airtime": "21:00",
+  "airstamp": "2026-01-16T02:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 8.2
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/608/1522079.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/608/1522079.jpg"
+  },
+  "summary": "<p>Time is running out as ransom demands and medical emergencies escalate. A power outage triggered by hackers wreaks havoc at the hospital.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3451984"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3479370,
+  "url": "https://www.tvmaze.com/episodes/3479370/9-1-1-nashville-1x09-pipe-dreams",
+  "name": "Pipe Dreams",
+  "season": 1,
+  "number": 9,
+  "type": "regular",
+  "airdate": "2026-01-22",
+  "airtime": "21:00",
+  "airstamp": "2026-01-23T02:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/610/1525218.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/610/1525218.jpg"
+  },
+  "summary": "<p>Dixie's worsening polyps push her to take matters into her own hands. Don and Blythe's marriage is put to the test. Ryan and Samantha reconnect.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3479370"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3491152,
+  "url": "https://www.tvmaze.com/episodes/3491152/9-1-1-nashville-1x10-let-it-rip",
+  "name": "Let It R.I.P.",
+  "season": 1,
+  "number": 10,
+  "type": "regular",
+  "airdate": "2026-01-29",
+  "airtime": "21:00",
+  "airstamp": "2026-01-30T02:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.4
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/611/1528119.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/611/1528119.jpg"
+  },
+  "summary": "<p>Roxie notices Don is having panic attacks. Cammie begins to face reality when she starts attending a grief counseling group.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3491152"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3491153,
+  "url": "https://www.tvmaze.com/episodes/3491153/9-1-1-nashville-1x11-don-begins",
+  "name": "Don Begins",
+  "season": 1,
+  "number": 11,
+  "type": "regular",
+  "airdate": "2026-02-26",
+  "airtime": "21:00",
+  "airstamp": "2026-02-27T02:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 8.1
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/615/1539226.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/615/1539226.jpg"
+  },
+  "summary": "<p>Flashbacks reveal how a devastating house fire reshaped Don's life, along with how he later met Dixie and Blythe. The 113 responds to a cyclist pinned against a tree after being hit by a car.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3491153"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3491154,
+  "url": "https://www.tvmaze.com/episodes/3491154/9-1-1-nashville-1x12-spirit-of-the-games",
+  "name": "Spirit of the Games",
+  "season": 1,
+  "number": 12,
+  "type": "regular",
+  "airdate": "2026-03-05",
+  "airtime": "21:00",
+  "airstamp": "2026-03-06T02:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.6
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/616/1541564.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/616/1541564.jpg"
+  },
+  "summary": "<p>Buck and Eddie head to Nashville for the firefighter games. Tensions rise as Ryan and Don show their competitive sides. When Don injures his hand, Blue is forced to step into the competition for him.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3491154"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3491155,
+  "url": "https://www.tvmaze.com/episodes/3491155/9-1-1-nashville-1x13-small-potatoes",
+  "name": "Small Potatoes",
+  "season": 1,
+  "number": 13,
+  "type": "regular",
+  "airdate": "2026-03-12",
+  "airtime": "21:00",
+  "airstamp": "2026-03-13T01:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.6
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/617/1544115.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/617/1544115.jpg"
+  },
+  "summary": "<p>Taylor saves a father and daughter from a cliffside crash. Taylor lands an invite to record with a Nashville idol, which leads her to consider how far she'll go for fame. Blue and Taylor go public with their relationship.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3491155"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3491156,
+  "url": "https://www.tvmaze.com/episodes/3491156/9-1-1-nashville-1x14-hard-knox",
+  "name": "Hard Knox",
+  "season": 1,
+  "number": 14,
+  "type": "regular",
+  "airdate": "2026-03-19",
+  "airtime": "21:00",
+  "airstamp": "2026-03-20T01:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.7
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/618/1546500.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/618/1546500.jpg"
+  },
+  "summary": "<p>Blythe scrambles to save her gala after the performer bails, leaving Dixie to step in. Ryan and Samantha rescue a woman pushed off a cliff. Dixie makes a surprising admission.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3491156"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3533938,
+  "url": "https://www.tvmaze.com/episodes/3533938/9-1-1-nashville-1x15-bad-girls",
+  "name": "Bad Girls",
+  "season": 1,
+  "number": 15,
+  "type": "regular",
+  "airdate": "2026-03-26",
+  "airtime": "21:00",
+  "airstamp": "2026-03-27T01:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 8.2
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/619/1548858.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/619/1548858.jpg"
+  },
+  "summary": "<p>Dixie and Blue feud over family loyalty. Ryan suspects Sam is hiding a major secret. The 113 tackles a disturbing house fire.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3533938"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3546179,
+  "url": "https://www.tvmaze.com/episodes/3546179/9-1-1-nashville-1x16-love-to-death",
+  "name": "Love to Death",
+  "season": 1,
+  "number": 16,
+  "type": "regular",
+  "airdate": "2026-04-02",
+  "airtime": "21:00",
+  "airstamp": "2026-04-03T01:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.6
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/620/1550843.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/620/1550843.jpg"
+  },
+  "summary": "<p>Blue and Dixie remain at odds, with Dixie skipping Blue's birthday. A call turns into a murder investigation. A fertility clinic loses power, putting its contents at risk.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3546179"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3577487,
+  "url": "https://www.tvmaze.com/episodes/3577487/9-1-1-nashville-1x17-saboteurs",
+  "name": "Saboteurs",
+  "season": 1,
+  "number": 17,
+  "type": "regular",
+  "airdate": "2026-04-30",
+  "airtime": "21:00",
+  "airstamp": "2026-05-01T01:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.4
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/623/1558936.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/623/1558936.jpg"
+  },
+  "summary": "<p>Elena and Roxie go on an awkward date. Dixie drops a diss track about Blythe, sparking tension that leads to a huge fight between Blythe and Don.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3577487"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3572924,
+  "url": "https://www.tvmaze.com/episodes/3572924/9-1-1-nashville-1x18-intrusive-thoughts",
+  "name": "Intrusive Thoughts",
+  "season": 1,
+  "number": 18,
+  "type": "regular",
+  "airdate": "2026-05-07",
+  "airtime": "21:00",
+  "airstamp": "2026-05-08T01:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": 7.5
+  },
+  "image": {
+   "medium": "https://static.tvmaze.com/uploads/images/medium_landscape/624/1560980.jpg",
+   "original": "https://static.tvmaze.com/uploads/images/original_untouched/624/1560980.jpg"
+  },
+  "summary": "<p>Blythe and Don's relationship is still on the rocks. The 113 rush in when a Noah Cyrus sound check goes off the rails.</p>",
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3572924"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ },
+ {
+  "id": 3684584,
+  "url": "https://www.tvmaze.com/episodes/3684584/9-1-1-nashville-2x01-going-rogue",
+  "name": "Going Rogue",
+  "season": 2,
+  "number": 1,
+  "type": "regular",
+  "airdate": "2026-10-15",
+  "airtime": "21:00",
+  "airstamp": "2026-10-16T01:00:00+00:00",
+  "runtime": 60,
+  "rating": {
+   "average": null
+  },
+  "image": null,
+  "summary": null,
+  "_links": {
+   "self": {
+    "href": "https://api.tvmaze.com/episodes/3684584"
+   },
+   "show": {
+    "href": "https://api.tvmaze.com/shows/82759",
+    "name": "9-1-1: Nashville"
+   }
+  }
+ }
+]

@@ -196,6 +196,7 @@ var (
 	errBadSchedule    = errors.New("not a cron schedule")
 	errBadBrightness  = errors.New("brightness goes from 1 to 100")
 	errBadLocation    = errors.New("not a location that board can show")
+	errBadShow        = errors.New("not a show that board can follow")
 )
 
 // settings are the matrix-wide settings as they are now.
@@ -500,6 +501,16 @@ func (s *SportsMatrix) boardSettings(ctx context.Context, name string) (*pb.Boar
 		sort.Slice(out.Teams, func(i, j int) bool { return out.Teams[i].Name < out.Teams[j].Name })
 	}
 
+	if l, ok := b.(board.ShowLister); ok {
+		out.HasShows = true
+		// the networks come from TVmaze, the first time
+		sctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+		for _, show := range l.Shows(sctx) {
+			out.Shows = append(out.Shows, pbShow(show))
+		}
+	}
+
 	if l, ok := b.(board.LocationSetter); ok {
 		out.HasLocation = true
 		// the place name comes with the weather, which can take a fetch
@@ -573,9 +584,30 @@ func (s *SportsMatrix) setBoardSettings(ctx context.Context, req *pb.BoardSettin
 		defer cancel()
 		saved, err := l.SetLocation(lctx, req.Location)
 		if err != nil {
-			return &locationError{err: err}
+			return &settingError{kind: errBadLocation, err: err}
 		}
 		if e := s.boardEdit(b, "location", saved); e != nil {
+			edits = append(edits, *e)
+		}
+	}
+
+	if req.HasShows {
+		l, ok := b.(board.ShowLister)
+		if !ok {
+			return fmt.Errorf("%w: %s doesn't follow shows", errNoSuchSetting, b.Name())
+		}
+		shows := make([]board.Show, 0, len(req.Shows))
+		for _, show := range req.Shows {
+			shows = append(shows, board.Show{ID: int(show.Id), Name: show.Name})
+		}
+		// a show not followed yet is checked with TVmaze
+		sctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+		defer cancel()
+		saved, err := l.SetShows(sctx, shows)
+		if err != nil {
+			return &settingError{kind: errBadShow, err: err}
+		}
+		if e := s.boardEdit(b, "shows", saved); e != nil {
 			edits = append(edits, *e)
 		}
 	}
@@ -583,14 +615,50 @@ func (s *SportsMatrix) setBoardSettings(ctx context.Context, req *pb.BoardSettin
 	return s.save(edits...)
 }
 
-// locationError is a location a board refused. Its message is the board's own,
-// which is written for whoever typed the location.
-type locationError struct {
-	err error
+// searchShows finds TV shows for the board called name.
+func (s *SportsMatrix) searchShows(ctx context.Context, name, query string) ([]*pb.Show, error) {
+	b := s.findBoard(name)
+	if b == nil {
+		return nil, fmt.Errorf("%w called %q", errUnknownBoard, name)
+	}
+	l, ok := b.(board.ShowLister)
+	if !ok {
+		return nil, fmt.Errorf("%w: %s doesn't follow shows", errNoSuchSetting, b.Name())
+	}
+
+	sctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+	shows, err := l.SearchShows(sctx, query)
+	if err != nil {
+		return nil, &settingError{kind: errBadShow, err: err}
+	}
+
+	out := make([]*pb.Show, 0, len(shows))
+	for _, show := range shows {
+		out = append(out, pbShow(show))
+	}
+	return out, nil
 }
 
-func (e *locationError) Error() string   { return e.err.Error() }
-func (e *locationError) Unwrap() []error { return []error{errBadLocation, e.err} }
+func pbShow(show board.Show) *pb.Show {
+	return &pb.Show{
+		Id:        int32(show.ID),
+		Name:      show.Name,
+		Network:   show.Network,
+		Premiered: show.Premiered,
+	}
+}
+
+// settingError is a setting a board refused. It is kind, for errors.Is, but
+// its message is the board's own, which is written for whoever made the
+// change.
+type settingError struct {
+	kind error
+	err  error
+}
+
+func (e *settingError) Error() string   { return e.err.Error() }
+func (e *settingError) Unwrap() []error { return []error{e.kind, e.err} }
 
 // teamList tidies a list of teams as typed: abbreviations are matched as the
 // league writes them, which is in capitals.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"image"
 	"io"
 	"net/http"
@@ -660,4 +661,121 @@ func TestLocationSettings(t *testing.T) {
 	weather = cfg["weatherConfig"].(map[any]any)
 	require.Equal(t, true, weather["forecast"].(map[any]any)["enabled"])
 	require.Equal(t, false, weather["enabled"], "the current conditions board's switch is untouched")
+}
+
+// showBoard follows shows, as the TV board does.
+type showBoard struct {
+	*pathBoard
+	shows []board.Show
+}
+
+var knownShows = map[int]board.Show{
+	84:    {ID: 84, Name: "Family Guy", Network: "FOX", Premiered: "1999"},
+	82759: {ID: 82759, Name: "9-1-1: Nashville", Network: "ABC", Premiered: "2025"},
+}
+
+func (b *showBoard) Shows(context.Context) []board.Show { return b.shows }
+
+func (b *showBoard) SetShows(_ context.Context, shows []board.Show) ([]string, error) {
+	var next []board.Show
+	var saved []string
+	for _, s := range shows {
+		known, ok := knownShows[s.ID]
+		if !ok {
+			return nil, fmt.Errorf("no such show on TVmaze with the ID %d", s.ID)
+		}
+		next = append(next, known)
+		saved = append(saved, fmt.Sprintf("%s (tvmaze %d)", known.Name, known.ID))
+	}
+	b.shows = next
+	return saved, nil
+}
+
+func (b *showBoard) SearchShows(_ context.Context, query string) ([]board.Show, error) {
+	if query == "" {
+		return nil, errors.New("type a show's name to search for it")
+	}
+	return []board.Show{knownShows[82759], knownShows[84]}, nil
+}
+
+func TestShowSettings(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	logger := zaptest.NewLogger(t, zaptest.Level(zapcore.FatalLevel))
+	tv := &showBoard{pathBoard: &pathBoard{
+		TestBoard: &TestBoard{log: logger, hasRendered: atomic.NewBool(false), enabler: enabler.New()},
+		name:      "TV Shows",
+		path:      "/tv/board.v1.BasicBoard/",
+	}}
+	clockCfg := &clock.Config{}
+	clockCfg.SetDefaults()
+	clockBoard, err := clock.New(clockCfg, logger)
+	require.NoError(t, err)
+
+	dat, err := os.ReadFile("../../sportsmatrix.conf.example")
+	require.NoError(t, err)
+	path := filepath.Join(t.TempDir(), "sportsmatrix.conf")
+	require.NoError(t, os.WriteFile(path, dat, 0o644))
+	file := conffile.New(path)
+	sections, err := file.Sections()
+	require.NoError(t, err)
+
+	s := &SportsMatrix{log: logger, boards: []board.Board{tv, clockBoard}}
+	s.SetBoardSections(map[board.Board]string{tv: "tvConfig", clockBoard: "clockConfig"}, sections)
+	s.SetConfigFile(file)
+	svr := &Server{sm: s}
+
+	saved := func() any {
+		t.Helper()
+		raw, err := os.ReadFile(path)
+		require.NoError(t, err)
+		var cfg map[string]any
+		require.NoError(t, yamlv2.Unmarshal(raw, &cfg))
+		return cfg["tvConfig"].(map[any]any)["shows"]
+	}
+
+	got, err := svr.GetBoardSettings(ctx, &pb.BoardSettingsReq{Name: "TV Shows"})
+	require.NoError(t, err)
+	require.True(t, got.HasShows)
+	require.Empty(t, got.Shows)
+
+	found, err := svr.SearchShows(ctx, &pb.SearchShowsReq{Name: "tv shows", Query: "nashville"})
+	require.NoError(t, err)
+	require.Equal(t, "9-1-1: Nashville", found.Shows[0].Name)
+	require.Equal(t, "ABC", found.Shows[0].Network)
+	require.Equal(t, "2025", found.Shows[0].Premiered)
+
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{Name: "TV Shows", HasShows: true, Shows: []*pb.Show{{Id: 84}, {Id: 82759}}})
+	require.NoError(t, err)
+	require.Equal(t, []any{"Family Guy (tvmaze 84)", "9-1-1: Nashville (tvmaze 82759)"}, saved())
+
+	got, err = svr.GetBoardSettings(ctx, &pb.BoardSettingsReq{Name: "TV Shows"})
+	require.NoError(t, err)
+	require.Len(t, got.Shows, 2)
+	require.Equal(t, "FOX", got.Shows[0].Network)
+
+	var twerr twirp.Error
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{Name: "TV Shows", HasShows: true, Shows: []*pb.Show{{Id: 5}}})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.InvalidArgument, twerr.Code())
+	require.Equal(t, "no such show on TVmaze with the ID 5", twerr.Msg())
+	require.Len(t, saved(), 2, "a refused list leaves the file alone")
+
+	_, err = svr.SearchShows(ctx, &pb.SearchShowsReq{Name: "TV Shows"})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.InvalidArgument, twerr.Code())
+
+	_, err = svr.SearchShows(ctx, &pb.SearchShowsReq{Name: "Clock", Query: "x"})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.InvalidArgument, twerr.Code())
+
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{Name: "Clock", HasShows: true})
+	require.ErrorAs(t, err, &twerr)
+	require.Equal(t, twirp.InvalidArgument, twerr.Code())
+
+	// an empty list is saved as one
+	_, err = svr.SetBoardSettings(ctx, &pb.BoardSettings{Name: "TV Shows", HasShows: true})
+	require.NoError(t, err)
+	require.Equal(t, []any{}, saved())
 }

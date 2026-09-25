@@ -1,0 +1,92 @@
+{
+ "id": 28152,
+ "url": "https://www.tvmaze.com/shows/28152/9-1-1",
+ "name": "9-1-1",
+ "type": "Scripted",
+ "language": "English",
+ "genres": [
+  "Drama",
+  "Action",
+  "Crime"
+ ],
+ "status": "Running",
+ "runtime": 60,
+ "averageRuntime": 60,
+ "premiered": "2018-01-03",
+ "ended": null,
+ "officialSite": "https://abc.com/shows/911",
+ "schedule": {
+  "time": "20:00",
+  "days": [
+   "Thursday"
+  ]
+ },
+ "rating": {
+  "average": 7.6
+ },
+ "weight": 100,
+ "network": {
+  "id": 3,
+  "name": "ABC",
+  "country": {
+   "name": "United States",
+   "code": "US",
+   "timezone": "America/New_York"
+  },
+  "officialSite": "https://abc.com/"
+ },
+ "webChannel": null,
+ "dvdCountry": null,
+ "externals": {
+  "tvrage": null,
+  "thetvdb": 337907,
+  "imdb": "tt7235466"
+ },
+ "image": {
+  "medium": "https://static.tvmaze.com/uploads/images/medium_portrait/642/1605095.jpg",
+  "original": "https://static.tvmaze.com/uploads/images/original_untouched/642/1605095.jpg"
+ },
+ "summary": "<p><b>9-1-1</b> is a fast-paced exploration into the lives and careers of first responders \u2013 cops, paramedics, firefighters \u2013 the people who put their lives on the line to save others.</p>",
+ "updated": 1790317206,
+ "_links": {
+  "self": {
+   "href": "https://api.tvmaze.com/shows/28152"
+  },
+  "previousepisode": {
+   "href": "https://api.tvmaze.com/episodes/3577486",
+   "name": "Hearts and Flowers"
+  },
+  "nextepisode": {
+   "href": "https://api.tvmaze.com/episodes/3684583",
+   "name": "That Sinking Feeling"
+  }
+ },
+ "_embedded": {
+  "nextepisode": {
+   "id": 3684583,
+   "url": "https://www.tvmaze.com/episodes/3684583/9-1-1-10x01-that-sinking-feeling",
+   "name": "That Sinking Feeling",
+   "season": 10,
+   "number": 1,
+   "type": "regular",
+   "airdate": "2026-10-15",
+   "airtime": "20:00",
+   "airstamp": "2026-10-16T00:00:00+00:00",
+   "runtime": 60,
+   "rating": {
+    "average": null
+   },
+   "image": null,
+   "summary": null,
+   "_links": {
+    "self": {
+     "href": "https://api.tvmaze.com/episodes/3684583"
+    },
+    "show": {
+     "href": "https://api.tvmaze.com/shows/28152",
+     "name": "9-1-1"
+    }
+   }
+  }
+ }
+}

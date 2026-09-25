@@ -8,6 +8,7 @@ import (
 	sportboard "github.com/parandandrd/sportsmatrix/internal/board/sport"
 	statboard "github.com/parandandrd/sportsmatrix/internal/board/stat"
 	sysboard "github.com/parandandrd/sportsmatrix/internal/board/sys"
+	weatherboard "github.com/parandandrd/sportsmatrix/internal/board/weather"
 	"github.com/parandandrd/sportsmatrix/internal/sportsmatrix"
 )
 
@@ -36,6 +37,7 @@ type Config struct {
 	F1Config           *racingboard.Config   `json:"f1Config"`
 	IRLConfig          *racingboard.Config   `json:"irlConfig"`
 	CalenderConfig     *calendarboard.Config `json:"calendarConfig"`
+	WeatherConfig      *weatherboard.Config  `json:"weatherConfig"`
 	NCAAWConfig        *sportboard.Config    `json:"ncaawConfig,omitempty"`
 	WNBAConfig         *sportboard.Config    `json:"wnbaConfig,omitempty"`
 	LigueConfig        *sportboard.Config    `json:"ligueConfig,omitempty"`

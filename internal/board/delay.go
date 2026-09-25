@@ -46,3 +46,15 @@ func Hold(ctx context.Context, start time.Time, d time.Duration) error {
 		return nil
 	}
 }
+
+// LocationSetter is a board that shows something for a place, such as the
+// weather, and whose place can be changed while it runs.
+type LocationSetter interface {
+	// Location is the place as it is written in the config file, and the name
+	// of it when the board knows one. Both are empty when none is set.
+	Location(ctx context.Context) (location string, place string)
+	// SetLocation moves the board to location, once it has checked that it
+	// can show something there, and returns the location as it should be
+	// saved.
+	SetLocation(ctx context.Context, location string) (string, error)
+}

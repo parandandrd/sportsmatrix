@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CallRPC } from './util';
 import { DelayChoices } from './delay';
+import { ParseLocation } from './location';
 
 function TeamPicker({ label, values, teams, allowAll, onChange }) {
     const [other, setOther] = useState('');
@@ -57,8 +58,58 @@ function TeamPicker({ label, values, teams, allowAll, onChange }) {
     );
 }
 
-// BoardSettings are a board's display time, and for a league, the teams it
-// shows and its favorites. Each change is saved as it is made.
+// LocationSetting is where the weather boards report for. It is saved when
+// Save is pressed, rather than as it is typed, since the Pi checks it with the
+// weather provider first.
+function LocationSetting({ board, location, place, onSave }) {
+    const [draft, setDraft] = useState(location || '');
+    const [busy, setBusy] = useState(false);
+
+    useEffect(() => { setDraft(location || ''); }, [location]);
+
+    const tidy = ParseLocation(draft);
+    const unchanged = tidy !== null && tidy === ParseLocation(location);
+
+    const save = async () => {
+        setBusy(true);
+        try {
+            await onSave(tidy);
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    return (
+        <div className="location-setting">
+            <label className="setting-name" htmlFor={`location-${board.name}`}>Location</label>
+            <div className="location-edit">
+                <input
+                    id={`location-${board.name}`}
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && tidy && !unchanged && !busy) save(); }}
+                    placeholder="41.8858, -87.6181"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    spellCheck={false}
+                />
+                <button className="time-add" onClick={save} disabled={!tidy || unchanged || busy}>
+                    {busy ? 'Checking\u2026' : 'Save'}
+                </button>
+            </div>
+            <p className="setting-hint">
+                {location
+                    ? (place ? `Weather for ${place}. ` : '')
+                    : 'Not set yet: the weather boards skip their turn until it is. '}
+                In Google Maps, right-click a spot and click the numbers at the top of the menu to copy them.
+            </p>
+        </div>
+    );
+}
+
+// BoardSettings are a board's display time, for a league the teams it shows
+// and its favorites, and for the weather its location. Each change is saved as
+// it is made.
 export default function BoardSettings({ board, onError }) {
     const [settings, setSettings] = useState(null);
 
@@ -82,7 +133,7 @@ export default function BoardSettings({ board, onError }) {
         await load();
     };
 
-    if (!settings || (!settings.has_board_delay && !settings.has_teams)) {
+    if (!settings || (!settings.has_board_delay && !settings.has_teams && !settings.has_location)) {
         return null;
     }
 
@@ -123,6 +174,14 @@ export default function BoardSettings({ board, onError }) {
                         onChange={(next) => save({ has_teams: true, watch_teams: watch, favorite_teams: next })}
                     />
                 </>
+                : null}
+            {settings.has_location
+                ? <LocationSetting
+                    board={board}
+                    location={settings.location}
+                    place={settings.location_place}
+                    onSave={(location) => save({ has_location: true, location })}
+                />
                 : null}
         </div>
     );

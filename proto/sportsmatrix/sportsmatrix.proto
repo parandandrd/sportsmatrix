@@ -148,6 +148,16 @@ message BoardSettings {
     repeated string favorite_teams = 7;
     // the league's teams, to choose from. Only in answers.
     repeated Team teams = 8;
+
+    // set has_location to change location, which the weather boards report
+    // for. It is shared by both of them.
+    bool has_location = 9;
+    // a latitude and longitude, as Google Maps copies them: "41.8858,
+    // -87.6181". Empty in an answer when none is set.
+    string location = 10;
+    // the place the weather provider says location is in, such as "Chicago,
+    // IL", when it names one. Only in answers.
+    string location_place = 11;
 }
 
 message Team {

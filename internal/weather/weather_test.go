@@ -16,6 +16,8 @@ import (
 )
 
 func TestParseLocation(t *testing.T) {
+	t.Parallel()
+
 	for _, tc := range []struct {
 		in       string
 		lat, lon float64
@@ -37,10 +39,14 @@ func TestParseLocation(t *testing.T) {
 }
 
 func TestLocationString(t *testing.T) {
+	t.Parallel()
+
 	require.Equal(t, "41.8858, -87.6181", Location{Lat: 41.8858, Lon: -87.6181}.String())
 }
 
 func TestNWSIcon(t *testing.T) {
+	t.Parallel()
+
 	for _, tc := range []struct {
 		icon string
 		kind Kind
@@ -108,6 +114,8 @@ func nwsServer(t *testing.T) (*httptest.Server, map[string]int) {
 }
 
 func TestNWSFetch(t *testing.T) {
+	t.Parallel()
+
 	srv, hits := nwsServer(t)
 	n := NewNWS(srv.Client(), srv.URL)
 	n.now = func() time.Time { return fixtureNow }
@@ -155,6 +163,8 @@ func TestNWSFetch(t *testing.T) {
 }
 
 func TestNWSOldObservation(t *testing.T) {
+	t.Parallel()
+
 	srv, _ := nwsServer(t)
 	n := NewNWS(srv.Client(), srv.URL)
 	// three hours on, the 9:30 observation is too old to be "now"
@@ -168,6 +178,8 @@ func TestNWSOldObservation(t *testing.T) {
 }
 
 func TestNWSOutsideUS(t *testing.T) {
+	t.Parallel()
+
 	srv, _ := nwsServer(t)
 	n := NewNWS(srv.Client(), srv.URL)
 
@@ -177,6 +189,8 @@ func TestNWSOutsideUS(t *testing.T) {
 }
 
 func TestOpenMeteoFetch(t *testing.T) {
+	t.Parallel()
+
 	var query string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		query = req.URL.RawQuery
@@ -209,6 +223,8 @@ func TestOpenMeteoFetch(t *testing.T) {
 }
 
 func TestWMOKind(t *testing.T) {
+	t.Parallel()
+
 	for code, kind := range map[int]Kind{
 		0: Clear, 1: Clear, 2: PartlyCloudy, 3: Cloudy, 45: Fog, 53: Rain, 57: Sleet,
 		63: Rain, 67: Sleet, 73: Snow, 81: Rain, 86: Snow, 95: Thunder, 99: Thunder, 42: Unknown,
@@ -242,6 +258,8 @@ func (f *fakeProvider) Check(ctx context.Context, loc Location) error {
 }
 
 func TestSource(t *testing.T) {
+	t.Parallel()
+
 	p := &fakeProvider{temp: 60}
 	s := NewSource(p, Fahrenheit, nil, zap.NewNop())
 	now := fixtureNow
@@ -305,6 +323,8 @@ func TestSource(t *testing.T) {
 }
 
 func TestParseUnits(t *testing.T) {
+	t.Parallel()
+
 	for in, want := range map[string]Units{"": Fahrenheit, "imperial": Fahrenheit, "Metric": Celsius, "celsius": Celsius} {
 		got, err := ParseUnits(in)
 		require.NoError(t, err)
@@ -315,6 +335,8 @@ func TestParseUnits(t *testing.T) {
 }
 
 func TestNewProvider(t *testing.T) {
+	t.Parallel()
+
 	for _, name := range []string{"", "nws", "NWS", "open-meteo"} {
 		_, err := NewProvider(name, NewClient())
 		require.NoError(t, err, name)

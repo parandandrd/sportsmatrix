@@ -326,7 +326,7 @@ func (d *drawer) centered(img *image.RGBA, w *rgbrender.TextWriter, box image.Re
 
 // degree is the size of the degree mark after a temperature, and the gap
 // before it.
-func (d *drawer) degree(w *rgbrender.TextWriter) (size, gap int) {
+func (d *drawer) degree(w *rgbrender.TextWriter) (int, int) {
 	if w == d.big {
 		return 3 * d.scale, d.scale
 	}

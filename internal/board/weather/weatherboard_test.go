@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"image"
-	"image/color"
 	"sync"
 	"testing"
 	"time"
@@ -97,6 +96,8 @@ func testBoards(t *testing.T, location string) (*CurrentBoard, *ForecastBoard, *
 }
 
 func TestDefaults(t *testing.T) {
+	t.Parallel()
+
 	cfg := &Config{}
 	cfg.SetDefaults()
 	require.False(t, cfg.StartEnabled.Load())
@@ -111,6 +112,8 @@ func TestDefaults(t *testing.T) {
 }
 
 func TestBoardsShareAService(t *testing.T) {
+	t.Parallel()
+
 	current, forecast, _ := testBoards(t, "")
 	require.Equal(t, CurrentName, current.Name())
 	require.Equal(t, ForecastName, forecast.Name())
@@ -123,6 +126,8 @@ func TestBoardsShareAService(t *testing.T) {
 }
 
 func TestNoLocationSkips(t *testing.T) {
+	t.Parallel()
+
 	current, forecast, p := testBoards(t, "")
 	canvas := newFrameCanvas()
 
@@ -137,6 +142,8 @@ func TestNoLocationSkips(t *testing.T) {
 }
 
 func TestBadLocationInConfigSkips(t *testing.T) {
+	t.Parallel()
+
 	current, _, _ := testBoards(t, "somewhere nice")
 	canvas := newFrameCanvas()
 	require.NoError(t, current.Render(context.Background(), canvas))
@@ -144,6 +151,8 @@ func TestBadLocationInConfigSkips(t *testing.T) {
 }
 
 func TestCurrentShowsNowThenHours(t *testing.T) {
+	t.Parallel()
+
 	current, forecast, p := testBoards(t, "41.8858, -87.6181")
 	canvas := newFrameCanvas()
 
@@ -163,6 +172,8 @@ func TestCurrentShowsNowThenHours(t *testing.T) {
 }
 
 func TestForecastPages(t *testing.T) {
+	t.Parallel()
+
 	_, forecast, _ := testBoards(t, "41.8858, -87.6181")
 	canvas := newFrameCanvas()
 
@@ -176,6 +187,8 @@ func TestForecastPages(t *testing.T) {
 }
 
 func TestFetchFailureSkips(t *testing.T) {
+	t.Parallel()
+
 	current, _, p := testBoards(t, "41.8858, -87.6181")
 	p.fail = errors.New("down")
 	canvas := newFrameCanvas()
@@ -184,6 +197,8 @@ func TestFetchFailureSkips(t *testing.T) {
 }
 
 func TestDisabledSkips(t *testing.T) {
+	t.Parallel()
+
 	current, _, p := testBoards(t, "41.8858, -87.6181")
 	current.Enabler().Disable()
 	canvas := newFrameCanvas()
@@ -193,6 +208,8 @@ func TestDisabledSkips(t *testing.T) {
 }
 
 func TestRenderStopsWhenCanceled(t *testing.T) {
+	t.Parallel()
+
 	current, _, _ := testBoards(t, "41.8858, -87.6181")
 	current.SetBoardDelay(time.Hour)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -209,6 +226,8 @@ func TestRenderStopsWhenCanceled(t *testing.T) {
 }
 
 func TestSetLocation(t *testing.T) {
+	t.Parallel()
+
 	current, _, _ := testBoards(t, "")
 	ctx := context.Background()
 
@@ -230,6 +249,8 @@ func TestSetLocation(t *testing.T) {
 }
 
 func TestUpcomingDays(t *testing.T) {
+	t.Parallel()
+
 	now := time.Date(2026, 9, 25, 22, 0, 0, 0, time.Local)
 	r := sampleReport(now)
 	days := upcomingDays(r.Days, now, 3)
@@ -241,6 +262,8 @@ func TestUpcomingDays(t *testing.T) {
 }
 
 func TestPickHours(t *testing.T) {
+	t.Parallel()
+
 	r := sampleReport(time.Date(2026, 9, 25, 9, 48, 0, 0, time.Local))
 	hours := pickHours(r.Hours, 3)
 	require.Len(t, hours, 3)
@@ -253,12 +276,16 @@ func TestPickHours(t *testing.T) {
 }
 
 func TestHourLabel(t *testing.T) {
+	t.Parallel()
+
 	for h, want := range map[int]string{0: "12A", 9: "9A", 12: "12P", 13: "1P", 23: "11P"} {
 		require.Equal(t, want, hourLabel(time.Date(2026, 9, 25, h, 0, 0, 0, time.Local)))
 	}
 }
 
 func TestFitText(t *testing.T) {
+	t.Parallel()
+
 	d, err := (&drawer{}).setup(image.Rect(0, 0, 64, 32))
 	require.NoError(t, err)
 	img := image.NewRGBA(image.Rect(0, 0, 64, 32))
@@ -275,6 +302,8 @@ func TestFitText(t *testing.T) {
 }
 
 func TestIconForEveryKind(t *testing.T) {
+	t.Parallel()
+
 	for k := weather.Unknown; k <= weather.Wind; k++ {
 		for _, day := range []bool{true, false} {
 			icon := iconFor(k, day)
@@ -293,12 +322,14 @@ func TestIconForEveryKind(t *testing.T) {
 }
 
 func TestDegreeMarkIsDrawn(t *testing.T) {
+	t.Parallel()
+
 	d, err := (&drawer{}).setup(image.Rect(0, 0, 64, 32))
 	require.NoError(t, err)
 	img := image.NewRGBA(image.Rect(0, 0, 64, 32))
 	require.NoError(t, d.tempAt(img, d.small, image.Pt(0, 0), "62", 7, white))
 
 	// the mark is a 2x2 square just after the number
-	require.Equal(t, color.RGBA(white), img.RGBAAt(7, 0))
-	require.Equal(t, color.RGBA(white), img.RGBAAt(8, 1))
+	require.Equal(t, white, img.RGBAAt(7, 0))
+	require.Equal(t, white, img.RGBAAt(8, 1))
 }

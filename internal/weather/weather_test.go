@@ -26,13 +26,41 @@ func TestParseLocation(t *testing.T) {
 		{"41.8858,-87.6181", 41.8858, -87.6181},
 		{" 41.8858   -87.6181 ", 41.8858, -87.6181},
 		{"-33.8688, 151.2093", -33.8688, 151.2093},
+		{"+41.8858; -87.6181", 41.8858, -87.6181},
+		// degrees, minutes and seconds, as Google Maps shows a dropped pin
+		{`41°52'58.0"N 87°55'27.0"W`, 41.882778, -87.924167},
+		{`33°52'07.7"S 151°12'33.5"E`, -33.868806, 151.209306},
+		{"41° 52′ 58″ N, 87° 55′ 27″ W", 41.882778, -87.924167},
+		{`41°52'58''N 87°55'27''W`, 41.882778, -87.924167},
+		// degrees and decimal minutes
+		{"41°52.967'N 87°55.450'W", 41.882783, -87.924167},
+		// compass letters, as Apple Maps copies them
+		{"41.8828° N, 87.9242° W", 41.8828, -87.9242},
+		{"N41.8828 W87.9242", 41.8828, -87.9242},
+		{"41.8828 n 87.9242 w", 41.8828, -87.9242},
+		// longitude first, when the letters say so
+		{"87.9242 W, 41.8828 N", 41.8828, -87.9242},
 	} {
 		loc, err := ParseLocation(tc.in)
 		require.NoError(t, err, tc.in)
-		require.Equal(t, Location{Lat: tc.lat, Lon: tc.lon}, loc, tc.in)
+		require.InDelta(t, tc.lat, loc.Lat, 0.000001, tc.in)
+		require.InDelta(t, tc.lon, loc.Lon, 0.000001, tc.in)
 	}
 
-	for _, bad := range []string{"", "41.8858", "Chicago, IL", "91, 10", "41, 181", "41, -87, 3"} {
+	for _, bad := range []string{
+		"", "41.8858", "Chicago, IL", "91, 10", "41, 181", "41, -87, 3",
+		"60601",
+		`41°60'00"N 87°55'27"W`,   // 60 minutes
+		`41°52'58"N 87°55'60"W`,   // 60 seconds
+		`41.5°52'N 87°55'W`,       // fractional degrees with minutes
+		`41°52.5'58"N 87°55'27"W`, // fractional minutes with seconds
+		`41° 58"N 87° 27"W`,       // seconds without minutes
+		"-41.8828 N, 87.9242 W",   // a sign and a letter
+		"N41.8828N, 87.9242 W",    // two letters
+		"41.8828 N, 87.9242 N",    // two latitudes
+		"41.8828 E, 87.9242 W",    // two longitudes
+		"95 N, 87 W",
+	} {
 		_, err := ParseLocation(bad)
 		require.ErrorIs(t, err, ErrBadSetting, bad)
 	}

@@ -86,7 +86,8 @@ with, endorsed by, or supported by ESPN or any league.
 
   Set the location in the web UI, in the Current Conditions board's settings,
   or as `location` in `weatherConfig`: a latitude and longitude, as Google Maps
-  copies them when you right-click a spot.
+  copies them when you right-click a spot. Degrees, minutes and seconds, as the
+  Google Maps app shows a dropped pin (`41°52'58.0"N 87°55'27.0"W`), work too.
 - TV Shows: new episodes of the shows you follow coming up in the next week,
   from TVmaze, one to a screen, with PREMIERE on a season's first. Reruns are
   never shown, and the board skips its turn when nothing new is coming. Add

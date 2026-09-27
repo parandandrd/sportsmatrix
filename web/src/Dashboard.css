@@ -674,6 +674,10 @@ body .swagger-ui input[type=text] {
     margin: 6px 0 0;
 }
 
+.setting-hint.problem {
+    color: #ff9aa8;
+}
+
 .chips {
     display: flex;
     flex-wrap: wrap;

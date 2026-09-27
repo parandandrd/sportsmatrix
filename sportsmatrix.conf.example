@@ -1712,7 +1712,8 @@ weatherConfig:
 
   # Where the weather is for, as a latitude and longitude. To get them,
   # right-click a spot in Google Maps and click the numbers at the top of the
-  # menu, which copies them. It can also be set in the web UI, in the Current
+  # menu, which copies them. Degrees, minutes and seconds work too, as
+  # 41°52'58.0"N 87°55'27.0"W. It can also be set in the web UI, in the Current
   # Conditions board's settings. Until it is set, both boards skip their turn.
   location: ""
 

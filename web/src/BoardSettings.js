@@ -69,6 +69,7 @@ function LocationSetting({ board, location, place, onSave }) {
 
     const tidy = ParseLocation(draft);
     const unchanged = tidy !== null && tidy === ParseLocation(location);
+    const unreadable = draft.trim() !== '' && tidy === null;
 
     const save = async () => {
         setBusy(true);
@@ -97,6 +98,15 @@ function LocationSetting({ board, location, place, onSave }) {
                     {busy ? 'Checking\u2026' : 'Save'}
                 </button>
             </div>
+            {unreadable
+                ? <p className="setting-hint problem">
+                    Can&apos;t read that as a latitude and longitude. Try it the way Google Maps
+                    copies it, 41.8858, -87.6181, or shows a pin, 41\u00b052&apos;58.0&quot;N 87\u00b055&apos;27.0&quot;W.
+                </p>
+                : null}
+            {tidy && !unchanged && tidy !== draft.trim()
+                ? <p className="setting-hint">Saves as {tidy}.</p>
+                : null}
             <p className="setting-hint">
                 {location
                     ? (place ? `Weather for ${place}. ` : '')

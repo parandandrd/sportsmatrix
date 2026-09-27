@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -130,25 +131,114 @@ func badSetting(format string, args ...any) error {
 // ErrNoLocation is returned by a Source that hasn't been given a location.
 var ErrNoLocation = errors.New("no weather location set")
 
-// ParseLocation reads coordinates as Google Maps copies them, "41.8858,
-// -87.6181": latitude, then longitude. Spaces and a missing comma are fine.
+// degrees is a number of degrees: decimal, or whole with minutes and perhaps
+// seconds.
+const degrees = `([-+]?\d+(?:\.\d+)?)\s*°?\s*(?:(\d+(?:\.\d+)?)\s*'\s*)?(?:(\d+(?:\.\d+)?)\s*"\s*)?`
+
+// coordinate is one of a location's two numbers, signed or with a compass
+// letter before or after it: one or the other, so that in "N41 W87" the W
+// can't be taken for the first number's. web/src/location.js reads the same.
+const coordinate = `(?:([NSEW])\s*` + degrees + `|` + degrees + `([NSEW])?)`
+
+var (
+	locationPattern = regexp.MustCompile(`(?i)^\s*` + coordinate + `(?:\s*[,;]\s*|\s+)` + coordinate + `\s*$`)
+
+	// the marks phones and maps use for degrees, minutes and seconds, as
+	// the ones locationPattern looks for
+	coordinateMarks = strings.NewReplacer("º", "°", "˚", "°", "′", "'", "’", "'", "‘", "'", "″", `"`, "“", `"`, "”", `"`, "''", `"`)
+)
+
+// ParseLocation reads coordinates the ways maps show them: latitude, then
+// longitude, as Google Maps copies them, "41.8858, -87.6181"; in degrees,
+// minutes and seconds, "41°52'58.0"N 87°55'27.0"W"; or with compass letters,
+// "41.8828° N, 87.9242° W". With compass letters on both they can come in
+// either order.
 func ParseLocation(s string) (Location, error) {
-	fields := strings.FieldsFunc(s, func(r rune) bool { return r == ',' || r == ' ' || r == '\t' })
-	if len(fields) != 2 {
+	m := locationPattern.FindStringSubmatch(coordinateMarks.Replace(s))
+	if m == nil {
 		return Location{}, badSetting("%q is not a latitude and longitude, like 41.8858, -87.6181", s)
 	}
 
-	lat, err := strconv.ParseFloat(fields[0], 64)
-	if err != nil || lat < -90 || lat > 90 {
-		return Location{}, badSetting("latitude %s, which goes from -90 to 90", fields[0])
+	a, aDir, err := parseCoordinate(m[1:9])
+	if err != nil {
+		return Location{}, badSetting("%q: %s", s, err)
 	}
-	lon, err := strconv.ParseFloat(fields[1], 64)
-	if err != nil || lon < -180 || lon > 180 {
-		return Location{}, badSetting("longitude %s, which goes from -180 to 180", fields[1])
+	b, bDir, err := parseCoordinate(m[9:17])
+	if err != nil {
+		return Location{}, badSetting("%q: %s", s, err)
 	}
 
-	return Location{Lat: lat, Lon: lon}, nil
+	if isLongitude(aDir) || isLatitude(bDir) {
+		a, b, aDir, bDir = b, a, bDir, aDir
+	}
+	if isLongitude(aDir) || isLatitude(bDir) {
+		return Location{}, badSetting("%q needs one of N or S and one of E or W", s)
+	}
+
+	if a < -90 || a > 90 {
+		return Location{}, badSetting("latitude %s, which goes from -90 to 90", strconv.FormatFloat(a, 'f', -1, 64))
+	}
+	if b < -180 || b > 180 {
+		return Location{}, badSetting("longitude %s, which goes from -180 to 180", strconv.FormatFloat(b, 'f', -1, 64))
+	}
+
+	return Location{Lat: a, Lon: b}, nil
 }
+
+// parseCoordinate turns one coordinate's parts, as coordinate matches them,
+// into decimal degrees, with the compass letter it had. The parts are the
+// letter-first form's letter, degrees, minutes and seconds, then the other
+// form's degrees, minutes, seconds and letter.
+func parseCoordinate(parts []string) (float64, byte, error) {
+	letter, deg, mins, secs := parts[0], parts[1], parts[2], parts[3]
+	if deg == "" {
+		deg, mins, secs, letter = parts[4], parts[5], parts[6], parts[7]
+	}
+
+	var dir byte
+	if letter != "" {
+		dir = strings.ToUpper(letter)[0]
+	}
+	if dir != 0 && (deg[0] == '-' || deg[0] == '+') {
+		return 0, 0, errors.New("a number has both a sign and a compass letter")
+	}
+
+	if mins != "" && strings.Contains(deg, ".") {
+		return 0, 0, errors.New("degrees with minutes should be a whole number")
+	}
+	if secs != "" && (mins == "" || strings.Contains(mins, ".")) {
+		return 0, 0, errors.New("seconds need whole minutes before them")
+	}
+
+	v, err := strconv.ParseFloat(strings.TrimLeft(deg, "+-"), 64)
+	if err != nil {
+		return 0, 0, err
+	}
+	for _, part := range []struct {
+		text string
+		per  float64
+	}{{mins, 60}, {secs, 3600}} {
+		if part.text == "" {
+			continue
+		}
+		n, err := strconv.ParseFloat(part.text, 64)
+		if err != nil {
+			return 0, 0, err
+		}
+		if n >= 60 {
+			return 0, 0, errors.New("minutes and seconds go up to 59")
+		}
+		v += n / part.per
+	}
+
+	if deg[0] == '-' || dir == 'S' || dir == 'W' {
+		v = -v
+	}
+	return v, dir, nil
+}
+
+func isLatitude(dir byte) bool  { return dir == 'N' || dir == 'S' }
+func isLongitude(dir byte) bool { return dir == 'E' || dir == 'W' }
 
 // Provider fetches a report for a location.
 type Provider interface {

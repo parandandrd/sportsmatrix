@@ -57,7 +57,7 @@ func SavePng(img image.Image, fileName string) error {
 	if img == nil {
 		return fmt.Errorf("cannot save nil image.Image as PNG")
 	}
-	return imaging.Save(img, fileName, imaging.PNGCompressionLevel(png.NoCompression))
+	return imaging.Save(img, fileName, imaging.PNGCompressionLevel(png.DefaultCompression))
 }
 
 // SaveGif ...

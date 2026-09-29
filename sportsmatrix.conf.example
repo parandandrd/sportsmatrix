@@ -1128,7 +1128,7 @@ dfbConfig:
 imageConfig:
   enabled: false
   
-  # Caches resized images to disk in /tmp. You should probably not disable this
+  # Caches resized images to disk in /var/cache/sportsmatrix. You should probably not disable this
   useDiskCache: true
 
   boardDelay: 5s

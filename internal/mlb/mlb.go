@@ -3,6 +3,7 @@ package mlb
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -13,16 +14,18 @@ import (
 	sportboard "github.com/parandandrd/sportsmatrix/internal/board/sport"
 	"github.com/parandandrd/sportsmatrix/internal/espn"
 	"github.com/parandandrd/sportsmatrix/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/util"
 )
 
 const (
-	baseURL      = "https://statsapi.mlb.com/api"
-	linkBase     = "https://statsapi.mlb.com"
-	logoCacheDir = "/tmp/sportsmatrix_logos/mlb"
+	baseURL  = "https://statsapi.mlb.com/api"
+	linkBase = "https://statsapi.mlb.com"
 
 	// DateFormat is the game schedule format for querying a particular day from the API
 	DateFormat = "2006-01-02"
 )
+
+var logoCacheDir = filepath.Join(util.CacheDir, "logos", "mlb")
 
 // DefaultLogoConfigs contains default logo alignedment configurations
 type DefaultLogoConfigs *[]*logo.Config

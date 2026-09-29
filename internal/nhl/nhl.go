@@ -3,6 +3,7 @@ package nhl
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -12,15 +13,17 @@ import (
 	sportboard "github.com/parandandrd/sportsmatrix/internal/board/sport"
 	"github.com/parandandrd/sportsmatrix/internal/espn"
 	"github.com/parandandrd/sportsmatrix/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/util"
 )
 
 const (
 	baseURL  = "https://statsapi.web.nhl.com/api/v1/"
 	linkBase = "https://statsapi.web.nhl.com"
 	// DateFormat ...
-	DateFormat   = "2006-01-02"
-	logoCacheDir = "/tmp/sportsmatrix_logos/nhl"
+	DateFormat = "2006-01-02"
 )
+
+var logoCacheDir = filepath.Join(util.CacheDir, "logos", "nhl")
 
 // ALL is a list of all teams in the league
 var ALL = []string{ANA, ARI, BOS, BUF, CAR, CBJ, CGY, CHI, COL, DAL, DET, EDM, FLA, LAK, MIN, MTL, NJD, NSH, NYI, NYR, OTT, PHI, PIT, SJS, STL, TBL, TOR, VAN, VGK, WPG, WSH}

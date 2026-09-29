@@ -17,6 +17,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/parandandrd/sportsmatrix/internal/logo"
 	"github.com/parandandrd/sportsmatrix/internal/rgbrender"
 	"github.com/parandandrd/sportsmatrix/internal/util"
 )
@@ -24,7 +25,7 @@ import (
 //go:embed assets
 var assets embed.FS
 
-const cacheDir = "/tmp/sportsmatrix_logos/espn"
+var cacheDir = filepath.Join(util.CacheDir, "logos", "espn")
 
 // ESPN is used for accessing ESPN API's
 type ESPN struct {
@@ -218,6 +219,7 @@ OUTER:
 		if err != nil || i == nil {
 			return nil, fmt.Errorf("failed to retrieve logo from API for %s: %w", teamAbbreviation, err)
 		}
+		i = logo.ShrinkSource(i)
 	}
 
 	e.log.Debug("saving source logo to cache",

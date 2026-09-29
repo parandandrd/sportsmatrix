@@ -68,6 +68,9 @@ Type=simple
 Restart=always
 RestartSec=1
 User=root
+# Logos and resized images, kept on the SD card across reboots. systemd creates
+# /var/cache/sportsmatrix and passes it on as CACHE_DIRECTORY.
+CacheDirectory=sportsmatrix
 ExecStart=/usr/local/bin/sportsmatrix run -f /var/log/sportsmatrix.log
 StandardOutput=file:/var/log/sportsmatrix_out.log
 StandardError=file:/var/log/sportsmatrix_out.log
@@ -104,7 +107,11 @@ EOF
 
 cat <<EOF > DEBIAN/postinst
 sudo systemctl daemon-reload
-sudo rm -rf /tmp/sportsmatrix*
+# An upgrade starts with an empty cache, so that logos are drawn again with
+# whatever placement the new version has for them. The cache was in /tmp
+# before it moved to /var/cache.
+sudo systemctl stop sportsmatrix
+sudo rm -rf /tmp/sportsmatrix* /var/cache/sportsmatrix
 # The unit's [Install] section only takes effect once enable has created the
 # multi-user.target.wants symlink. Without this the service runs after install
 # but does not come back after a reboot.
@@ -113,6 +120,15 @@ sudo systemctl restart sportsmatrix
 EOF
 
 chmod 755 DEBIAN/postinst
+
+# systemd leaves a unit's CacheDirectory behind when the package goes.
+cat <<EOF > DEBIAN/postrm
+if [ "\$1" = remove ] || [ "\$1" = purge ]; then
+  rm -rf /var/cache/sportsmatrix
+fi
+EOF
+
+chmod 755 DEBIAN/postrm
 
 cp "${ROOT}/sportsmatrix.conf.example" etc/sportsmatrix.conf
 

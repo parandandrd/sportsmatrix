@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
@@ -17,6 +18,7 @@ import (
 
 	sportboard "github.com/parandandrd/sportsmatrix/internal/board/sport"
 	"github.com/parandandrd/sportsmatrix/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/util"
 )
 
 // DateFormat for getting games
@@ -65,7 +67,7 @@ type ESPNBoard struct {
 }
 
 func (e *ESPNBoard) logoCacheDir() (string, error) {
-	cacheDir := fmt.Sprintf("/tmp/sportsmatrix_logos/%s", e.leaguer.APIPath())
+	cacheDir := filepath.Join(util.CacheDir, "logos", e.leaguer.APIPath())
 	if _, err := os.Stat(cacheDir); err != nil {
 		if os.IsNotExist(err) {
 			return cacheDir, os.MkdirAll(cacheDir, 0o755)

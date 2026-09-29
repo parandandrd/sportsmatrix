@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"image/draw"
 	"io/fs"
+	"path/filepath"
 	"strings"
 
 	"go.uber.org/zap"
@@ -15,9 +16,10 @@ import (
 	"github.com/parandandrd/sportsmatrix/internal/board"
 	"github.com/parandandrd/sportsmatrix/internal/logo"
 	"github.com/parandandrd/sportsmatrix/internal/rgbrender"
+	"github.com/parandandrd/sportsmatrix/internal/util"
 )
 
-const logoCacheDir = "/tmp/sportsmatrix_logos/newslogos"
+var logoCacheDir = filepath.Join(util.CacheDir, "logos", "newslogos")
 
 func (s *TextBoard) renderLogo(ctx context.Context, canvas board.Canvas) error {
 	s.Lock()

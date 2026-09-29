@@ -27,12 +27,10 @@ import (
 	"github.com/parandandrd/sportsmatrix/internal/util"
 )
 
-const (
-	diskCacheDir = "/tmp/sportsmatrix_logos/imageboard"
+// Name is the board name
+const Name = "Img"
 
-	// Name is the board name
-	Name = "Img"
-)
+var diskCacheDir = filepath.Join(util.CacheDir, "imageboard")
 
 var preloaderTimeout = (30 * time.Second)
 

@@ -259,6 +259,7 @@ OUTER:
 		if err != nil || i == nil {
 			return nil, fmt.Errorf("failed to retrieve logo from API for %s %s: %w", teamID, href, err)
 		}
+		i = logo.ShrinkSource(i)
 		foundSource = true
 	}
 

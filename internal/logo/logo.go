@@ -18,6 +18,23 @@ import (
 // SourceGetter is a func type that retrieves a source logo image.Image
 type SourceGetter func(ctx context.Context) (image.Image, error)
 
+// MaxSourceSize is the most pixels a source logo is kept at on either side.
+// Thumbnails are drawn at up to the panel's size, so this leaves room for a
+// panel several times the 64x32 one. ESPN serves most logos at 500x500 and
+// some at 4096x4096, which as they were cached came to 1MB and 67MB each.
+const MaxSourceSize = 256
+
+// ShrinkSource scales a source logo down to fit MaxSourceSize, keeping its
+// shape, for keeping in a cache. A logo already that small is returned as it
+// is. The original can be dropped once this has returned.
+func ShrinkSource(img image.Image) image.Image {
+	b := img.Bounds()
+	if b.Dx() <= MaxSourceSize && b.Dy() <= MaxSourceSize {
+		return img
+	}
+	return imaging.Fit(img, MaxSourceSize, MaxSourceSize, imaging.Lanczos)
+}
+
 // Logo is used to manage logo rendering
 type Logo struct {
 	key              string

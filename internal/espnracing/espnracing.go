@@ -13,12 +13,13 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/parandandrd/sportsmatrix/internal/logo"
+	"github.com/parandandrd/sportsmatrix/internal/util"
 )
 
 //go:embed assets
 var assets embed.FS
 
-const cacheDir = "/tmp/sportsmatrix/racing"
+var cacheDir = filepath.Join(util.CacheDir, "racing")
 
 // API ...
 type API struct {

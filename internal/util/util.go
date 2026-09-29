@@ -7,10 +7,28 @@ import (
 	"image/png"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/robfig/cron/v3"
 )
+
+// CacheDir is where logos and resized images are kept between runs. Under
+// systemd it is the unit's CacheDirectory, /var/cache/sportsmatrix, on the SD
+// card: /tmp on Debian Trixie is a tmpfs, so a cache kept there is held in
+// memory and gone after every reboot. Run any other way, it is a directory
+// under the system's temporary directory.
+var CacheDir = cacheDir()
+
+func cacheDir() string {
+	// systemd sets CACHE_DIRECTORY, colon-separated when a unit asks for more
+	// than one.
+	if d, _, _ := strings.Cut(os.Getenv("CACHE_DIRECTORY"), ":"); d != "" {
+		return d
+	}
+	return filepath.Join(os.TempDir(), "sportsmatrix")
+}
 
 // Today is sometimes actually yesterday
 func Today(t time.Time) time.Time {

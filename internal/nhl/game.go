@@ -208,11 +208,10 @@ func timeFromGameTime(gameTime string) (time.Time, error) {
 func GetLiveGame(ctx context.Context, link string) (sportboard.Game, error) {
 	uri := fmt.Sprintf("%s/%s", linkBase, link)
 
-	req, err := http.NewRequest("GET", uri, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return nil, err
 	}
-	req = req.WithContext(ctx)
 
 	client := http.DefaultClient
 
@@ -245,13 +244,11 @@ func GetLiveGame(ctx context.Context, link string) (sportboard.Game, error) {
 
 func getGames(ctx context.Context, dateStr string) ([]*Game, error) {
 	uri := fmt.Sprintf("%s/schedule?date=%s&expand=schedule.linescore", baseURL, dateStr)
-	req, err := http.NewRequest("GET", uri, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, nil)
 	if err != nil {
 		return nil, err
 	}
 	client := http.DefaultClient
-
-	req = req.WithContext(ctx)
 
 	resp, err := client.Do(req)
 	if err != nil {

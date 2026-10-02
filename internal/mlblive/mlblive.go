@@ -64,10 +64,10 @@ func (m *MlbLive) RenderLive(ctx context.Context, canvas board.Canvas, game Game
 
 	quarterW := canvasWidth / 4
 
-	awayLogoBounds := image.Rect(midX-(canvasWidth/2), zeroed.Min.Y, midX-(quarterW), zeroed.Max.Y/2)
+	awayLogoBounds := image.Rect(midX-(canvasWidth/2), zeroed.Min.Y, midX-quarterW, zeroed.Max.Y/2)
 	awayScoreBounds := image.Rect(awayLogoBounds.Max.X, zeroed.Min.Y+1, midX, (zeroed.Max.Y / 2))
 
-	homeLogoBounds := image.Rect(midX-(canvasWidth/2), zeroed.Max.Y/2, midX-(quarterW), zeroed.Max.Y)
+	homeLogoBounds := image.Rect(midX-(canvasWidth/2), zeroed.Max.Y/2, midX-quarterW, zeroed.Max.Y)
 	homeScoreBounds := image.Rect(homeLogoBounds.Max.X, (zeroed.Max.Y / 2), midX, zeroed.Max.Y-1)
 
 	runnerBounds := image.Rect(midX, zeroed.Min.Y, midX+(canvasWidth/2), (zeroed.Max.Y/4)*3)

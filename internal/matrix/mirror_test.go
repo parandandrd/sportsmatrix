@@ -64,8 +64,10 @@ func TestMirrorCaptureDoesNotAllocate(t *testing.T) {
 	require.Zero(t, testing.AllocsPerRun(100, func() { m.Capture(frame) }))
 }
 
-func getFrame(m *Mirror, query string, seen string) *httptest.ResponseRecorder {
-	req := httptest.NewRequest(http.MethodGet, "/api/panel/frame"+query, nil)
+func getFrame(t *testing.T, m *Mirror, query string, seen string) *httptest.ResponseRecorder {
+	t.Helper()
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/panel/frame"+query, nil)
 	if seen != "" {
 		req.Header.Set("If-None-Match", seen)
 	}
@@ -80,14 +82,14 @@ func TestMirrorServeHTTP(t *testing.T) {
 
 	m := NewMirror(4, 2)
 
-	rec := getFrame(m, "", "")
+	rec := getFrame(t, m, "", "")
 	require.Equal(t, http.StatusOK, rec.Code, "black until the first frame, but always a frame")
 	require.Equal(t, "image/png", rec.Header().Get("Content-Type"))
 	require.Equal(t, "no-store", rec.Header().Get("Cache-Control"))
 	first := rec.Header().Get("ETag")
 	require.Equal(t, m.Tag(), first)
 
-	rec = getFrame(m, "", first)
+	rec = getFrame(t, m, "", first)
 	require.Equal(t, http.StatusNotModified, rec.Code, "has it already, and did not ask to wait")
 	require.Empty(t, rec.Body.String())
 
@@ -95,7 +97,7 @@ func TestMirrorServeHTTP(t *testing.T) {
 	frame[7] = 0x00ff00 // x 3, y 1
 	m.Capture(frame)
 
-	rec = getFrame(m, "", first)
+	rec = getFrame(t, m, "", first)
 	require.Equal(t, http.StatusOK, rec.Code, "has an older one")
 	require.NotEqual(t, first, rec.Header().Get("ETag"))
 
@@ -117,14 +119,14 @@ func TestMirrorServeHTTPWaitsForTheNext(t *testing.T) {
 		m.Capture(make([]uint32, 4))
 	}()
 	began := time.Now()
-	rec := getFrame(m, "?wait=5", tag)
+	rec := getFrame(t, m, "?wait=5", tag)
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.NotEqual(t, tag, rec.Header().Get("ETag"))
 	require.Less(t, time.Since(began), 2*time.Second, "answered when the frame changed, not at the end of the wait")
 
 	tag = rec.Header().Get("ETag")
 	began = time.Now()
-	rec = getFrame(m, "?wait=0.1", tag)
+	rec = getFrame(t, m, "?wait=0.1", tag)
 	require.Equal(t, http.StatusNotModified, rec.Code, "nothing changed in the wait")
 	require.GreaterOrEqual(t, time.Since(began), 90*time.Millisecond)
 }
@@ -140,7 +142,7 @@ func TestFrameWait(t *testing.T) {
 		"?wait=10":    MaxWait,
 		"?wait=86400": MaxWait,
 	} {
-		req := httptest.NewRequest(http.MethodGet, "/api/panel/frame"+query, nil)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/panel/frame"+query, nil)
 		require.Equal(t, want, frameWait(req), query)
 	}
 }

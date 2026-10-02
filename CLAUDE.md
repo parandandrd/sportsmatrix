@@ -24,10 +24,18 @@ cd web && npm ci --legacy-peer-deps && npm test && npm run build
 
 Things that will waste your time if you don't know them:
 
-- **golangci-lint must be v1.64.6.** `.golangci.yml` is a v1 config and a v2
-  binary refuses it outright with `unsupported version of the configuration`.
-  That message is easy to skim past as a warning -- it means nothing was
-  linted. The pinned version is `GOLANGCI_VERSION` in `script/common`.
+- **golangci-lint must be v2, built with Go 1.27 or newer.** `.golangci.yml`
+  is a v2 config, which a v1 binary refuses. A v2 binary built with an older Go
+  than `go.mod`'s `go` line refuses the module instead: `the Go language
+  version (go1.25) used to build golangci-lint is lower than the targeted Go
+  version`. Either message means nothing was linted. The pinned version is
+  `GOLANGCI_VERSION` in `script/common`; its release binary is built with
+  go1.27.0. Bumping `go.mod` past that means bumping the linter too.
+- **The Go version CI and releases build with is `go.mod`'s `go` line**, which
+  setup-go resolves to the newest patch release. `GO_VERSION` in
+  `script/common` and `GOVERSION` in `Dockerfile.pibuilder` only feed the
+  cross-build image and `script/build.local`. `script/update-go` moves all
+  three.
 - **`script/test` rebuilds the vendored C library** from
   `internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix.BASE` on every run, and
   removes it afterwards. First run takes a few minutes. Don't commit the

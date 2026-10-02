@@ -1,6 +1,6 @@
 module github.com/parandandrd/sportsmatrix
 
-go 1.23
+go 1.27
 
 require (
 	github.com/disintegration/imaging v1.6.2

@@ -54,7 +54,7 @@ func TestJumpBadBody(t *testing.T) {
 
 	for _, body := range []string{"", "null", "not json", "{}"} {
 		rec := httptest.NewRecorder()
-		jump(rec, httptest.NewRequest(http.MethodPost, "/api/jump", strings.NewReader(body)))
+		jump(rec, httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/api/jump", strings.NewReader(body)))
 		require.Equal(t, http.StatusBadRequest, rec.Code, "body %q", body)
 	}
 }
@@ -67,7 +67,7 @@ func TestNextBoardBeforeAnyBoard(t *testing.T) {
 	s := newIdleMatrix(t)
 
 	rec := httptest.NewRecorder()
-	handler(t, s, "/api/nextboard")(rec, httptest.NewRequest(http.MethodGet, "/api/nextboard", nil))
+	handler(t, s, "/api/nextboard")(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/nextboard", nil))
 	require.Equal(t, http.StatusOK, rec.Code)
 
 	_, err := (&Server{sm: s}).NextBoard(context.Background(), &emptypb.Empty{})

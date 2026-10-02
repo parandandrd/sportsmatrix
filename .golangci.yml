@@ -1,56 +1,80 @@
+version: "2"
 run:
-  tests: true
   modules-download-mode: vendor
-  timeout: 5m
+  tests: true
 linters:
-  disable-all: true
+  default: none
   enable:
-  - asciicheck
-  - bodyclose
-  - durationcheck
-  - errcheck
-  - errorlint
-  - copyloopvar
-  - importas
-  - ineffassign
-  - gofumpt
-  - goimports
-  - gosimple
-  - govet
-  - misspell
-  - nakedret
-  - nilerr
-  - noctx
-  - nonamedreturns
-  - nosprintfhostport
-  - paralleltest
-  - predeclared
-  - promlinter
-  - revive
-  - sqlclosecheck
-  - staticcheck
-  - tparallel
-  - unconvert
-  - unused
-  - unparam
-  - whitespace
-linters-settings:
-  govet:
-    enable-all: true
-    disable:
-      - fieldalignment
-  goimports:
-    local-prefixes: github.com/parandandrd/sportsmatrix
-  revive:
+    - asciicheck
+    - bodyclose
+    - copyloopvar
+    - durationcheck
+    - errcheck
+    - errorlint
+    - govet
+    - importas
+    - ineffassign
+    - misspell
+    - nakedret
+    - nilerr
+    - noctx
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - predeclared
+    - promlinter
+    - revive
+    - sqlclosecheck
+    - staticcheck
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+  settings:
+    staticcheck:
+      # v1 ran staticcheck (SA) and gosimple (S) but not stylecheck (ST); v2
+      # merged all three, plus quickfix (QF), into staticcheck.
+      checks:
+        - all
+        - -ST*
+        - -QF*
+    govet:
+      disable:
+        - fieldalignment
+      enable-all: true
+    revive:
+      rules:
+        - name: exported
+          disabled: true
+  exclusions:
+    generated: lax
     rules:
-    - name: exported
-      disabled: true
-issues:
-  exclude-use-default: false
-  exclude-dirs:
-  - vendor
-  - internal/rgbmatrix-rpi
-  - internal/proto
-  exclude:
-  - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
-  - 'shadow: declaration of "err" shadows declaration at line (\d+)'
+      - path: (.+)\.go$
+        text: Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
+      - path: (.+)\.go$
+        text: 'shadow: declaration of "err" shadows declaration at line (\d+)'
+    paths:
+      - vendor
+      - internal/rgbmatrix-rpi
+      - internal/proto
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/parandandrd/sportsmatrix
+  exclusions:
+    generated: lax
+    paths:
+      - vendor
+      - internal/rgbmatrix-rpi
+      - internal/proto
+      - third_party$
+      - builtin$
+      - examples$

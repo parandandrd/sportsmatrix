@@ -2,9 +2,15 @@
 set -euo pipefail
 
 ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
-GO_VERSION="1.25.3"
-# .golangci.yml is a v1 config; a v2 binary refuses it outright.
-GOLANGCI_VERSION="1.64.6"
+# The exact toolchain for the cross-build image and script/build.local. CI and
+# releases ignore it: setup-go takes the newest patch of go.mod's go line. Keep
+# the two on the same minor version.
+GO_VERSION="1.27.1"
+# .golangci.yml is a v2 config; a v1 binary refuses it. The binary must also be
+# built with a Go at least as new as go.mod's go line, or it refuses the module:
+# "the Go language version (go1.25) used to build golangci-lint is lower than
+# the targeted Go version (1.27)".
+GOLANGCI_VERSION="2.14.0"
 
 getsha() {
   if uname -s | grep -i darwin &> /dev/null; then

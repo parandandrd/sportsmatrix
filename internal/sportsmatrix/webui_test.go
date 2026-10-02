@@ -35,7 +35,7 @@ func TestWebUICaching(t *testing.T) {
 
 	get := func(path string, headers ...string) response {
 		t.Helper()
-		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, path, nil)
 		for i := 0; i+1 < len(headers); i += 2 {
 			req.Header.Set(headers[i], headers[i+1])
 		}

@@ -150,7 +150,7 @@ func TestPanelFrame(t *testing.T) {
 	require.NoError(t, c.Render(context.Background()))
 
 	rec := httptest.NewRecorder()
-	handlers[0].Handler(rec, httptest.NewRequest(http.MethodGet, "/api/panel/frame", nil))
+	handlers[0].Handler(rec, httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/api/panel/frame", nil))
 	require.Equal(t, http.StatusOK, rec.Code)
 	require.NotEmpty(t, rec.Header().Get("ETag"))
 

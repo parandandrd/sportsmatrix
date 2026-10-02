@@ -35,6 +35,9 @@ jobs:
     - uses: actions/setup-go@v5
       with:
         go-version-file: go.mod
+        # Without this a runner with any 1.x.y cached uses it, not the
+        # newest patch release of that minor version.
+        check-latest: true
         cache-dependency-path: go.sum
 
     - name: Install golangci-lint

@@ -15,12 +15,12 @@ done
 
 if ! command -v golangci-lint >/dev/null; then
   cat >&2 <<MSG
-golangci-lint not found. This repo's config is v1, so install ${GOLANGCI_VERSION}:
+golangci-lint not found. This repo's config is v2, so install ${GOLANGCI_VERSION}:
 
   curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \\
     | sh -s -- -b "\$(go env GOPATH)/bin" v${GOLANGCI_VERSION}
 
-A v2 golangci-lint will refuse .golangci.yml outright.
+A v1 golangci-lint will refuse .golangci.yml outright.
 MSG
   exit 1
 fi

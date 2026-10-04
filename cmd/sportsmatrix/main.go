@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"image"
 	"os"
@@ -19,7 +20,6 @@ import (
 	imageboard "github.com/parandandrd/sportsmatrix/internal/board/image"
 	racingboard "github.com/parandandrd/sportsmatrix/internal/board/racing"
 	sportboard "github.com/parandandrd/sportsmatrix/internal/board/sport"
-	statboard "github.com/parandandrd/sportsmatrix/internal/board/stat"
 	sysboard "github.com/parandandrd/sportsmatrix/internal/board/sys"
 	textboard "github.com/parandandrd/sportsmatrix/internal/board/text"
 	tvboard "github.com/parandandrd/sportsmatrix/internal/board/tv"
@@ -29,15 +29,10 @@ import (
 	"github.com/parandandrd/sportsmatrix/internal/espnracing"
 	"github.com/parandandrd/sportsmatrix/internal/logo"
 	"github.com/parandandrd/sportsmatrix/internal/matrix"
-	"github.com/parandandrd/sportsmatrix/internal/mlb"
 	"github.com/parandandrd/sportsmatrix/internal/mlblive"
-	"github.com/parandandrd/sportsmatrix/internal/nhl"
-	"github.com/parandandrd/sportsmatrix/internal/pga"
 	rgb "github.com/parandandrd/sportsmatrix/internal/rgbmatrix-rpi"
 	"github.com/parandandrd/sportsmatrix/internal/sportsmatrix"
 )
-
-var defaultPGAUpdateInterval = 2 * time.Minute
 
 const defaultConfigFile = "/etc/sportsmatrix.conf"
 
@@ -53,7 +48,6 @@ type rootArgs struct {
 	today          string
 	logFile        string
 	writer         *os.File
-	alternateAPI   bool
 	debug          bool
 	todayT         *time.Time
 }
@@ -145,13 +139,11 @@ func newRootCmd(args *rootArgs) *cobra.Command {
 	f.BoolVarP(&args.test, "test", "t", false, "uses a test console matrix")
 	f.StringVar(&args.today, "date-str", "", "Set the date of 'Today' for testing past days. Format 2020-01-30")
 	f.StringVarP(&args.logFile, "log-file", "f", "", "Write logs to given file instead of STDOUT")
-	f.BoolVarP(&args.alternateAPI, "alt-api", "a", false, "Use alternative API's where available")
 	f.BoolVarP(&args.debug, "debug", "d", false, "Run pprof debug server on :6060")
 
 	_ = viper.BindPFlags(f)
 
 	rootCmd.AddCommand(newMlbCmd(args))
-	rootCmd.AddCommand(newNhlCmd(args))
 	rootCmd.AddCommand(newRunCmd(args))
 	rootCmd.AddCommand(newNcaaMCmd(args))
 	rootCmd.AddCommand(newAbbrevCmd(args))
@@ -192,11 +184,6 @@ func (r *rootArgs) setConfigDefaults() {
 			StartEnabled: atomic.NewBool(false),
 		}
 	}
-	if r.config.NHLConfig.Stats == nil {
-		r.config.NHLConfig.Stats = &statboard.Config{
-			StartEnabled: atomic.NewBool(false),
-		}
-	}
 	if r.config.NHLConfig.Headlines == nil {
 		r.config.NHLConfig.Headlines = &textboard.Config{
 			StartEnabled: atomic.NewBool(false),
@@ -204,7 +191,6 @@ func (r *rootArgs) setConfigDefaults() {
 	}
 
 	r.config.NHLConfig.SetDefaults()
-	r.config.NHLConfig.Stats.SetDefaults()
 	r.config.NHLConfig.Headlines.SetDefaults()
 
 	if r.config.ImageConfig == nil {
@@ -226,18 +212,12 @@ func (r *rootArgs) setConfigDefaults() {
 			StartEnabled: atomic.NewBool(false),
 		}
 	}
-	if r.config.MLBConfig.Stats == nil {
-		r.config.MLBConfig.Stats = &statboard.Config{
-			StartEnabled: atomic.NewBool(false),
-		}
-	}
 	if r.config.MLBConfig.Headlines == nil {
 		r.config.MLBConfig.Headlines = &textboard.Config{
 			StartEnabled: atomic.NewBool(false),
 		}
 	}
 	r.config.MLBConfig.SetDefaults()
-	r.config.MLBConfig.Stats.SetDefaults()
 	r.config.MLBConfig.Headlines.SetDefaults()
 
 	if r.config.NCAAMConfig == nil {
@@ -390,18 +370,6 @@ func (r *rootArgs) setConfigDefaults() {
 	}
 	r.config.SysConfig.SetDefaults()
 
-	if r.config.PGA == nil {
-		r.config.PGA = &statboard.Config{
-			StartEnabled: atomic.NewBool(false),
-		}
-	}
-	if r.config.PGA.UpdateInterval == "" {
-		// Set PGA to a lower update interval than the default for Statboard
-		r.config.PGA.UpdateInterval = defaultPGAUpdateInterval.String()
-	}
-	r.config.PGA.SetDefaults()
-	r.config.PGA.Teams = append(r.config.PGA.Teams, "players")
-
 	if r.config.F1Config == nil {
 		r.config.F1Config = &racingboard.Config{
 			StartEnabled: atomic.NewBool(false),
@@ -495,19 +463,6 @@ func (r *rootArgs) setConfigDefaults() {
 	}
 	r.config.LaligaConfig.SetDefaults()
 	r.config.LaligaConfig.Headlines.SetDefaults()
-
-	if r.config.XFLConfig == nil {
-		r.config.XFLConfig = &sportboard.Config{
-			StartEnabled: atomic.NewBool(false),
-		}
-	}
-	if r.config.XFLConfig.Headlines == nil {
-		r.config.XFLConfig.Headlines = &textboard.Config{
-			StartEnabled: atomic.NewBool(false),
-		}
-	}
-	r.config.XFLConfig.SetDefaults()
-	r.config.XFLConfig.Headlines.SetDefaults()
 }
 
 func (r *rootArgs) getRGBMatrix(logger *zap.Logger) (matrix.Matrix, error) {
@@ -544,28 +499,11 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 
 	var boards []board.Board
 
-	nhlAPI, err := nhl.New(ctx, logger)
-	if err != nil {
-		logger.Error("nhl setup failed", zap.Error(err))
-	}
-	mlbAPI, err := mlb.New(ctx, logger)
-	if err != nil {
-		logger.Error("mlb setup failed", zap.Error(err))
-	}
-
-	if r.config.NHLConfig != nil && nhlAPI != nil {
+	if r.config.NHLConfig != nil {
 		start := len(boards)
-		var api sportboard.API
-		if r.alternateAPI {
-			api, err = nhl.New(ctx, logger)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			api, err = espnboard.NewNHL(ctx, logger)
-			if err != nil {
-				return boards, err
-			}
+		api, err := espnboard.NewNHL(ctx, logger)
+		if err != nil {
+			return boards, err
 		}
 		l, err := espnboard.GetLeaguer("nhl")
 		if err != nil {
@@ -580,14 +518,6 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 		}
 
 		boards = append(boards, b)
-		if r.config.NHLConfig.Stats != nil {
-			b, err := statboard.New(ctx, nhlAPI, r.config.NHLConfig.Stats, logger)
-			if err != nil {
-				return nil, err
-			}
-
-			boards = append(boards, b)
-		}
 		if r.config.NHLConfig.Headlines != nil {
 			b, err := textboard.New(headlineAPI, r.config.NHLConfig.Headlines, logger, textboard.WithHalfSizeLogo())
 			if err != nil {
@@ -601,38 +531,30 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 
 	if r.config.MLBConfig != nil {
 		start := len(boards)
-		var api sportboard.API
-		var opts []sportboard.OptionFunc
-		if r.alternateAPI {
-			api, err = mlb.New(ctx, logger)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			api, err = espnboard.NewMLB(ctx, logger)
-			if err != nil {
-				return boards, err
-			}
+		api, err := espnboard.NewMLB(ctx, logger)
+		if err != nil {
+			return boards, err
+		}
 
-			m := &mlblive.MlbLive{
-				Logger: logger,
-			}
+		m := &mlblive.MlbLive{
+			Logger: logger,
+		}
 
-			if r.config.MLBConfig.LiveViewFont != nil {
-				m.FontSize = r.config.MLBConfig.LiveViewFont.Size
-			}
+		if r.config.MLBConfig.LiveViewFont != nil {
+			m.FontSize = r.config.MLBConfig.LiveViewFont.Size
+		}
 
-			opts = append(opts,
-				sportboard.WithDetailedLiveRenderer(
-					func(ctx context.Context, canvas board.Canvas, game sportboard.Game, hLogo *logo.Logo, aLogo *logo.Logo) error {
-						mlbGame, ok := game.(*espnboard.Game)
-						if !ok {
-							return fmt.Errorf("unsupported sport for detailed renderer")
-						}
-						return m.RenderLive(ctx, canvas, mlbGame, hLogo, aLogo)
-					},
-				),
-			)
+		opts := []sportboard.OptionFunc{
+			sportboard.WithDetailedLiveRenderer(
+				func(ctx context.Context, canvas board.Canvas, game sportboard.Game, hLogo *logo.Logo, aLogo *logo.Logo) error {
+					mlbGame, ok := game.(*espnboard.Game)
+					if !ok {
+						return errors.New("unsupported sport for detailed renderer")
+					}
+
+					return m.RenderLive(ctx, canvas, mlbGame, hLogo, aLogo)
+				},
+			),
 		}
 		l, err := espnboard.GetLeaguer("mlb")
 		if err != nil {
@@ -647,13 +569,6 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 		}
 
 		boards = append(boards, b)
-		if r.config.MLBConfig.Stats != nil {
-			b, err := statboard.New(ctx, mlbAPI, r.config.MLBConfig.Stats, logger)
-			if err != nil {
-				return nil, err
-			}
-			boards = append(boards, b)
-		}
 		if r.config.MLBConfig.Headlines != nil {
 			b, err := textboard.New(headlineAPI, r.config.MLBConfig.Headlines, logger, textboard.WithHalfSizeLogo())
 			if err != nil {
@@ -1033,32 +948,6 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 		r.addSection(&r.config.SysConfig, boards[start:])
 	}
 
-	if r.config.PGA != nil {
-		start := len(boards)
-		update := defaultPGAUpdateInterval
-		if r.config.PGA.UpdateInterval != "" {
-			d, err := time.ParseDuration(r.config.PGA.UpdateInterval)
-			if err == nil {
-				update = d
-			}
-		}
-		api, err := pga.New(logger, update)
-		if err != nil {
-			return nil, err
-		}
-		b, err := statboard.New(ctx, api, r.config.PGA, logger,
-			statboard.WithSorter(pga.SortByScore),
-			statboard.WithTitleRow(false),
-			statboard.WithPrefixCol(true),
-		)
-		if err != nil {
-			return nil, err
-		}
-		boards = append(boards, b)
-
-		r.addSection(&r.config.PGA, boards[start:])
-	}
-
 	if r.config.F1Config != nil {
 		start := len(boards)
 		api, err := espnracing.New(&espnracing.F1{}, logger)
@@ -1264,37 +1153,6 @@ func (r *rootArgs) getBoards(ctx context.Context, logger *zap.Logger) ([]board.B
 		}
 
 		r.addSection(&r.config.LaligaConfig, boards[start:])
-	}
-
-	if r.config.XFLConfig != nil {
-		start := len(boards)
-		api, err := espnboard.NewXFL(ctx, logger)
-		if err != nil {
-			return nil, err
-		}
-		l, err := espnboard.GetLeaguer("xfl")
-		if err != nil {
-			return nil, err
-		}
-		headlineAPI := espnboard.NewHeadlines(l, logger)
-
-		b, err := sportboard.New(ctx, api, bounds, r.todayT, logger, r.config.XFLConfig,
-			sportboard.WithLeagueLogoGetter(headlineAPI.GetLogo),
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		boards = append(boards, b)
-		if r.config.XFLConfig.Headlines != nil {
-			b, err := textboard.New(headlineAPI, r.config.XFLConfig.Headlines, logger, textboard.WithHalfSizeLogo())
-			if err != nil {
-				return nil, err
-			}
-			boards = append(boards, b)
-		}
-
-		r.addSection(&r.config.XFLConfig, boards[start:])
 	}
 
 	return boards, nil

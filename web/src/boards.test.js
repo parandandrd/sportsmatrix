@@ -6,22 +6,20 @@ import { GroupBoards, MoveSection, SubLabel } from './boards';
 const board = (name, rpcPath, section, extra = {}) =>
     DescribeBoard({ name, rpc_path: rpcPath, section, in_config_file: true, ...extra });
 
-test('GroupBoards puts a league with its stats and headlines, in the order given', () => {
+test('GroupBoards puts a league with its headlines, in the order given', () => {
     const groups = GroupBoards([
         board('Clock', '/clock/board.v1.BasicBoard/', 'clockConfig', { enabled: true }),
         board('NHL', '/nhl/sport.v1.Sport/', 'nhlConfig', { enabled: true }),
-        board('StatBoard: NHL', '/stat/nhl/board.v1.BasicBoard/', 'nhlConfig'),
         board('NHL Headlines', '/headlines/nhl/board.v1.BasicBoard/', 'nhlConfig'),
-        board('StatBoard: PGA', '/stat/pga/board.v1.BasicBoard/', 'pga'),
+        board('Weather', '/weather/board.v1.BasicBoard/', 'weatherConfig'),
         board('UEFA', '/uefa/sport.v1.Sport/', 'uefaConfig', { in_config_file: false }),
         board('UEFA Headlines', '/headlines/uefa/board.v1.BasicBoard/', 'uefaConfig', { in_config_file: false }),
     ]);
 
     expect(groups.map((g) => [g.main.name, g.subs.map(SubLabel), g.enabled, g.inConfigFile])).toEqual([
         ['Clock', [], true, true],
-        ['NHL', ['Stats', 'Headlines'], true, true],
-        // a section can be nothing but a stats board
-        ['StatBoard: PGA', [], false, true],
+        ['NHL', ['Headlines'], true, true],
+        ['Weather', [], false, true],
         ['UEFA', ['Headlines'], false, false],
     ]);
 });
@@ -38,14 +36,13 @@ test('a server that reports no sections still groups by where boards mount', () 
     // v0.0.3-beta.1, which is what the Pi runs today
     const groups = GroupBoards([
         DescribeBoard({ name: 'NHL', enabled: true, rpc_path: '/nhl/sport.v1.Sport/' }),
-        DescribeBoard({ name: 'StatBoard: NHL', rpc_path: '/stat/nhl/board.v1.BasicBoard/' }),
         DescribeBoard({ name: 'NHL Headlines', rpc_path: '/headlines/nhl/board.v1.BasicBoard/' }),
         DescribeBoard({ name: 'Img', rpc_path: '/imageboard.v1.ImageBoard/' }),
         DescribeBoard({ name: 'Clock', enabled: true, rpc_path: '/clock/board.v1.BasicBoard/' }),
     ]);
 
     expect(groups.map((g) => [g.main.name, g.subs.length, g.inConfigFile])).toEqual([
-        ['NHL', 2, true],
+        ['NHL', 1, true],
         ['Img', 0, true],
         ['Clock', 0, true],
     ]);

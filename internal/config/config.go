@@ -5,7 +5,6 @@ import (
 	imageboard "github.com/parandandrd/sportsmatrix/internal/board/image"
 	racingboard "github.com/parandandrd/sportsmatrix/internal/board/racing"
 	sportboard "github.com/parandandrd/sportsmatrix/internal/board/sport"
-	statboard "github.com/parandandrd/sportsmatrix/internal/board/stat"
 	sysboard "github.com/parandandrd/sportsmatrix/internal/board/sys"
 	tvboard "github.com/parandandrd/sportsmatrix/internal/board/tv"
 	weatherboard "github.com/parandandrd/sportsmatrix/internal/board/weather"
@@ -32,7 +31,6 @@ type Config struct {
 	ImageConfig        *imageboard.Config   `json:"imageConfig"`
 	ClockConfig        *clock.Config        `json:"clockConfig"`
 	SysConfig          *sysboard.Config     `json:"sysConfig"`
-	PGA                *statboard.Config    `json:"pga"`
 	SportsMatrixConfig *sportsmatrix.Config `json:"sportsMatrixConfig,omitempty"`
 	F1Config           *racingboard.Config  `json:"f1Config"`
 	IRLConfig          *racingboard.Config  `json:"irlConfig"`
@@ -43,5 +41,4 @@ type Config struct {
 	LigueConfig        *sportboard.Config   `json:"ligueConfig,omitempty"`
 	SerieaConfig       *sportboard.Config   `json:"serieaConfig,omitempty"`
 	LaligaConfig       *sportboard.Config   `json:"laligaConfig,omitempty"`
-	XFLConfig          *sportboard.Config   `json:"xflConfig,omitempty"`
 }

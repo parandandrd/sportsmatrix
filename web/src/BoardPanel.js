@@ -28,7 +28,7 @@ function Panel({ board, group, onChange, onError }) {
     switch (board.kind) {
         case 'sport':
             return <Sport sport={board.path} name={board.name} id={board.path}
-                stats={has('stat/')} headlines={has('headlines/')} doSync={sync} onError={onError} />;
+                headlines={has('headlines/')} doSync={sync} onError={onError} />;
         case 'racing':
             return <Racing sport={board.path} name={board.name} id={board.path} doSync={sync} onError={onError} />;
         case 'image':

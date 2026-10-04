@@ -17,7 +17,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/parandandrd/sportsmatrix/internal/board"
-	statboard "github.com/parandandrd/sportsmatrix/internal/board/stat"
 	textboard "github.com/parandandrd/sportsmatrix/internal/board/text"
 	"github.com/parandandrd/sportsmatrix/internal/enabler"
 	"github.com/parandandrd/sportsmatrix/internal/logo"
@@ -99,7 +98,6 @@ type Config struct {
 	GridPadRatio         float64           `json:"gridPadRatio"`
 	MinimumGridWidth     int               `json:"minimumGridWidth"`
 	MinimumGridHeight    int               `json:"minimumGridHeight"`
-	Stats                *statboard.Config `json:"stats"`
 	Headlines            *textboard.Config `json:"headlines"`
 	ShowNoScheduledLogo  *atomic.Bool      `json:"showNotScheduled"`
 	ScoreHighlightRepeat *int              `json:"scoreHighlightRepeat"`

@@ -33,5 +33,5 @@ cat "${ROOT}"/docs-base/* | jq -s 'reduce .[] as $item ({}; . * $item)' > "${src
 "${SED}" -i 's,/twirp/imageboard,/imageboard,g' "${src}"
 "${SED}" -i 's,/twirp/sport.v1,/nhl/sport.v1,g' "${src}"
 "${SED}" -i 's,/twirp/weather,/weather,g' "${src}"
-"${SED}" -i 's/"BasicBoard"/"BasicBoard - includes stocks, pga, clock, sys"/g' "${src}"
+"${SED}" -i 's/"BasicBoard"/"BasicBoard - includes clock, sys, headlines, weather"/g' "${src}"
 "${SED}" -i 's/"Sport"/"Sport - nhl, mlb, nfl, ncaaf, ncaam, epl, mls, nba, ncaaw, wnba, ligue, seriea, laliga"/g' "${src}"

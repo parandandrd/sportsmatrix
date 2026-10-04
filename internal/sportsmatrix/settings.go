@@ -48,7 +48,8 @@ func (s *SportsMatrix) boardKey(b board.Board) []string {
 		return []string{section}
 	}
 
-	// PGA's stats board is the whole of its section, not a part of a league's
+	// A sub-board is only a part of its section when the section has a main
+	// board as well.
 	for other, otherSection := range sections {
 		if other != b && otherSection == section && subKey(other) == "" {
 			return []string{section, sub}
@@ -61,8 +62,6 @@ func (s *SportsMatrix) boardKey(b board.Board) []string {
 func subKey(b board.Board) string {
 	path, _ := b.GetRPCHandler()
 	switch {
-	case strings.HasPrefix(path, "/stat/"):
-		return "stats"
 	case strings.HasPrefix(path, "/headlines/"):
 		return "headlines"
 	case strings.HasPrefix(path, "/forecast/"):

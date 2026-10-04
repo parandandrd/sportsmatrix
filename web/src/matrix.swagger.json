@@ -19,7 +19,7 @@
     "/stocks/board.v1.BasicBoard/GetStatus": {
       "post": {
         "tags": [
-          "BasicBoard - includes stocks, pga, clock, sys"
+          "BasicBoard - includes clock, sys, headlines, weather"
         ],
         "operationId": "GetStatus",
         "parameters": [
@@ -45,7 +45,7 @@
     "/stocks/board.v1.BasicBoard/SetStatus": {
       "post": {
         "tags": [
-          "BasicBoard - includes stocks, pga, clock, sys"
+          "BasicBoard - includes clock, sys, headlines, weather"
         ],
         "operationId": "SetStatus",
         "parameters": [

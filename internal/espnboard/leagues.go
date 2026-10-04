@@ -47,8 +47,6 @@ func GetLeaguer(league string) (Leaguer, error) {
 		return &seriea{}, nil
 	case "laliga":
 		return &laliga{}, nil
-	case "xfl":
-		return &xfl{}, nil
 	case "nwsl":
 		return &nwsl{}, nil
 	}
@@ -702,38 +700,4 @@ func (n *laliga) HomeSideSwap() bool {
 }
 
 func (n *laliga) SetScoreboardQuery(v url.Values) {
-}
-
-type xfl struct{}
-
-func (n *xfl) League() string {
-	return "XFL"
-}
-
-func (n *xfl) APIPath() string {
-	return "football/xfl"
-}
-
-func (n *xfl) TeamEndpoints() []string {
-	return []string{filepath.Join(n.APIPath(), "teams")}
-}
-
-func (n *xfl) HTTPPathPrefix() string {
-	return "xfl"
-}
-
-func (n *xfl) HeadlinePath() string {
-	return "football/xfl/news"
-}
-
-func (n *xfl) HomeSideSwap() bool {
-	return false
-}
-
-func (n *xfl) SetScoreboardQuery(v url.Values) {
-}
-
-// NewXFL ...
-func NewXFL(ctx context.Context, logger *zap.Logger) (*ESPNBoard, error) {
-	return New(ctx, &xfl{}, logger, defaultRankSetter, defaultRankSetter)
 }

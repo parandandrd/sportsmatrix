@@ -60,9 +60,7 @@ with, endorsed by, or supported by ESPN or any league.
   - NCAAM Basketball
   - NCAAW Basketball
   - NBA
-  - PGA Tour
   - WNBA
-  - XFL
   - Soccer Leagues:
     - Spanish Laliga
     - FIFA World Cup
@@ -266,15 +264,6 @@ MLB
 
 STOCK TICKER
 ![Stock Ticker](assets/images/stock_ticker.jpg)
-
-PGA Tour Leaderboard
-![PGA Board](assets/images/pga.jpeg)
-
-NHL Stats
-![NHL Stats](assets/images/nhl_stats.jpg)
-
-MLB Stats
-![MLB Stats](assets/images/mlb_stats.jpg)
 
 In real life, this is a GIF of Mario running. This is using the Image Board.
 ![image example](assets/images/mario_board.jpg)

@@ -21,7 +21,6 @@ curl "${b}/soccer/ita.1/teams?limit=1000" > "${ROOT}/internal/espnboard/assets/i
 curl "${b}/soccer/esp.1/teams?limit=1000" > "${ROOT}/internal/espnboard/assets/esp_teams.json"
 curl "${b}/soccer/ger.1/teams?limit=1000" > "${ROOT}/internal/espnboard/assets/dfl_teams.json"
 curl "${b}/soccer/ger.dfb_pokal/teams?limit=1000" > "${ROOT}/internal/espnboard/assets/dfb_teams.json"
-curl "${b}/football/xfl/teams?limit=1000" > "${ROOT}/internal/espnboard/assets/xfl_teams.json"
 
 for sport in $(echo "${ROOT}/internal/espnboard/assets/*teams.json"); do
     league="$(cat "${sport}" | jq -r .sports[].leagues[0].name)"

@@ -35,9 +35,7 @@ class Sport extends React.Component {
         var status = new Status();
         this.state = {
             "status": status,
-            "stats": new basicboard_pb.Status(),
             "headlines": new basicboard_pb.Status(),
-            "has_stats": false,
         };
         if (this.props.sport === "nhl") {
             console.log("Sport created ", this.props.sport, this.state.status)
@@ -56,29 +54,22 @@ class Sport extends React.Component {
             }
             throw resp;
         });
-        // stats and headlines are false when this league is known not to have
-        // those boards, and undefined when nobody said
+        // headlines is false when this league is known not to have that board,
+        // and undefined when nobody said
         const maybe = (present, path) => (present === false
             ? Promise.reject(new Error("no such board"))
             : fetchStatus(path));
 
-        // Three services with nothing to wait on each other for. These went one
-        // after another, a round trip to the Pi apiece.
-        const [sport, stats, headlines] = await Promise.allSettled([
+        // Two services with nothing to wait on each other for, fetched together
+        // rather than a round trip to the Pi apiece.
+        const [sport, headlines] = await Promise.allSettled([
             fetchStatus(this.props.sport + "/sport.v1.Sport/GetStatus"),
-            maybe(this.props.stats, "stat/" + this.props.sport + "/board.v1.BasicBoard/GetStatus"),
             maybe(this.props.headlines, "headlines/" + this.props.sport + "/board.v1.BasicBoard/GetStatus"),
         ]);
 
         const next = {};
         if (sport.status === "fulfilled") {
             next.status = jsonToStatus(sport.value);
-        }
-        try {
-            next.stats = JSONToStatus(stats.value);
-            next.has_stats = true;
-        } catch (e) {
-            next.has_stats = false;
         }
         try {
             next.headlines = JSONToStatus(headlines.value);
@@ -94,12 +85,6 @@ class Sport extends React.Component {
             var req = new SetStatusReq();
             req.setStatus(this.state.status);
             await CallRPC(this.props.sport + "/sport.v1.Sport/SetStatus", req.toObject());
-
-            if (this.state.has_stats) {
-                var sreq = new basicboard_pb.SetStatusReq();
-                sreq.setStatus(this.state.stats);
-                await CallRPC("stat/" + this.props.sport + "/board.v1.BasicBoard/SetStatus", sreq.toObject());
-            }
 
             if (this.state.has_headlines) {
                 var hreq = new basicboard_pb.SetStatusReq();
@@ -137,12 +122,6 @@ class Sport extends React.Component {
                     <Col>
                         <Form.Switch id={this.props.sport + "enabler"} label="Enable/Disable" checked={this.state.status.getEnabled()}
                             onChange={() => { this.state.status.setEnabled(!this.state.status.getEnabled()); this.updateStatus(); }} />
-                    </Col>
-                </Row>
-                <Row className="text-left">
-                    <Col>
-                        <Form.Switch id={this.props.sport + "stats"} label="Stats" checked={this.state.stats.getEnabled()} disabled={!this.state.has_stats}
-                            onChange={() => { this.state.stats.setEnabled(!this.state.stats.getEnabled()); this.updateStatus(); }} />
                     </Col>
                 </Row>
                 <Row className="text-left">

@@ -177,7 +177,7 @@ Not verified on the Pi: anything only a person looking at it can see -- the
 panel dimming, and the dashboard and `/board` in a browser, full screen
 included.
 
-Not verified end to end: the sport, stat and racing boards' live data paths.
+Not verified end to end: the sport and racing boards' live data paths.
 ESPN's API is reachable from the Pi but was blocked from the sandbox these
 changes were written in, so those paths have only ever been exercised against
 fixtures.

@@ -10,7 +10,6 @@ import dfllogo from './dfl.png';
 import dfblogo from './dfb.png';
 import clock from './clock.png';
 import stocks from './stock.png';
-import pga from './pga.png';
 import sys from './server.png';
 import weather from './weather.png';
 import imgimg from './image.png';
@@ -23,7 +22,6 @@ import wnbalogo from './wnba.png';
 import liguelogo from './ligue.png';
 import seriealogo from './seriea.png';
 import laligalogo from './laliga.png';
-import xfllogo from './xfl.png';
 import nwsllogo from './nwsl.png';
 import tvlogo from './tv.png';
 
@@ -48,8 +46,6 @@ export function LogoSrc(sport) {
         return dfllogo
     } else if (sport === "dfb") {
         return dfblogo
-    } else if (sport === "pga") {
-        return pga
     } else if (sport === "clock") {
         return clock
     } else if (sport === "stocks") {
@@ -78,8 +74,6 @@ export function LogoSrc(sport) {
         return seriealogo
     } else if (sport === "laliga") {
         return laligalogo
-    } else if (sport === "xfl") {
-        return xfllogo
     } else if (sport === "nwsl") {
         return nwsllogo
     } else if (sport === "tv") {

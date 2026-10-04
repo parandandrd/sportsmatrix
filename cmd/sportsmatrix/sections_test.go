@@ -19,11 +19,11 @@ clockConfig:
 nhlConfig:
   headlines:
     enabled: false
-pga:
+f1Config:
   enabled: false
 `))
 	require.NoError(t, err)
-	require.Equal(t, []string{"clockConfig", "nhlConfig", "pga"}, keys)
+	require.Equal(t, []string{"clockConfig", "nhlConfig", "f1Config"}, keys)
 
 	keys, err = configSections(nil)
 	require.NoError(t, err)
@@ -50,7 +50,7 @@ func TestConfigKey(t *testing.T) {
 	c := &config.Config{}
 
 	require.Equal(t, "nhlConfig", configKey(c, &c.NHLConfig))
-	require.Equal(t, "pga", configKey(c, &c.PGA))
+	require.Equal(t, "f1Config", configKey(c, &c.F1Config))
 
 	// a field of some other Config is not one of this one's sections
 	other := &config.Config{}

@@ -10,9 +10,6 @@ test('DescribeBoard reads kind and path out of the rpc path', () => {
     expect(DescribeBoard({ name: 'NHL Headlines', rpc_path: '/headlines/nhl/board.v1.BasicBoard/' }))
         .toMatchObject({ kind: 'basic', path: 'headlines/nhl' });
 
-    expect(DescribeBoard({ name: 'StatBoard: NHL', rpc_path: '/stat/nhl/board.v1.BasicBoard/' }))
-        .toMatchObject({ kind: 'basic', path: 'stat/nhl' });
-
     expect(DescribeBoard({ name: 'f1', rpc_path: '/f1/racing.v1.Racing/' }))
         .toMatchObject({ kind: 'racing', path: 'f1' });
 

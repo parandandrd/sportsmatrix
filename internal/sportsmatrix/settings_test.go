@@ -27,7 +27,6 @@ import (
 	imageboard "github.com/parandandrd/sportsmatrix/internal/board/image"
 	racingboard "github.com/parandandrd/sportsmatrix/internal/board/racing"
 	sportboard "github.com/parandandrd/sportsmatrix/internal/board/sport"
-	statboard "github.com/parandandrd/sportsmatrix/internal/board/stat"
 	sysboard "github.com/parandandrd/sportsmatrix/internal/board/sys"
 	textboard "github.com/parandandrd/sportsmatrix/internal/board/text"
 	"github.com/parandandrd/sportsmatrix/internal/conffile"
@@ -60,9 +59,8 @@ func TestBoardKey(t *testing.T) {
 	}
 
 	nhl := mk("NHL", "/nhl/sport.v1.Sport/")
-	nhlStats := mk("StatBoard: NHL", "/stat/nhl/board.v1.BasicBoard/")
 	nhlHeadlines := mk("NHL Headlines", "/headlines/nhl/board.v1.BasicBoard/")
-	pga := mk("StatBoard: PGA", "/stat/pga/board.v1.BasicBoard/")
+	lone := mk("Lone Headlines", "/headlines/lone/board.v1.BasicBoard/")
 	clockBoard := mk("Clock", "/clock/board.v1.BasicBoard/")
 	current := mk("Current Conditions", "/weather/board.v1.BasicBoard/")
 	forecast := mk("Forecast", "/forecast/weather/board.v1.BasicBoard/")
@@ -70,16 +68,15 @@ func TestBoardKey(t *testing.T) {
 
 	s := &SportsMatrix{}
 	s.SetBoardSections(map[board.Board]string{
-		nhl: "nhlConfig", nhlStats: "nhlConfig", nhlHeadlines: "nhlConfig",
-		pga: "pga", clockBoard: "clockConfig",
+		nhl: "nhlConfig", nhlHeadlines: "nhlConfig",
+		lone: "loneConfig", clockBoard: "clockConfig",
 		current: "weatherConfig", forecast: "weatherConfig",
 	}, nil)
 
 	require.Equal(t, []string{"nhlConfig"}, s.boardKey(nhl))
-	require.Equal(t, []string{"nhlConfig", "stats"}, s.boardKey(nhlStats))
 	require.Equal(t, []string{"nhlConfig", "headlines"}, s.boardKey(nhlHeadlines))
-	// PGA's stats board is its whole section, not a part of a league's
-	require.Equal(t, []string{"pga"}, s.boardKey(pga))
+	// A sub-board alone in its section is the whole section
+	require.Equal(t, []string{"loneConfig"}, s.boardKey(lone))
 	require.Equal(t, []string{"clockConfig"}, s.boardKey(clockBoard))
 	require.Equal(t, []string{"weatherConfig"}, s.boardKey(current))
 	require.Equal(t, []string{"weatherConfig", "forecast"}, s.boardKey(forecast))
@@ -103,7 +100,7 @@ func TestStatusSettingsAreConfigKeys(t *testing.T) {
 
 	configs := map[string][]any{
 		"sport.v1.Sport":           {sportboard.Config{}},
-		"board.v1.BasicBoard":      {clock.Config{}, sysboard.Config{}, textboard.Config{}, statboard.Config{}},
+		"board.v1.BasicBoard":      {clock.Config{}, sysboard.Config{}, textboard.Config{}},
 		"racing.v1.Racing":         {racingboard.Config{}},
 		"imageboard.v1.ImageBoard": {imageboard.Config{}},
 	}

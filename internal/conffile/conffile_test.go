@@ -87,7 +87,7 @@ func TestApplyNestedKeepsQuotes(t *testing.T) {
 
 	after := read(t, path)
 	nhl := after[strings.Index(after, "nhlConfig:"):]
-	require.Contains(t, nhl[:strings.Index(nhl, "stats:")], "  headlines:\n    enabled: true\n")
+	require.Contains(t, nhl[:strings.Index(nhl, "\nmlbConfig:")], "  headlines:\n    enabled: true\n")
 }
 
 func TestApplyLists(t *testing.T) {
@@ -202,7 +202,7 @@ func TestOrderMovesSectionsWithTheirHeadings(t *testing.T) {
 	// the three trade the places they had, first, second and third among
 	// themselves; everything else is where it was
 	require.Equal(t, []string{"sportsMatrixConfig", "nhlConfig", "sysConfig", "ncaafConfig", "serieaConfig"}, keys[:5])
-	require.Equal(t, "clockConfig", keys[22])
+	require.Equal(t, "clockConfig", keys[21])
 
 	after := read(t, path)
 	require.True(t, strings.HasPrefix(after, "---\n# This config file is in YAML format, which means indention matters.\n\n# Main matrix config\nsportsMatrixConfig:\n"))
@@ -226,7 +226,7 @@ func TestOrderAlreadyInOrderWritesNothing(t *testing.T) {
 	t.Parallel()
 	f, path, before := example(t)
 
-	ok, err := f.Order([]string{"clockConfig", "nhlConfig", "xflConfig"})
+	ok, err := f.Order([]string{"clockConfig", "nhlConfig", "tvConfig"})
 	require.NoError(t, err)
 	require.False(t, ok)
 	require.Equal(t, string(before), read(t, path))

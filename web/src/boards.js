@@ -60,20 +60,17 @@ export function useBoards() {
 
 // sectionOf is the config file section a board belongs to. A server that does
 // not report sections still says where each board mounts its service, and a
-// league's stats and headlines boards mount under the league's own slug.
+// league's headlines board mounts under the league's own slug.
 function sectionOf(board) {
     if (board.section) {
         return board.section;
     }
-    const slug = board.path.replace(/^(stat|headlines)\//, '');
+    const slug = board.path.replace(/^headlines\//, '');
     return slug ? `slug:${slug}` : `name:${board.name}`;
 }
 
 // SubLabel names a board within its group: what it adds to the league.
 export function SubLabel(board) {
-    if (board.path.startsWith('stat/')) {
-        return 'Stats';
-    }
     if (board.path.startsWith('headlines/')) {
         return 'Headlines';
     }
@@ -81,7 +78,7 @@ export function SubLabel(board) {
 }
 
 // GroupBoards gathers boards into the config file sections they are built
-// from -- a league with its stats and headlines -- keeping the order ListBoards
+// from -- a league with its headlines -- keeping the order ListBoards
 // gives, which is the config file's. The first board of a section is its main
 // one; ListBoards lists a league's own board ahead of the rest.
 export function GroupBoards(boards) {

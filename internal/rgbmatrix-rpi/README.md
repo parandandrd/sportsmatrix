@@ -9,6 +9,27 @@ The [`Canvas`](https://godoc.org/github.com/fcjr/rgbmatrix-rpi#Canvas) struct im
 
 To learn about the configuration and the wiring go to the [original library](https://github.com/hzeller/rpi-rgb-led-matrix), is highly detailed and well explained. 
 
+Vendored C library
+------------------
+
+`lib/rpi-rgb-led-matrix.BASE` is hzeller/rpi-rgb-led-matrix at
+[`51d3231`](https://github.com/hzeller/rpi-rgb-led-matrix/tree/51d3231) (2026-09-07),
+without its `.github` and `.gitignore`. One local change, in `config.mk`, each
+marked `sportsmatrix:` there:
+
+- `CPU_ARCH_FLAGS` is empty. Upstream builds natively with `-march=native`, and
+  the arm64 `.deb` is built on a GitHub runner whose core is far newer than the
+  Pi 3's and Zero 2 W's Cortex-A53.
+- `LTO_FLAGS` is empty, so `librgbmatrix.a` holds plain object code for cgo to
+  link, as before the update.
+
+To update it: replace the directory with a newer upstream tree, put those two
+lines back, and check `include/led-matrix-c.h` for new fields in
+`RGBLedMatrixOptions` and `RGBLedRuntimeOptions`. The library copies only the
+fields that are non-zero, so a new one left zero by `toC()` gets the library's
+default -- which is how `disable_busy_waiting` would have turned busy waiting
+back on.
+
 Installation
 ------------
 

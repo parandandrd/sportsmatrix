@@ -26,3 +26,14 @@ func TestNewRGBLedMatrixRefused(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, m)
 }
+
+// The library busy-waits out a limited refresh rate unless told otherwise,
+// and a field left zero in the C options means "library default".
+func TestOptionsSleepInsteadOfBusyWaiting(t *testing.T) {
+	t.Parallel()
+
+	cfg := DefaultConfig
+	cfg.LimitRefreshRateHz = 120
+
+	require.True(t, bool(cfg.toC().disable_busy_waiting))
+}

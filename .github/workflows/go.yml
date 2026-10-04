@@ -19,13 +19,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
 
     # Lint, test and the amd64 build all run directly on the runner now. They
     # used to run inside images pulled from a Docker Hub namespace this repo
     # cannot publish to, which meant editing a Dockerfile broke CI with no way
     # to build a replacement.
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v7
       with:
         go-version-file: go.mod
         # Without this a runner with any 1.x.y cached uses it, not the
@@ -44,7 +44,7 @@ jobs:
     - name: Test
       run: ./script/test
 
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v7
       with:
         node-version-file: '.nvmrc'
         cache: 'npm'
@@ -74,7 +74,7 @@ jobs:
     # without cutting a release for it.
     runs-on: ubuntu-24.04-arm
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
       with:
         # The branch head rather than the merge commit a pull_request run checks
         # out by default, so the version names a commit that exists. All of
@@ -82,7 +82,7 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 0
 
-    - uses: actions/setup-go@v5
+    - uses: actions/setup-go@v7
       with:
         go-version-file: go.mod
         # Without this a runner with any 1.x.y cached uses it, not the
@@ -90,7 +90,7 @@ jobs:
         check-latest: true
         cache-dependency-path: go.sum
 
-    - uses: actions/setup-node@v4
+    - uses: actions/setup-node@v7
       with:
         node-version-file: '.nvmrc'
         cache: 'npm'
@@ -110,7 +110,7 @@ jobs:
         VERSION="$(git describe --tags --match 'v*')"
         BUILDARCH=aarch64 DEB_BUILD=yes VERSION="${VERSION#v}" ./script/build
 
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v7
       with:
         name: sportsmatrix-arm64-deb
         path: "*.deb"

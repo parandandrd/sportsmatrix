@@ -9,9 +9,9 @@ GPIO 4<->18 anti-flicker mod, 64x32 panel, running Debian Trixie. 64-bit only.
 A second build is a Pi Zero 2 W with an Adafruit RGB Matrix Bonnet, also with
 the 4<->18 wire; the library's model table puts the Zero 2 W (revision type
 `0x12`) in `PI_MODEL_2`, which maps the same peripheral base as the Pi 3.
-The Pi 5 is not supported -- the vendored matrix library's model table stops at
-`PI_MODEL_4` and a Pi 5 falls through to the Pi 3 branch and maps the wrong
-peripheral base.
+The Pi 5 has never been tried. The vendored matrix library knows it since the
+2026-10 update (`PI_MODEL_5`, driven through the RP1 chip), but nothing here
+has been run on one.
 
 ## Running the checks
 

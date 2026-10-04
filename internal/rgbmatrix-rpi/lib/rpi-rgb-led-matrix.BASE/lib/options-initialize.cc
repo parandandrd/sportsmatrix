@@ -37,9 +37,12 @@ RuntimeOptions::RuntimeOptions() :
 #else
   gpio_slowdown(GPIO::IsPi4() ? 2 : 1),
 #endif
+  rp1_pio(0),
   daemon(0),            // Don't become a daemon by default.
   drop_privileges(1),   // Encourage good practice: drop privileges by default.
-  do_gpio_init(true)
+  do_gpio_init(true),
+  drop_priv_user("daemon"),
+  drop_priv_group("daemon")
 {
   // Nothing to see here.
 }
@@ -207,6 +210,12 @@ static bool FlagInit(int &argc, char **&argv,
         continue;
       }
 
+      bool allow_busy_waiting = !mopts->disable_busy_waiting;
+      if (ConsumeBoolFlag("busy-waiting", it, &allow_busy_waiting)) {
+        mopts->disable_busy_waiting = !allow_busy_waiting;
+        continue;
+      }
+
       bool request_help = false;
       if (ConsumeBoolFlag("help", it, &request_help) && request_help) {
         // In that case, we pretend to have failure in parsing, which will
@@ -217,6 +226,16 @@ static bool FlagInit(int &argc, char **&argv,
       //-- Runtime options.
       if (ConsumeIntFlag("slowdown-gpio", it, end, &ropts->gpio_slowdown, &err))
         continue;
+      const int err_before_rp1_pio = err;
+      if (ConsumeIntFlag("rp1-pio", it, end, &ropts->rp1_pio, &err)) {
+        if (err == err_before_rp1_pio
+            && ropts->rp1_pio != 0 && ropts->rp1_pio != 1) {
+          fprintf(stderr, "%s%s=%d is outside usable range 0..1\n",
+                  OPTION_PREFIX, "rp1-pio", ropts->rp1_pio);
+          ++err;
+        }
+        continue;
+      }
       if (ropts->daemon >= 0 && ConsumeBoolFlag("daemon", it, &bool_scratch)) {
         ropts->daemon = bool_scratch ? 1 : 0;
         continue;
@@ -226,6 +245,15 @@ static bool FlagInit(int &argc, char **&argv,
         ropts->drop_privileges = bool_scratch ? 1 : 0;
         continue;
       }
+      if (ConsumeStringFlag("drop-priv-user", it, end,
+                            &ropts->drop_priv_user, &err)) {
+        continue;
+      }
+      if (ConsumeStringFlag("drop-priv-group", it, end,
+                            &ropts->drop_priv_group, &err)) {
+        continue;
+      }
+
       if (strncmp(*it, OPTION_PREFIX, OPTION_PREFIX_LEN) == 0) {
         fprintf(stderr, "Option %s starts with %s but it is unknown. Typo?\n",
                 *it, OPTION_PREFIX);
@@ -313,7 +341,7 @@ void PrintMatrixFlags(FILE *out, const RGBMatrix::Options &d,
           "\t--led-brightness=<percent>: Brightness in percent (Default: %d).\n"
           "\t--led-scan-mode=<0..1>    : 0 = progressive; 1 = interlaced "
           "(Default: %d).\n"
-          "\t--led-row-addr-type=<0..4>: 0 = default; 1 = AB-addressed panels; 2 = direct row select; 3 = ABC-addressed panels; 4 = ABC Shift + DE direct "
+          "\t--led-row-addr-type=<0..5>: 0 = default; 1 = AB-addressed panels; 2 = direct row select; 3 = ABC-addressed panels; 4 = ABC Shift + DE direct; 5 = ABC direct "
           "(Default: 0).\n"
           "\t--led-%sshow-refresh        : %show refresh rate.\n"
           "\t--led-limit-refresh=<Hz>  : Limit refresh rate to this frequency in Hz. Useful to keep a\n"
@@ -327,7 +355,8 @@ void PrintMatrixFlags(FILE *out, const RGBMatrix::Options &d,
           "\t--led-pwm-dither-bits=<0..2> : Time dithering of lower bits "
           "(Default: 0)\n"
           "\t--led-%shardware-pulse   : %sse hardware pin-pulse generation.\n"
-          "\t--led-panel-type=<name>   : Needed to initialize special panels. Supported: 'FM6126A', 'FM6127'\n",
+          "\t--led-panel-type=<name>   : Needed to initialize special panels. Supported: 'FM6126A', 'FM6127'\n"
+          "\t--led-%sbusy-waiting     : %sse busy waiting when limiting refresh rate.\n",
           d.hardware_mapping,
           d.rows, d.cols, d.chain_length, d.parallel,
           (int) muxers.size(), CreateAvailableMultiplexString(muxers).c_str(),
@@ -339,11 +368,22 @@ void PrintMatrixFlags(FILE *out, const RGBMatrix::Options &d,
           d.inverse_colors ? "no-" : "",    d.inverse_colors ? "off" : "on",
           d.pwm_lsb_nanoseconds,
           !d.disable_hardware_pulsing ? "no-" : "",
-          !d.disable_hardware_pulsing ? "Don't u" : "U");
+          !d.disable_hardware_pulsing ? "Don't u" : "U",
+          !d.disable_busy_waiting ? "no-" : "",
+          !d.disable_busy_waiting ? "Don't u" : "U");
 
-  fprintf(out, "\t--led-slowdown-gpio=<0..4>: "
+  fprintf(out,
+          "\t--led-slowdown-gpio=<%d..60>: "
           "Slowdown GPIO. Needed for faster Pis/slower panels "
-          "(Default: %d (2 on Pi4, 1 other)).\n", r.gpio_slowdown);
+          "(Default: %d (2 on Pi4, 1 other)%s).\n",
+          (LED_MATRIX_ALLOW_BARRIER_DELAY ? -1 : 0), r.gpio_slowdown,
+          LED_MATRIX_ALLOW_BARRIER_DELAY ? "Use -1 for memory barrier approach"
+                                         : "");
+  fprintf(out,
+          "\t--led-rp1-pio=<0|1>       : On Raspberry Pi 5-family boards, force the "
+          "RP1 PIO backend.\n"
+          "\t                            0=default RP1 RIO, 1=PIO (Default: %d).\n",
+          r.rp1_pio);
   if (r.daemon >= 0) {
     const bool on = (r.daemon > 0);
     fprintf(out,
@@ -357,6 +397,12 @@ void PrintMatrixFlags(FILE *out, const RGBMatrix::Options &d,
             "\t--led-%sdrop-privs       : %srop privileges from 'root' "
             "after initializing the hardware.\n",
             on ? "no-" : "", on ? "Don't d" : "D");
+    fprintf(out, "\t--led-drop-priv-user      : "
+            "Drop privileges to this username or UID (Default: '%s')\n",
+            r.drop_priv_user);
+    fprintf(out, "\t--led-drop-priv-group     : "
+            "Drop privileges to this groupname or GID (Default: '%s')\n",
+            r.drop_priv_group);
   }
 }
 
@@ -371,7 +417,7 @@ bool RGBMatrix::Options::Validate(std::string *err_in) const {
   }
 
   if (cols < 16) {
-    err->append("Invlid number of columns for panel (--led-cols). "
+    err->append("Invalid number of columns for panel (--led-cols). "
                 "Typically that is something like 32 or 64\n");
     success = false;
   }
@@ -389,8 +435,8 @@ bool RGBMatrix::Options::Validate(std::string *err_in) const {
     success = false;
   }
 
-  if (row_address_type < 0 || row_address_type > 4) {
-    err->append("Row address type values can be 0 (default), 1 (AB addressing), 2 (direct row select), 3 (ABC address), 4 (ABC Shift + DE direct).\n");
+  if (row_address_type < 0 || row_address_type > 5) {
+    err->append("Row address type values can be 0 (default), 1 (AB addressing), 2 (direct row select), 3 (ABC address), 4 (ABC Shift + DE direct), 5 (Test row select).\n");
     success = false;
   }
 
@@ -433,7 +479,7 @@ bool RGBMatrix::Options::Validate(std::string *err_in) const {
   }
 
   if (pwm_dither_bits < 0 || pwm_dither_bits > 2) {
-    err->append("Inavlid range of pwm-dither-bits (0..2 allowed).\n");
+    err->append("Invalid range of pwm-dither-bits (0..2 allowed).\n");
     success = false;
   }
 

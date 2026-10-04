@@ -99,7 +99,8 @@ with, endorsed by, or supported by ESPN or any league.
 
 64-bit (`arm64`) only: a Pi 3, 4, or Zero 2 W running the 64-bit Raspberry Pi OS.
 
-The Pi 5 is not supported -- the matrix library does not drive its GPIO.
+The Pi 5 is untested. The matrix library has supported it since late 2026, but
+this project has not been run on one.
 
 Check what your Pi is running:
 

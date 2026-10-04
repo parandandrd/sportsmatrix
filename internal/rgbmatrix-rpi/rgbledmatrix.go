@@ -186,6 +186,11 @@ func (c *HardwareConfig) toC() *C.struct_RGBLedMatrixOptions {
 	o.limit_refresh_rate_hz = C.int(c.LimitRefreshRateHz)
 	o.row_address_type = C.int(c.RowAddrType)
 	o.multiplexing = C.int(c.Multiplexing)
+	// With limitRefreshRateHz set, the refresh thread waits out the rest of
+	// each frame. The library spins for it unless told otherwise, which on the
+	// Pi 3 at 120Hz took core 3 from 67% to 83%; sleeping costs a little frame
+	// timing accuracy instead.
+	o.disable_busy_waiting = C.bool(true)
 
 	if c.PanelType != "" {
 		o.panel_type = C.CString(c.PanelType)

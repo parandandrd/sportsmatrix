@@ -19,7 +19,7 @@ has been run on one.
 ./script/lint     # golangci-lint over the tree
 ./script/test     # builds the C library, then go test ./...
 ./script/build    # native if BUILDARCH matches the host, else a cross container
-cd web && npm ci --legacy-peer-deps && npm test && npm run build
+cd web && npm ci && npm test && npm run build
 ```
 
 Things that will waste your time if you don't know them:
@@ -44,9 +44,11 @@ Things that will waste your time if you don't know them:
   `internal/sportsmatrix/assets/web/` to exist with at least one file in it, or
   the package will not compile. `go:embed` ignores dotfiles, so a `.keep` does
   not work -- `script/test` and `script/build` drop a `placeholder` in.
-- **`npm ci` needs `--legacy-peer-deps`.** swagger-ui depends on
-  react-debounce-input and react-inspector, whose peer ranges stop at react 18
-  while the project is on react 19. (swagger-ui-react 5.33 itself allows 19.)
+- **npm prints `ERESOLVE overriding peer dependency` warnings; they are
+  expected.** swagger-ui depends on react-debounce-input and react-inspector,
+  whose peer ranges stop at react 18 while the project is on react 19. npm
+  warns and installs. `--legacy-peer-deps` is no longer needed: it was
+  react-scripts' peers, never in the lockfile, that made a plain `npm ci` fail.
 - **The web UI is built with Vite into `web/build/`, its hashed files under
   `static/`** (`build.assetsDir` in `web/vite.config.js`). The Go side
   (`internal/sportsmatrix/webui.go`) serves everything under `static/` with a

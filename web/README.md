@@ -4,7 +4,7 @@ The React app the Go binary embeds and serves. It is built with
 [Vite](https://vite.dev) and tested with [Vitest](https://vitest.dev).
 
 ```bash
-npm ci --legacy-peer-deps   # see CLAUDE.md for why the flag
+npm ci                      # ERESOLVE peer warnings are expected, see CLAUDE.md
 npm test                    # vitest, once; `npx vitest` watches
 npm run build               # into build/, which script/build embeds
 npm start                   # dev server

@@ -15,11 +15,11 @@ test('FullscreenElement reads either API', () => {
 });
 
 test('EnterFullscreen prefers the standard call, and always gives a promise', async () => {
-    const standard = { requestFullscreen: jest.fn(async () => 'standard'), webkitRequestFullscreen: jest.fn() };
+    const standard = { requestFullscreen: vi.fn(async () => 'standard'), webkitRequestFullscreen: vi.fn() };
     await expect(EnterFullscreen(standard)).resolves.toBe('standard');
     expect(standard.webkitRequestFullscreen).not.toHaveBeenCalled();
 
-    const safari = { webkitRequestFullscreen: jest.fn(() => undefined) };
+    const safari = { webkitRequestFullscreen: vi.fn(() => undefined) };
     await expect(EnterFullscreen(safari)).resolves.toBeUndefined();
     expect(safari.webkitRequestFullscreen).toHaveBeenCalled();
 
@@ -27,10 +27,10 @@ test('EnterFullscreen prefers the standard call, and always gives a promise', as
 });
 
 test('ExitFullscreen uses whichever the browser has', async () => {
-    const standard = { exitFullscreen: jest.fn(async () => 'left') };
+    const standard = { exitFullscreen: vi.fn(async () => 'left') };
     await expect(ExitFullscreen(standard)).resolves.toBe('left');
 
-    const safari = { webkitExitFullscreen: jest.fn() };
+    const safari = { webkitExitFullscreen: vi.fn() };
     await ExitFullscreen(safari);
     expect(safari.webkitExitFullscreen).toHaveBeenCalled();
 

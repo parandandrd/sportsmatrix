@@ -10,7 +10,7 @@ afterEach(() => {
 // SetStatus body.
 function fakeBoards(statuses) {
     const sets = [];
-    global.fetch = jest.fn(async (url, opts) => {
+    global.fetch = vi.fn(async (url, opts) => {
         const path = url.replace(/^http:\/\/[^/]*\//, '');
         let body = '{}';
         if (path.endsWith('/GetStatus')) {

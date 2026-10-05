@@ -1,9 +1,9 @@
 import React from 'react';
-import Sport from './Sport.js';
-import Racing from './Racing.js';
-import ImageBoard from './ImageBoard.js';
-import BasicBoard from './BasicBoard.js';
-import BoardSettings from './BoardSettings.js';
+import Sport from './Sport.jsx';
+import Racing from './Racing.jsx';
+import ImageBoard from './ImageBoard.jsx';
+import BasicBoard from './BasicBoard.jsx';
+import BoardSettings from './BoardSettings.jsx';
 
 // BoardPanel renders the settings for one board. Which component to use comes
 // from the board's own RPC path, reported by ListBoards, so nothing here has to

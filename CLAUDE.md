@@ -44,8 +44,9 @@ Things that will waste your time if you don't know them:
   `internal/sportsmatrix/assets/web/` to exist with at least one file in it, or
   the package will not compile. `go:embed` ignores dotfiles, so a `.keep` does
   not work -- `script/test` and `script/build` drop a `placeholder` in.
-- **`npm ci` needs `--legacy-peer-deps`.** swagger-ui-react declares a peer
-  range of react `>=16.8.0 <19` while the project is on react 19.
+- **`npm ci` needs `--legacy-peer-deps`.** swagger-ui depends on
+  react-debounce-input and react-inspector, whose peer ranges stop at react 18
+  while the project is on react 19. (swagger-ui-react 5.33 itself allows 19.)
 - **`adafruit-hat-pwm` won't start while the onboard sound is loaded;
   `adafruit-hat` doesn't check.** With the `-pwm` mapping the library uses
   the PWM hardware the sound module also wants, and exits with a

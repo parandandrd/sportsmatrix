@@ -50,10 +50,10 @@ jobs:
         cache: 'npm'
         cache-dependency-path: "web/package-lock.json"
 
-    # swagger-ui-react 5.20 declares a peer range of react >=16.8.0 <19 while
-    # the project is on react 19, so npm's strict peer check rejects a lockfile
-    # that installs and builds perfectly well. Skip the check rather than pin
-    # react back.
+    # swagger-ui pulls in react-debounce-input and react-inspector, which declare
+    # peer ranges that stop at react 18 while the project is on react 19, so
+    # npm's strict peer check rejects a lockfile that installs and builds
+    # perfectly well. Skip the check rather than pin react back.
     - run: npm ci --legacy-peer-deps
       working-directory: "./web"
 

@@ -3,14 +3,14 @@ import userEvent from '@testing-library/user-event';
 import Sport from './Sport';
 
 afterEach(() => {
-    delete global.fetch;
+    delete globalThis.fetch;
 });
 
 // fakeBoards answers GetStatus from statuses, keyed by path, and records every
 // SetStatus body.
 function fakeBoards(statuses) {
     const sets = [];
-    global.fetch = vi.fn(async (url, opts) => {
+    globalThis.fetch = vi.fn(async (url, opts) => {
         const path = url.replace(/^http:\/\/[^/]*\//, '');
         let body = '{}';
         if (path.endsWith('/GetStatus')) {

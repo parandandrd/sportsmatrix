@@ -10,24 +10,24 @@ function reply(status, tag) {
 }
 
 afterEach(() => {
-    delete global.fetch;
+    delete globalThis.fetch;
 });
 
 test('FetchFrame sends the tag it has, and reads the answer', async () => {
-    global.fetch = vi.fn(async () => reply(200, '"b-2"'));
+    globalThis.fetch = vi.fn(async () => reply(200, '"b-2"'));
     await expect(FetchFrame('"b-1"', 10)).resolves.toEqual(
         { status: 'new', tag: '"b-2"', blob: 'blob "b-2"' });
-    expect(global.fetch.mock.calls[0][0]).toMatch(/\/api\/panel\/frame\?wait=10$/);
-    expect(global.fetch.mock.calls[0][1].headers).toEqual({ 'If-None-Match': '"b-1"' });
+    expect(globalThis.fetch.mock.calls[0][0]).toMatch(/\/api\/panel\/frame\?wait=10$/);
+    expect(globalThis.fetch.mock.calls[0][1].headers).toEqual({ 'If-None-Match': '"b-1"' });
 
-    global.fetch = vi.fn(async () => reply(304));
+    globalThis.fetch = vi.fn(async () => reply(304));
     await expect(FetchFrame('"b-2"', 10)).resolves.toEqual({ status: 'same' });
 
-    global.fetch = vi.fn(async () => reply(200, '"b-1"'));
+    globalThis.fetch = vi.fn(async () => reply(200, '"b-1"'));
     await FetchFrame(null, 10);
-    expect(global.fetch.mock.calls[0][1].headers).toEqual({});
+    expect(globalThis.fetch.mock.calls[0][1].headers).toEqual({});
 
-    global.fetch = vi.fn(async () => reply(500));
+    globalThis.fetch = vi.fn(async () => reply(500));
     await expect(FetchFrame(null, 10)).rejects.toThrow('500');
 });
 
@@ -35,7 +35,7 @@ test('FollowFrames shows each new frame, and asks with the last one it has', asy
     const ctrl = new AbortController();
     const answers = [reply(200, '"p-1"'), reply(304), reply(200, '"p-2"')];
     const asked = [];
-    global.fetch = vi.fn(async (url, opts) => {
+    globalThis.fetch = vi.fn(async (url, opts) => {
         asked.push(opts.headers['If-None-Match'] || '-');
         const next = answers.shift();
         if (!next) {

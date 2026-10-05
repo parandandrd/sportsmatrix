@@ -1,4 +1,3 @@
-import React from 'react';
 import Sport from './Sport.jsx';
 import Racing from './Racing.jsx';
 import ImageBoard from './ImageBoard.jsx';

@@ -51,7 +51,7 @@ export async function FollowFrames(show, signal) {
                 show(got.blob);
             }
             await sleep(MIN_GAP, signal);
-        } catch (e) {
+        } catch {
             if (signal.aborted) {
                 return;
             }

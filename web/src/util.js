@@ -102,7 +102,7 @@ export async function CallRPC(path, body) {
     let data = null;
     try {
         data = text ? JSON.parse(text) : null;
-    } catch (e) {
+    } catch {
         // not every answer is JSON
     }
     if (!resp.ok) {

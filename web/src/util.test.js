@@ -33,7 +33,7 @@ test('DescribeBoard normalises the flags it is given', () => {
 });
 
 afterEach(() => {
-    delete global.fetch;
+    delete globalThis.fetch;
 });
 
 function answer(status, body) {
@@ -48,15 +48,15 @@ function answer(status, body) {
 // A board's switches are its GetStatus answer as Twirp's JSON gives it, field
 // names as in the .proto, sent back to SetStatus with one of them flipped.
 test('FetchStatus returns the status object from a GetStatus answer', async () => {
-    global.fetch = vi.fn(async () => answer(200, '{"status":{"enabled":true,"favorite_hidden":false}}'));
+    globalThis.fetch = vi.fn(async () => answer(200, '{"status":{"enabled":true,"favorite_hidden":false}}'));
     expect(await FetchStatus('nhl/sport.v1.Sport/GetStatus')).toEqual({ enabled: true, favorite_hidden: false });
-    expect(global.fetch.mock.calls[0][0]).toMatch(/\/nhl\/sport\.v1\.Sport\/GetStatus$/);
-    expect(global.fetch.mock.calls[0][1].body).toBe('{}');
+    expect(globalThis.fetch.mock.calls[0][0]).toMatch(/\/nhl\/sport\.v1\.Sport\/GetStatus$/);
+    expect(globalThis.fetch.mock.calls[0][1].body).toBe('{}');
 
-    global.fetch = vi.fn(async () => answer(200, '{}'));
+    globalThis.fetch = vi.fn(async () => answer(200, '{}'));
     expect(await FetchStatus('img/imageboard.v1.ImageBoard/GetStatus')).toEqual({});
 
-    global.fetch = vi.fn(async () => answer(404, '{"msg":"no such board"}'));
+    globalThis.fetch = vi.fn(async () => answer(404, '{"msg":"no such board"}'));
     await expect(FetchStatus('x/board.v1.BasicBoard/GetStatus')).rejects.toThrow('no such board');
 });
 
@@ -70,8 +70,8 @@ test('Toggled flips one field of a copy', () => {
 });
 
 test('JumpToBoard posts the board name to Jump', async () => {
-    global.fetch = vi.fn(async () => answer(200, '{}'));
+    globalThis.fetch = vi.fn(async () => answer(200, '{}'));
     await JumpToBoard('NCAA Basketball');
-    expect(global.fetch.mock.calls[0][0]).toMatch(/\/matrix\.v1\.Sportsmatrix\/Jump$/);
-    expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({ board: 'NCAA Basketball' });
+    expect(globalThis.fetch.mock.calls[0][0]).toMatch(/\/matrix\.v1\.Sportsmatrix\/Jump$/);
+    expect(JSON.parse(globalThis.fetch.mock.calls[0][1].body)).toEqual({ board: 'NCAA Basketball' });
 });

@@ -4,7 +4,7 @@ import Board from './Board.jsx';
 import BoardPage from './BoardPage.jsx';
 import TopNav from './Nav.jsx';
 import Dashboard from './Dashboard.jsx';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 
 const ApiDocs = lazy(() => import('./ApiDocs.jsx'));
 

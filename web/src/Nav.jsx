@@ -4,7 +4,7 @@ import Container from 'react-bootstrap/Container';
 import Navbar from 'react-bootstrap/Navbar';
 import Nav from 'react-bootstrap/Nav';
 import NavDropDown from 'react-bootstrap/NavDropdown';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router';
 import { GetVersion } from './util';
 import { GroupBoards, useBoards } from './boards';
 import './Dashboard.css';

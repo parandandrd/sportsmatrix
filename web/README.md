@@ -5,6 +5,7 @@ The React app the Go binary embeds and serves. It is built with
 
 ```bash
 npm ci                      # ERESOLVE peer warnings are expected, see CLAUDE.md
+npm run lint                # eslint, which CI runs too
 npm test                    # vitest, once; `npx vitest` watches
 npm run build               # into build/, which script/build embeds
 npm start                   # dev server

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Board from './Board.jsx';
 import BoardPage from './BoardPage.jsx';

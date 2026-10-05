@@ -19,7 +19,7 @@ has been run on one.
 ./script/lint     # golangci-lint over the tree
 ./script/test     # builds the C library, then go test ./...
 ./script/build    # native if BUILDARCH matches the host, else a cross container
-cd web && npm ci && npm test && npm run build
+cd web && npm ci && npm run lint && npm test && npm run build
 ```
 
 Things that will waste your time if you don't know them:

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { CallRPC } from './util';
 import { DelayChoices } from './delay';
 import { ParseLocation } from './location';

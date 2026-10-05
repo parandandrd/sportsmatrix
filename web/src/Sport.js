@@ -6,90 +6,55 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import Image from 'react-bootstrap/Image';
-import { CallRPC, MatrixPostRet, JSONToStatus, JumpToBoard } from './util';
-import { SetStatusReq, Status } from './sportboard/sportboard_pb';
-import * as basicboard_pb from './basicboard/basicboard_pb';
+import { CallRPC, FetchStatus, JumpToBoard, Toggled } from './util';
 import { LogoSrc } from './Logo';
 
-
-function jsonToStatus(jsonDat) {
-    var d = JSON.parse(jsonDat);
-    var dat = d.status;
-    var status = new Status();
-    status.setEnabled(dat.enabled);
-    status.setFavoriteHidden(dat.favorite_hidden);
-    status.setFavoriteSticky(dat.favorite_sticky);
-    status.setRecordRankEnabled(dat.record_rank_enabled);
-    status.setOddsEnabled(dat.odds_enabled);
-    status.setUseGradient(dat.use_gradient);
-    status.setLiveOnly(dat.live_only);
-    status.setDetailedLive(dat.detailed_live);
-    status.setShowLeagueLogo(dat.show_league_logo);
-
-    return status;
-}
 
 class Sport extends React.Component {
     constructor(props) {
         super(props);
-        var status = new Status();
         this.state = {
-            "status": status,
-            "headlines": new basicboard_pb.Status(),
+            "status": {},
+            "headlines": {},
         };
-        if (this.props.sport === "nhl") {
-            console.log("Sport created ", this.props.sport, this.state.status)
-        }
     }
     async componentDidMount() {
         await this.getStatus()
-        if (this.props.sport === "nhl") {
-            console.log("Sport Updated " + this.props.sport + " " + this.state.enabled)
-        }
     }
     getStatus = async () => {
-        const fetchStatus = (path) => MatrixPostRet(path, '{}').then((resp) => {
-            if (resp.ok) {
-                return resp.text();
-            }
-            throw resp;
-        });
         // headlines is false when this league is known not to have that board,
         // and undefined when nobody said
         const maybe = (present, path) => (present === false
             ? Promise.reject(new Error("no such board"))
-            : fetchStatus(path));
+            : FetchStatus(path));
 
         // Two services with nothing to wait on each other for, fetched together
         // rather than a round trip to the Pi apiece.
         const [sport, headlines] = await Promise.allSettled([
-            fetchStatus(this.props.sport + "/sport.v1.Sport/GetStatus"),
+            FetchStatus(this.props.sport + "/sport.v1.Sport/GetStatus"),
             maybe(this.props.headlines, "headlines/" + this.props.sport + "/board.v1.BasicBoard/GetStatus"),
         ]);
 
-        const next = {};
+        const next = { "has_headlines": headlines.status === "fulfilled" };
         if (sport.status === "fulfilled") {
-            next.status = jsonToStatus(sport.value);
+            next.status = sport.value;
         }
-        try {
-            next.headlines = JSONToStatus(headlines.value);
-            next.has_headlines = true;
-        } catch (e) {
-            next.has_headlines = false;
+        if (headlines.status === "fulfilled") {
+            next.headlines = headlines.value;
         }
         this.setState(next);
     }
 
-    updateStatus = async () => {
+    // updateStatus shows next -- a new status, a new headlines status or both --
+    // at once and sends both, then reads back what the boards really did.
+    updateStatus = async (next) => {
+        const state = { ...this.state, ...next };
+        this.setState(next);
         try {
-            var req = new SetStatusReq();
-            req.setStatus(this.state.status);
-            await CallRPC(this.props.sport + "/sport.v1.Sport/SetStatus", req.toObject());
+            await CallRPC(this.props.sport + "/sport.v1.Sport/SetStatus", { "status": state.status });
 
-            if (this.state.has_headlines) {
-                var hreq = new basicboard_pb.SetStatusReq();
-                hreq.setStatus(this.state.headlines);
-                await CallRPC("headlines/" + this.props.sport + "/board.v1.BasicBoard/SetStatus", hreq.toObject());
+            if (state.has_headlines) {
+                await CallRPC("headlines/" + this.props.sport + "/board.v1.BasicBoard/SetStatus", { "status": state.headlines });
             }
             this.props.onError?.('');
         } catch (err) {
@@ -120,56 +85,56 @@ class Sport extends React.Component {
                 {this.props.withImg ? img : ""}
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id={this.props.sport + "enabler"} label="Enable/Disable" checked={this.state.status.getEnabled()}
-                            onChange={() => { this.state.status.setEnabled(!this.state.status.getEnabled()); this.updateStatus(); }} />
+                        <Form.Switch id={this.props.sport + "enabler"} label="Enable/Disable" checked={Boolean(this.state.status.enabled)}
+                            onChange={() => this.updateStatus({ status: Toggled(this.state.status, 'enabled') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id={this.props.sport + "headlines"} label="News Headlines" checked={this.state.headlines.getEnabled()} disabled={!this.state.has_headlines}
-                            onChange={() => { this.state.headlines.setEnabled(!this.state.headlines.getEnabled()); this.updateStatus(); }} />
+                        <Form.Switch id={this.props.sport + "headlines"} label="News Headlines" checked={Boolean(this.state.headlines.enabled)} disabled={!this.state.has_headlines}
+                            onChange={() => this.updateStatus({ headlines: Toggled(this.state.headlines, 'enabled') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id={this.props.sport + "favscore"} label="Hide Favorite Scores" checked={this.state.status.getFavoriteHidden()}
-                            onChange={() => { this.state.status.setFavoriteHidden(!this.state.status.getFavoriteHidden()); this.updateStatus(); }} />
+                        <Form.Switch id={this.props.sport + "favscore"} label="Hide Favorite Scores" checked={Boolean(this.state.status.favorite_hidden)}
+                            onChange={() => this.updateStatus({ status: Toggled(this.state.status, 'favorite_hidden') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id={this.props.sport + "record"} label="Record + Rank" checked={this.state.status.getRecordRankEnabled()}
-                            onChange={() => { this.state.status.setRecordRankEnabled(!this.state.status.getRecordRankEnabled()); this.updateStatus(); }} />
+                        <Form.Switch id={this.props.sport + "record"} label="Record + Rank" checked={Boolean(this.state.status.record_rank_enabled)}
+                            onChange={() => this.updateStatus({ status: Toggled(this.state.status, 'record_rank_enabled') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id={this.props.sport + "favstick"} label="Stick Favorite Live Games" checked={this.state.status.getFavoriteSticky()}
-                            onChange={() => { this.state.status.setFavoriteSticky(!this.state.status.getFavoriteSticky()); this.updateStatus(); }} />
+                        <Form.Switch id={this.props.sport + "favstick"} label="Stick Favorite Live Games" checked={Boolean(this.state.status.favorite_sticky)}
+                            onChange={() => this.updateStatus({ status: Toggled(this.state.status, 'favorite_sticky') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id={this.props.sport + "gradient"} label="Logo Gradient" checked={this.state.status.getUseGradient()}
-                            onChange={() => { this.state.status.setUseGradient(!this.state.status.getUseGradient()); this.updateStatus(); }} />
+                        <Form.Switch id={this.props.sport + "gradient"} label="Logo Gradient" checked={Boolean(this.state.status.use_gradient)}
+                            onChange={() => this.updateStatus({ status: Toggled(this.state.status, 'use_gradient') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id={this.props.sport + "liveonly"} label="Live Games Only" checked={this.state.status.getLiveOnly()}
-                            onChange={() => { this.state.status.setLiveOnly(!this.state.status.getLiveOnly()); this.updateStatus(); }} />
+                        <Form.Switch id={this.props.sport + "liveonly"} label="Live Games Only" checked={Boolean(this.state.status.live_only)}
+                            onChange={() => this.updateStatus({ status: Toggled(this.state.status, 'live_only') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id={this.props.sport + "detailedlive"} label="Detailed Live View" checked={this.state.status.getDetailedLive()}
-                            onChange={() => { this.state.status.setDetailedLive(!this.state.status.getDetailedLive()); this.updateStatus(); }} />
+                        <Form.Switch id={this.props.sport + "detailedlive"} label="Detailed Live View" checked={Boolean(this.state.status.detailed_live)}
+                            onChange={() => this.updateStatus({ status: Toggled(this.state.status, 'detailed_live') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id={this.props.sport + "leaguelogo"} label="Show League Logo" checked={this.state.status.getShowLeagueLogo()}
-                            onChange={() => { this.state.status.setShowLeagueLogo(!this.state.status.getShowLeagueLogo()); this.updateStatus(); }} />
+                        <Form.Switch id={this.props.sport + "leaguelogo"} label="Show League Logo" checked={Boolean(this.state.status.show_league_logo)}
+                            onChange={() => this.updateStatus({ status: Toggled(this.state.status, 'show_league_logo') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">

@@ -1,4 +1,4 @@
-import { DescribeBoard } from './util';
+import { DescribeBoard, FetchStatus, JumpToBoard, Toggled } from './util';
 
 // The dashboard picks a component and an RPC path purely from what ListBoards
 // reports. Name cannot carry that: sport boards report the league's full name
@@ -30,4 +30,48 @@ test('DescribeBoard leaves a board with no service alone', () => {
 test('DescribeBoard normalises the flags it is given', () => {
     expect(DescribeBoard({ name: 'Clock', in_between: true }))
         .toMatchObject({ enabled: false, inBetween: true, rpcPath: '' });
+});
+
+afterEach(() => {
+    delete global.fetch;
+});
+
+function answer(status, body) {
+    return {
+        status,
+        ok: status >= 200 && status < 300,
+        statusText: '',
+        text: async () => body,
+    };
+}
+
+// A board's switches are its GetStatus answer as Twirp's JSON gives it, field
+// names as in the .proto, sent back to SetStatus with one of them flipped.
+test('FetchStatus returns the status object from a GetStatus answer', async () => {
+    global.fetch = jest.fn(async () => answer(200, '{"status":{"enabled":true,"favorite_hidden":false}}'));
+    expect(await FetchStatus('nhl/sport.v1.Sport/GetStatus')).toEqual({ enabled: true, favorite_hidden: false });
+    expect(global.fetch.mock.calls[0][0]).toMatch(/\/nhl\/sport\.v1\.Sport\/GetStatus$/);
+    expect(global.fetch.mock.calls[0][1].body).toBe('{}');
+
+    global.fetch = jest.fn(async () => answer(200, '{}'));
+    expect(await FetchStatus('img/imageboard.v1.ImageBoard/GetStatus')).toEqual({});
+
+    global.fetch = jest.fn(async () => answer(404, '{"msg":"no such board"}'));
+    await expect(FetchStatus('x/board.v1.BasicBoard/GetStatus')).rejects.toThrow('no such board');
+});
+
+test('Toggled flips one field of a copy', () => {
+    const status = { enabled: true, live_only: false };
+    expect(Toggled(status, 'live_only')).toEqual({ enabled: true, live_only: true });
+    expect(Toggled(status, 'enabled')).toEqual({ enabled: false, live_only: false });
+    // a field the server left out is false
+    expect(Toggled(status, 'use_gradient')).toEqual({ enabled: true, live_only: false, use_gradient: true });
+    expect(status).toEqual({ enabled: true, live_only: false });
+});
+
+test('JumpToBoard posts the board name to Jump', async () => {
+    global.fetch = jest.fn(async () => answer(200, '{}'));
+    await JumpToBoard('NCAA Basketball');
+    expect(global.fetch.mock.calls[0][0]).toMatch(/\/matrix\.v1\.Sportsmatrix\/Jump$/);
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body)).toEqual({ board: 'NCAA Basketball' });
 });

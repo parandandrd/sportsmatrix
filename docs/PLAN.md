@@ -14,11 +14,16 @@ Merged and released this session (all rebase-merged, linear history):
 | #23 | Vendored hzeller matrix library -> upstream `51d3231`, with `-march=native`/LTO off and `disable_busy_waiting` set from Go | v0.0.4-beta.11 |
 | #24 | Removed the stats boards, PGA, XFL, `internal/nhl`, `internal/mlb`, `--alt-api` | v0.0.5 (first full release) |
 | #25 | Actions to v7, Node 20 -> 24, Go deps updated within their majors | v0.0.6 |
+| #26 | Plan item 1: protos on `emptypb` (no `golang/protobuf`), unused codegen tools and `Dockerfile.protoc` gone, npm updates in range | v0.0.7 |
 
 On the Pi: the owner installed the #22 and v0.0.4-beta.11 builds and the panel
-looked fine. v0.0.5 and v0.0.6 have not been reported on.
+looked fine. v0.0.5, v0.0.6 and v0.0.7 have not been reported on.
 
-Current as of v0.0.6: Go 1.27.1, golangci-lint 2.14.0, every Go module that is
+#26's Go `build` job never got a runner (queued 15 minutes, cancelled before
+any step ran); it was merged on local lint and tests, and `release.yml`, which
+runs both again, passed for v0.0.7.
+
+Current as of v0.0.7: Go 1.27.1, golangci-lint 2.14.0, every Go module that is
 linked into the binary at its latest minor/patch, CI actions at their latest
 majors, Node 24, the matrix library at hzeller HEAD.
 
@@ -29,80 +34,36 @@ the Go 1.27 bump in #22.
 
 ## Work, in order
 
-### 1. Small cleanup PR -- written, no PR yet
+### 1. Small cleanup PR -- done
 
-Done on branch `claude/nice-brown-bi6dbx` (four commits on `3881d45`), pushed
-on 2026-10-05. **Left to do:** open the PR (CI only runs on `pull_request`),
-get it green, have the owner try its arm64 `.deb` on the Pi, rebase-merge.
+Merged as #26, released in v0.0.7.
+
+### 2. Move the web UI off Create React App -- PR #27 open
+
+Branch `claude/nice-brown-bi6dbx`, four commits. **Left to do:** CI green,
+the owner tries its arm64 `.deb` on the Pi (and the Full screen button, which
+nothing has clicked), rebase-merge, release.
 
 What it does:
 
-- **a.** Deletes `proto/google/protobuf/empty.proto`, so protoc's own copy
-  (`go_package` `.../types/known/emptypb`) is used, and regenerates
-  `internal/proto/` with protoc 3.21.12 and protoc-gen-go v1.36.12. No
-  hand-written Go code used `ptypes/empty`. `go version -m` on the built binary
-  lists only `google.golang.org/protobuf`. `script/proto-gen`'s
-  missing-protoc message now says a release-zip protoc needs its `include/`.
-- **b.** `internal/tools/tools.go` keeps only the three tools the scripts use.
-  `go mod tidy && go mod vendor` dropped `golang/protobuf`, grpc-gateway,
-  gRPC, genproto, gogo/protobuf and more from `go.mod`, and ~127k lines from
-  `vendor/`. `script/doc-gen` and `script/proto-gen` both still run.
-- **c.** Deletes `Dockerfile.protoc`.
-- **d.** `npm update --legacy-peer-deps` on Node 24.21.0: react/react-dom 19.3,
-  bootstrap 5.3.8, swagger-ui* 5.33.1, postcss, ws, tar and the transitive
-  tree. npm 11 rewrote the lockfile from version 2 to 3, which is most of its
-  diff. `react-router-dom` was `>=6.0.0`, which `npm update` takes to 7; it is
-  now `^6.21.3` and resolves to 6.30.6. The unused `>=` pins
-  `hosted-git-info`, `is-svg` and `normalize-url` crossed a major (10.1.1,
-  6.1.0, 9.0.1); nothing imports them.
-- The `--legacy-peer-deps` explanation in `go.yml`, `release.yml` and
-  `CLAUDE.md` is corrected (see item 2).
+- The board components (Sport, Racing, BasicBoard, ImageBoard) post plain
+  objects with the .proto field names instead of google-protobuf messages.
+  The `web/src/*/*_pb.js` stubs, `google-protobuf` and `script/proto-gen`'s
+  `protoc-gen-js` branch are gone. The stubs were CommonJS in `src/`, which
+  Vite's dev server can't serve.
+- Vite 8 + Vitest 5. Output is still `web/build`; hashed files go under
+  `static/` (`build.assetsDir`) so `webui.go`'s immutable cache rule still
+  applies. JSX files are `.jsx`. `package.json` lists only what `src/`
+  imports; the `>=` pins, `web-vitals` and CRA's leftovers are gone.
+- react-router 7.18.4 (imports from `react-router`). `npm audit`: 0.
+- `--legacy-peer-deps` is gone from CI, `release.yml` and the docs. Plain
+  `npm ci` works; swagger-ui's `react-debounce-input` and `react-inspector`
+  (react <=18) only make npm warn `ERESOLVE overriding peer dependency`.
 
-Checked locally: `./script/lint` 0 issues, `./script/test` passes,
-`BUILDARCH=x86_64 ./script/build` builds, `npm test` (23 tests) and
-`npm run build`, also with `CI=true`, pass on Node 24.
-
-### 2. Move the web UI off Create React App (its own PR)
-
-`npm audit` reports 88 findings (7 critical, 39 high). Nearly all are in
-`react-scripts` 5.0.1's build tooling (babel, webpack-dev-server, express,
-svgo, rollup), which never reaches the Pi. CRA is abandoned. Target: Vite.
-
-Things the migration has to carry:
-
-- `web/package.json` scripts are `react-scripts start|build|test`; tests run
-  under Jest via react-scripts. Vitest is the natural replacement (7 test
-  files, 23 tests, using `@testing-library/*`).
-- Output directory: the build lands in `web/build/`, and `script/build`
-  (lines ~31-32) and `script/web-build` (line ~38) copy `web/build` into
-  `internal/sportsmatrix/assets/web`. Either set Vite's `build.outDir` to
-  `build` or change both scripts.
-- `web/public/index.html` uses CRA's `%PUBLIC_URL%`; Vite wants `index.html` at
-  the project root with a module script entry.
-- No `REACT_APP_*` env vars and no `proxy` field were found, so those don't
-  need carrying.
-- The `eslintConfig` extends `react-app`; replace or drop it.
-- `package.json` has about 20 `>=` pins on transitive packages (`tar`,
-  `lodash`, `elliptic`, `node-forge`, `nth-check`, `glob-parent`, `url-parse`,
-  `set-value`, `tmpl`, `path-parse`, `json-schema`, `is-svg`, `dns-packet`,
-  `ansi-regex`, `hosted-git-info`, `normalize-url`, `node-fetch`,
-  `react-dev-utils`, `browserslist`, `follow-redirects` …). They were an old
-  attempt to silence audit warnings under CRA. Most should simply go; check
-  each with `grep -rn "from '<pkg>'" web/src` first.
-- `react-router-dom` is `^6.21.3` (6.30.6) after item 1; latest is 7.x.
-  `web/src` uses `BrowserRouter`, `Routes`, `Route`, `Navigate`, `Link`,
-  `useParams` and `useLocation` (`App.js`, `Nav.js`, `BoardPage.js`).
-- `--legacy-peer-deps` is still needed after item 1. swagger-ui-react 5.33
-  allows react `<20`, but `react-debounce-input` 3.3.0 and `react-inspector`
-  6.0.2, both pulled in by swagger-ui, stop at react 18. A strict `npm ci`
-  also wants peers the lockfile never resolved (`@testing-library/dom`,
-  `typescript`). Dropping the flag means fixing both and regenerating the
-  lockfile without it.
-- The served UI is gzipped with caching headers by the Go side; check that
-  Vite's hashed asset names still get the long cache headers (see
-  `internal/sportsmatrix/http.go`).
-- In the browser, check the dashboard and `/board` (panel preview, Full screen
-  button), and the swagger page.
+Checked locally: 28 web tests, build, `./script/test`, `./script/lint`, and
+the Go binary run with `--test` and the build embedded, driven in Chromium
+(dashboard, `/board`, `/b/NHL`, API docs, nav, a switch saved to the config
+file, Jump, cache headers).
 
 ### 3. Board pruning (waiting on the owner)
 
@@ -149,6 +110,9 @@ on `ghodss/yaml`'s YAML 1.1 behaviour (a plain `NO` is `false`) and on
   exist, and `assets/images/tv_nhl_stats.jpg` isn't referenced anywhere.
 - The XFL's successor, the UFL, has an ESPN feed (`football/ufl`) if the owner
   wants it. Adding it is roughly the XFL code #24 deleted.
+- Nothing lints the web UI since #27: CRA ran its eslint config during the
+  build, and it went with CRA. An eslint 10 flat config with
+  `eslint-plugin-react-hooks` would bring it back.
 - `web/src/matrix.swagger.json` is behind the protos: `SearchShows` and the
   newer `BoardSettings` fields are missing, and every Empty `$ref` points at a
   `<pkg>_google.protobuf.Empty` definition that doesn't exist. `./script/doc-gen`
@@ -170,6 +134,15 @@ on `ghodss/yaml`'s YAML 1.1 behaviour (a plain `NO` is `false`) and on
   `SHASUMS256.txt`. Its npm 11 warns that tree-sitter's install scripts were
   not run (swagger-ui's dependency); it did before item 1 too, and the tests
   and build don't need them.
+- **Trying the web UI against the real API:** build `web/`, delete
+  `internal/sportsmatrix/assets/web`, `BUILDARCH=x86_64 ./script/build`, then
+  run `sportsmatrix.x86_64 run --test -c <copy of sportsmatrix.conf.example
+  with httpListenPort changed>`. The console matrix stands in for the panel
+  and settings are saved to that copy. Playwright is at
+  `/opt/node-tools/node_modules/playwright`, browsers via
+  `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`. Wait on `load`, not
+  `networkidle`: the dashboard long-polls frames. Don't `pkill -f` a pattern
+  that also appears in your own command line; it kills the shell.
 - **ESPN and other data APIs are blocked** from the sandbox. GitHub release
   downloads, nodejs.org, go.dev's module proxy and the Go toolchain work.
 - **Bringing third-party source into the repo** (as #23 did with the matrix

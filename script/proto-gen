@@ -19,6 +19,9 @@ protoc not found. Install the protobuf compiler:
 
   apt-get install -y protobuf-compiler   # Debian/Ubuntu
   brew install protobuf                  # macOS
+
+From a release zip, keep its include/ next to bin/: the protos import
+google/protobuf/empty.proto from there.
 MSG
   exit 1
 fi

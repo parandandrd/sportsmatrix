@@ -29,63 +29,38 @@ the Go 1.27 bump in #22.
 
 ## Work, in order
 
-### 1. Small cleanup PR (Go side)
+### 1. Small cleanup PR -- written, no PR yet
 
-**a. Drop the deprecated `github.com/golang/protobuf` from the binary.**
-`proto/google/protobuf/empty.proto` is a repo-local copy of the well-known type
-with `option go_package = "github.com/golang/protobuf/ptypes/empty";`. Every
-generated `*.pb.go` and `*.twirp.go` in `internal/proto/` imports
-`github.com/golang/protobuf/ptypes/empty` because of it, and that is the only
-reason the deprecated module is linked in. Fix:
+Done on branch `claude/nice-brown-bi6dbx` (four commits on `3881d45`), pushed
+on 2026-10-05. **Left to do:** open the PR (CI only runs on `pull_request`),
+get it green, have the owner try its arm64 `.deb` on the Pi, rebase-merge.
 
-- Delete the local copy so protoc's bundled `google/protobuf/empty.proto` is
-  used, or set its `go_package` to
-  `google.golang.org/protobuf/types/known/emptypb`. Check which `-I` paths
-  `script/proto-gen` passes before choosing.
-- Regenerate with `./script/proto-gen`. It needs `protoc`, which the sandbox
-  does not have: try `apt-get install -y protobuf-compiler`. The committed
-  files say protoc 3.21.12 and protoc-gen-go v1.36.5. The vendored
-  protoc-gen-go is now v1.36.12, so every header line will change; that is
-  expected (see the comment in `script/proto-gen`).
-- The old `ptypes/empty` package is a type alias for `emptypb.Empty`, so Go
-  code calling these services should not change. Check `grep -rn 'empty\.'
-  --include=*.go cmd internal` for direct uses.
-- The web UI's `*_pb.js` stubs are only regenerated if `protoc-gen-js` is
-  installed. The UI talks JSON over plain fetch, so stale JS stubs are fine.
-- Then `go mod tidy && go mod vendor`; `github.com/golang/protobuf` should
-  leave the `require` block.
+What it does:
 
-**b. Trim `internal/tools/tools.go`.** It blank-imports seven codegen tools; the
-scripts use three:
+- **a.** Deletes `proto/google/protobuf/empty.proto`, so protoc's own copy
+  (`go_package` `.../types/known/emptypb`) is used, and regenerates
+  `internal/proto/` with protoc 3.21.12 and protoc-gen-go v1.36.12. No
+  hand-written Go code used `ptypes/empty`. `go version -m` on the built binary
+  lists only `google.golang.org/protobuf`. `script/proto-gen`'s
+  missing-protoc message now says a release-zip protoc needs its `include/`.
+- **b.** `internal/tools/tools.go` keeps only the three tools the scripts use.
+  `go mod tidy && go mod vendor` dropped `golang/protobuf`, grpc-gateway,
+  gRPC, genproto, gogo/protobuf and more from `go.mod`, and ~127k lines from
+  `vendor/`. `script/doc-gen` and `script/proto-gen` both still run.
+- **c.** Deletes `Dockerfile.protoc`.
+- **d.** `npm update --legacy-peer-deps` on Node 24.21.0: react/react-dom 19.3,
+  bootstrap 5.3.8, swagger-ui* 5.33.1, postcss, ws, tar and the transitive
+  tree. npm 11 rewrote the lockfile from version 2 to 3, which is most of its
+  diff. `react-router-dom` was `>=6.0.0`, which `npm update` takes to 7; it is
+  now `^6.21.3` and resolves to 6.30.6. The unused `>=` pins
+  `hosted-git-info`, `is-svg` and `normalize-url` crossed a major (10.1.1,
+  6.1.0, 9.0.1); nothing imports them.
+- The `--legacy-peer-deps` explanation in `go.yml`, `release.yml` and
+  `CLAUDE.md` is corrected (see item 2).
 
-- used: `google.golang.org/protobuf/cmd/protoc-gen-go` and
-  `github.com/twitchtv/twirp/protoc-gen-twirp` (`script/proto-gen`),
-  `github.com/go-bridget/twirp-swagger-gen/cmd/twirp-swagger-gen`
-  (`script/doc-gen`)
-- unused: `github.com/pseudomuto/protoc-gen-doc`,
-  `github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2`,
-  `github.com/srikrsna/protoc-gen-gotag`,
-  `github.com/thechriswalker/protoc-gen-twirp_js`
-
-The unused four are what pull the deprecated `aws-sdk-go`, Google Cloud
-libraries, gRPC and OpenTelemetry into `go.mod`. Remove them, `go mod tidy &&
-go mod vendor`, and confirm `script/proto-gen` and `script/doc-gen` still find
-what they build. Grep the repo for each name first.
-
-**c. Delete `Dockerfile.protoc`.** Alpine 3.17 and Go 1.21.1, both end of life,
-and nothing references it (`grep -rn Dockerfile.protoc`). `dockerbuild.yml`
-only builds `Dockerfile.pibuilder`.
-
-**d. `npm update` in `web/`** for the in-range bumps: react/react-dom 19.0 ->
-19.3, bootstrap 5.3.3 -> 5.3.8, swagger-ui* 5.20 -> 5.33, postcss, ws, tar
-and others (`npm outdated`). Use `npm install --legacy-peer-deps` semantics;
-`npm ci` needs that flag (see `CLAUDE.md`). Run `npm test` and `npm run build`
-on Node 24. Node 24 isn't in the sandbox by default; it downloads from
-nodejs.org through the proxy, checked against `SHASUMS256.txt`.
-
-Checks for the PR: `./script/lint`, `./script/test`, `BUILDARCH=x86_64
-./script/build`, `cd web && npm test && npm run build`. Then try the PR's
-arm64 `.deb` on the Pi.
+Checked locally: `./script/lint` 0 issues, `./script/test` passes,
+`BUILDARCH=x86_64 ./script/build` builds, `npm test` (23 tests) and
+`npm run build`, also with `CI=true`, pass on Node 24.
 
 ### 2. Move the web UI off Create React App (its own PR)
 
@@ -114,10 +89,15 @@ Things the migration has to carry:
   `react-dev-utils`, `browserslist`, `follow-redirects` …). They were an old
   attempt to silence audit warnings under CRA. Most should simply go; check
   each with `grep -rn "from '<pkg>'" web/src` first.
-- Shipped code that is behind: `react-router-dom` 6.21.3 (latest 7.x; check
-  what `web/src` uses before choosing 6.30.x vs 7) and `swagger-ui-react`.
-  `--legacy-peer-deps` is only there because swagger-ui-react declares a peer
-  range of react `<19`; recheck whether 5.33 still does.
+- `react-router-dom` is `^6.21.3` (6.30.6) after item 1; latest is 7.x.
+  `web/src` uses `BrowserRouter`, `Routes`, `Route`, `Navigate`, `Link`,
+  `useParams` and `useLocation` (`App.js`, `Nav.js`, `BoardPage.js`).
+- `--legacy-peer-deps` is still needed after item 1. swagger-ui-react 5.33
+  allows react `<20`, but `react-debounce-input` 3.3.0 and `react-inspector`
+  6.0.2, both pulled in by swagger-ui, stop at react 18. A strict `npm ci`
+  also wants peers the lockfile never resolved (`@testing-library/dom`,
+  `typescript`). Dropping the flag means fixing both and regenerating the
+  lockfile without it.
 - The served UI is gzipped with caching headers by the Go side; check that
   Vite's hashed asset names still get the long cache headers (see
   `internal/sportsmatrix/http.go`).
@@ -169,6 +149,10 @@ on `ghodss/yaml`'s YAML 1.1 behaviour (a plain `NO` is `false`) and on
   exist, and `assets/images/tv_nhl_stats.jpg` isn't referenced anywhere.
 - The XFL's successor, the UFL, has an ESPN feed (`football/ufl`) if the owner
   wants it. Adding it is roughly the XFL code #24 deleted.
+- `web/src/matrix.swagger.json` is behind the protos: `SearchShows` and the
+  newer `BoardSettings` fields are missing, and every Empty `$ref` points at a
+  `<pkg>_google.protobuf.Empty` definition that doesn't exist. `./script/doc-gen`
+  (needs `jq`) regenerates it; item 1 left it alone to stay small.
 - v0.0.5's auto-generated release notes only list #24; #22 and #23 shipped in
   it too. Fix by hand on the release page if it matters.
 
@@ -179,6 +163,13 @@ on `ghodss/yaml`'s YAML 1.1 behaviour (a plain `NO` is `false`) and on
 - **golangci-lint:** `./script/install-golangci-lint <dir>` installs v2.14.0.
   The sandbox's preinstalled 2.5.0 is built with Go 1.25 and refuses this
   module.
+- **protoc:** `apt-get install -y protobuf-compiler` works and gives
+  3.21.12, the version the committed files name, with `empty.proto` under
+  `/usr/include`.
+- **Node 24:** `https://nodejs.org/dist/latest-v24.x/` plus its
+  `SHASUMS256.txt`. Its npm 11 warns that tree-sitter's install scripts were
+  not run (swagger-ui's dependency); it did before item 1 too, and the tests
+  and build don't need them.
 - **ESPN and other data APIs are blocked** from the sandbox. GitHub release
   downloads, nodejs.org, go.dev's module proxy and the Go toolchain work.
 - **Bringing third-party source into the repo** (as #23 did with the matrix

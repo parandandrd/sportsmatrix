@@ -47,6 +47,11 @@ Things that will waste your time if you don't know them:
 - **`npm ci` needs `--legacy-peer-deps`.** swagger-ui depends on
   react-debounce-input and react-inspector, whose peer ranges stop at react 18
   while the project is on react 19. (swagger-ui-react 5.33 itself allows 19.)
+- **The web UI is built with Vite into `web/build/`, its hashed files under
+  `static/`** (`build.assetsDir` in `web/vite.config.js`). The Go side
+  (`internal/sportsmatrix/webui.go`) serves everything under `static/` with a
+  year-long immutable cache, so a file whose name doesn't change with its
+  content must not go there.
 - **`adafruit-hat-pwm` won't start while the onboard sound is loaded;
   `adafruit-hat` doesn't check.** With the `-pwm` mapping the library uses
   the PWM hardware the sound module also wants, and exits with a

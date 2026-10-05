@@ -1,12 +1,12 @@
 import React, { lazy, Suspense } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import Board from './Board.js';
-import BoardPage from './BoardPage.js';
-import TopNav from './Nav.js';
-import Dashboard from './Dashboard.js';
+import Board from './Board.jsx';
+import BoardPage from './BoardPage.jsx';
+import TopNav from './Nav.jsx';
+import Dashboard from './Dashboard.jsx';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 
-const ApiDocs = lazy(() => import('./ApiDocs.js'));
+const ApiDocs = lazy(() => import('./ApiDocs.jsx'));
 
 // Routes used to name every league the binary can render, whether or not this
 // instance ran it. The board pages are keyed on the name ListBoards reports

@@ -57,8 +57,7 @@ jobs:
     - run: npm ci --legacy-peer-deps
       working-directory: "./web"
 
-    # CI=true makes react-scripts run once and exit instead of watching
-    - run: CI=true npm test
+    - run: npm test
       working-directory: "./web"
 
     - run: npm run build

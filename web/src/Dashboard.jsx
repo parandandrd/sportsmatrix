@@ -3,8 +3,8 @@ import { CallRPC, MatrixPostRet, SetBoardEnabled, JumpToBoard } from './util';
 import { useFrame, usePageVisible } from './frames';
 import { useFullscreen } from './fullscreen';
 import { GroupBoards, MoveSection, RefreshBoards, SubLabel, useBoards } from './boards';
-import BoardPanel from './BoardPanel.js';
-import MatrixSettings from './MatrixSettings.js';
+import BoardPanel from './BoardPanel.jsx';
+import MatrixSettings from './MatrixSettings.jsx';
 import { LogoSrc } from './Logo';
 import './Dashboard.css';
 

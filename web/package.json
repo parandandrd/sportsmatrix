@@ -2,71 +2,29 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
+    "bootstrap": "^5.3.8",
+    "react": "^19.3.0",
+    "react-bootstrap": "^2.10.10",
+    "react-dom": "^19.3.0",
+    "react-router-dom": "^6.30.6",
+    "swagger-ui-react": "^5.33.1"
+  },
+  "devDependencies": {
     "@testing-library/dom": "^10.4.2",
-    "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": ">=16.2.0",
-    "@testing-library/user-event": "^14.6.1",
-    "ansi-html": "npm:ansi-html-community@^0.0.8",
-    "ansi-regex": ">=6.1.0",
-    "bootstrap": "^5.3.2",
-    "browserslist": "^4.24.4",
-    "btoa": "^1.2.1",
-    "color-string": "^2.0.1",
-    "dns-packet": "^5.6.1",
-    "elliptic": ">=6.6.1",
-    "follow-redirects": "^1.15.9",
-    "glob-parent": ">=5.1.2",
-    "hosted-git-info": ">=8.0.2",
-    "immer": "^10.1.1",
-    "is-svg": ">=5.1.0",
-    "json-schema": ">=0.4.0",
-    "lodash": ">=4.17.21",
-    "nanoid": "^5.1.2",
-    "node-fetch": ">=3.3.2",
-    "node-forge": "^1.3.1",
-    "normalize-url": ">=8.0.1",
-    "nth-check": "^2.1.1",
-    "path-parse": ">=1.0.7",
-    "postcss": "^8.5.3",
-    "react": ">=19.0.0",
-    "react-bootstrap": "^2.10.9",
-    "react-dev-utils": ">=11.0.4",
-    "react-dom": ">=19.0.0",
-    "react-router-dom": "^6.21.3",
-    "react-scripts": ">=5.0.1",
-    "set-value": ">=4.0.1",
-    "swagger-ui": "^5.20.0",
-    "swagger-ui-dist": "^5.20.0",
-    "swagger-ui-react": "^5.20.0",
-    "tar": ">=7.4.3",
-    "tmpl": ">=1.0.5",
-    "url-parse": ">=1.5.9",
-    "web-vitals": "^4.2.4",
-    "ws": "^8.18.1"
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@vitejs/plugin-react": "^6.1.2",
+    "jsdom": "^30.1.2",
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
   }
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { GroupBoards, RefreshBoards, useBoards } from './boards';
-import BoardPanel from './BoardPanel.js';
+import BoardPanel from './BoardPanel.jsx';
 import './Dashboard.css';
 
 // BoardPage is one board's settings on its own URL, for bookmarking and for the

@@ -6,8 +6,7 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Image from 'react-bootstrap/Image';
 import Form from 'react-bootstrap/Form';
-import { CallRPC, MatrixPostRet, JSONToStatus, JumpToBoard } from './util';
-import * as pb from './basicboard/basicboard_pb';
+import { CallRPC, FetchStatus, JumpToBoard, Toggled } from './util';
 import { LogoSrc } from './Logo';
 
 class BasicBoard extends React.Component {
@@ -19,32 +18,22 @@ class BasicBoard extends React.Component {
         }
         this.state = {
             "path": path,
-            "status": new pb.Status(),
+            "status": {},
         };
     }
     async componentDidMount() {
         await this.getStatus();
     }
     getStatus = async () => {
-        console.log("BasicBoard GetStatus", this.state.path + "/board.v1.BasicBoard/GetStatus");
-        await MatrixPostRet(this.state.path + "/board.v1.BasicBoard/GetStatus", '{}').then((resp) => {
-            if (resp.ok) {
-                return resp.text();
-            }
-            throw resp;
-        }).then((data) => {
-            var dat = JSONToStatus(data);
-            this.setState({
-                "status": dat,
-            });
-        });
+        this.setState({ "status": await FetchStatus(this.state.path + "/board.v1.BasicBoard/GetStatus") });
     }
 
-    updateStatus = async () => {
-        var req = new pb.SetStatusReq();
-        req.setStatus(this.state.status);
+    // updateStatus shows next at once and sends it, then reads back what the
+    // board really did with it.
+    updateStatus = async (next) => {
+        this.setState(next);
         try {
-            await CallRPC(this.state.path + "/board.v1.BasicBoard/SetStatus", req.toObject());
+            await CallRPC(this.state.path + "/board.v1.BasicBoard/SetStatus", { "status": next.status });
             this.props.onError?.('');
         } catch (err) {
             this.props.onError?.(err.message);
@@ -67,8 +56,8 @@ class BasicBoard extends React.Component {
                 {this.props.withImg ? img : ""}
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id={this.props.name + "enabler"} label="Enable/Disable" checked={this.state.status.getEnabled()}
-                            onChange={() => { this.state.status.setEnabled(!this.state.status.getEnabled()); this.updateStatus(); }} />
+                        <Form.Switch id={this.props.name + "enabler"} label="Enable/Disable" checked={Boolean(this.state.status.enabled)}
+                            onChange={() => this.updateStatus({ status: Toggled(this.state.status, 'enabled') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">

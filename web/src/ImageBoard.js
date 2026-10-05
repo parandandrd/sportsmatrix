@@ -6,51 +6,30 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Image from 'react-bootstrap/Image';
 import Form from 'react-bootstrap/Form';
-import { CallRPC, MatrixPostRet, JumpToBoard } from './util';
-import * as pb from './imageboard/imageboard_pb';
+import { CallRPC, FetchStatus, JumpToBoard, Toggled } from './util';
 import { LogoSrc } from './Logo';
 
-
-function jsonToStatus(jsonDat) {
-    var d = JSON.parse(jsonDat);
-    var dat = d.status;
-    var status = new pb.Status();
-    status.setEnabled(dat.enabled);
-    status.setDiskcacheEnabled(dat.diskcache_enabled);
-    status.setMemcacheEnabled(dat.memcache_enabled);
-
-    return status;
-}
 
 class ImageBoard extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            "status": new pb.Status(),
+            "status": {},
         };
     }
     async componentDidMount() {
         await this.getStatus();
     }
     getStatus = async () => {
-        await MatrixPostRet("imageboard.v1.ImageBoard/GetStatus", '{}').then((resp) => {
-            if (resp.ok) {
-                return resp.text()
-            }
-            throw resp
-        }).then((data) => {
-            var dat = jsonToStatus(data);
-            this.setState({
-                "status": dat,
-            })
-        });
+        this.setState({ "status": await FetchStatus("imageboard.v1.ImageBoard/GetStatus") });
     }
 
-    updateStatus = async () => {
-        var req = new pb.SetStatusReq();
-        req.setStatus(this.state.status);
+    // updateStatus shows next at once and sends it, then reads back what the
+    // board really did with it.
+    updateStatus = async (next) => {
+        this.setState(next);
         try {
-            await CallRPC("imageboard.v1.ImageBoard/SetStatus", req.toObject());
+            await CallRPC("imageboard.v1.ImageBoard/SetStatus", { "status": next.status });
             this.props.onError?.('');
         } catch (err) {
             this.props.onError?.(err.message);
@@ -72,20 +51,20 @@ class ImageBoard extends React.Component {
                 {this.props.withImg ? img : ""}
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id="imgenabler" label="Enable/Disable" checked={this.state.status.getEnabled()}
-                            onChange={() => { this.state.status.setEnabled(!this.state.status.getEnabled()); this.updateStatus(); }} />
+                        <Form.Switch id="imgenabler" label="Enable/Disable" checked={Boolean(this.state.status.enabled)}
+                            onChange={() => this.updateStatus({ status: Toggled(this.state.status, 'enabled') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id="imgmem" label="Enable Memory Cache" checked={this.state.status.getMemcacheEnabled()}
-                            onChange={() => { this.state.status.setMemcacheEnabled(!this.state.status.getMemcacheEnabled()); this.updateStatus(); }} />
+                        <Form.Switch id="imgmem" label="Enable Memory Cache" checked={Boolean(this.state.status.memcache_enabled)}
+                            onChange={() => this.updateStatus({ status: Toggled(this.state.status, 'memcache_enabled') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">
                     <Col>
-                        <Form.Switch id="imgdisk" label="Enable Disk Cache" checked={this.state.status.getDiskcacheEnabled()}
-                            onChange={() => { this.state.status.setDiskcacheEnabled(!this.state.status.getDiskcacheEnabled()); this.updateStatus(); }} />
+                        <Form.Switch id="imgdisk" label="Enable Disk Cache" checked={Boolean(this.state.status.diskcache_enabled)}
+                            onChange={() => this.updateStatus({ status: Toggled(this.state.status, 'diskcache_enabled') })} />
                     </Col>
                 </Row>
                 <Row className="text-left">

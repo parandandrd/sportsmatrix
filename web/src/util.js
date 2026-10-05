@@ -1,6 +1,3 @@
-import * as basicboard_pb from './basicboard/basicboard_pb';
-import * as sportsmatrix_pb from './sportsmatrix/sportsmatrix_pb';
-
 export var BACKEND = "http://" + window.location.host
 
 export function MatrixPostRet(path, body) {
@@ -27,22 +24,23 @@ export async function GetVersion(callback) {
     );
 }
 
-export function JSONToStatus(jsonDat) {
-    var d = JSON.parse(jsonDat);
-    var dat = d.status;
-    var status = new basicboard_pb.Status();
-    status.setEnabled(dat.enabled);
+// FetchStatus asks a board's Twirp service for its status and returns the
+// status object, its fields named as in the .proto ("favorite_hidden").
+export async function FetchStatus(path) {
+    const data = await CallRPC(path, {});
+    return (data && data.status) || {};
+}
 
-    return status;
+// Toggled is status with one switch flipped. The status is never changed in
+// place: React only re-renders on a new object.
+export function Toggled(status, field) {
+    return { ...status, [field]: !status[field] };
 }
 
 export async function JumpToBoard(board) {
-    var req = new sportsmatrix_pb.JumpReq();
-    req.setBoard(board);
-    var r = JSON.stringify(req.toObject());
-    console.log("Board Jump", "matrix.v1.Sportsmatrix/Jump", r);
-    await MatrixPostRet("matrix.v1.Sportsmatrix/Jump", r);
+    await MatrixPostRet("matrix.v1.Sportsmatrix/Jump", JSON.stringify({ board: board }));
 }
+
 // Board kinds, keyed by the twirp service a board mounts. The service name is
 // the only reliable signal of what a board is: Name is a display name, and for
 // sport boards it is the league's full name ("NCAA Basketball"), not its slug.

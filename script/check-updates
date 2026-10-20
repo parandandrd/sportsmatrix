@@ -1,0 +1,86 @@
+#!/bin/bash
+# Reports what is behind, and changes nothing.
+#
+# Dependabot (.github/dependabot.yml) opens PRs for go.mod, web/package.json,
+# the workflows' actions and Dockerfile.pibuilder's base image. This covers what
+# no manifest names: the Go toolchain and golangci-lint pins, .nvmrc, and the
+# vendored matrix library. Use script/update-go to move the first two.
+#
+#   script/check-updates         the pins Dependabot can't see
+#   script/check-updates --all   also go list -m -u and npm outdated
+set -euo pipefail
+
+ROOT="$(dirname $( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd ))"
+source "${ROOT}/script/common"
+
+PROXY="https://proxy.golang.org"
+
+# report <name> <pinned> <latest> [note]
+report() {
+  local status="ok"
+  if [ -z "$3" ]; then
+    status="unknown"
+  elif [ "$2" != "$3" ]; then
+    status="BEHIND"
+  fi
+  printf '%-30s %-8s pinned %-12s latest %-12s %s\n' "$1" "${status}" "$2" "${3:-?}" "${4:-}"
+}
+
+# Network failures make a value empty rather than ending the run.
+fetch() {
+  curl -fsSL --max-time 20 "$1" 2>/dev/null || true
+}
+
+# The newest stable Go release the module proxy knows. Release candidates are
+# skipped: only versions made of digits and dots count.
+latest_go="$(fetch "${PROXY}/golang.org/toolchain/@v/list" \
+  | grep 'linux-amd64$' | sed -e 's/^v0\.0\.1-go//' -e 's/\.linux-amd64$//' \
+  | grep -E '^[0-9]+\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -1)"
+dockerfile_go="$(sed -n 's/^ARG GOVERSION=//p' "${ROOT}/Dockerfile.pibuilder")"
+
+report "Go (script/common)" "${GO_VERSION}" "${latest_go}"
+report "Go (Dockerfile.pibuilder)" "${dockerfile_go}" "${latest_go}"
+if [ "${GO_VERSION}" != "${dockerfile_go}" ]; then
+  echo "  the two Go pins disagree; script/update-go moves both"
+fi
+
+# go.mod's go line is the minimum, and CI takes the newest patch of it.
+gomod_go="$(sed -n 's/^go //p' "${ROOT}/go.mod")"
+echo "  go.mod needs Go ${gomod_go}; CI builds with the newest patch of it"
+
+latest_lint="$(fetch "${PROXY}/github.com/golangci/golangci-lint/v2/@latest" \
+  | sed -n 's/.*"Version":"v\([^"]*\)".*/\1/p')"
+report "golangci-lint" "${GOLANGCI_VERSION}" "${latest_lint}" \
+  "(must be built with Go >= go.mod's)"
+
+# nodejs.org lists releases newest first; the first with a codename is the
+# newest LTS. .nvmrc holds a major only, so compare majors.
+node_pinned="$(tr -d 'v \n' < "${ROOT}/.nvmrc")"
+node_index="$(fetch "https://nodejs.org/dist/index.json")"
+# A here-string, not a pipe: grep -m1 quits early, and pipefail would count the
+# writer's SIGPIPE as a failure.
+node_lts="$(tr '}' '\n' <<<"${node_index}" \
+  | sed -n '/"lts":"/{s/.*"version":"v\([^"]*\)".*/\1/p;q}' || true)"
+report "Node LTS (.nvmrc)" "${node_pinned}" "${node_lts%%.*}" "newest LTS is ${node_lts:-?}"
+
+# The vendored library is a copy, pinned by the commit named in its README.
+readme="${ROOT}/internal/rgbmatrix-rpi/README.md"
+lib_pinned="$(sed -n 's|.*rpi-rgb-led-matrix/tree/\([0-9a-f]\{7,40\}\).*|\1|p' "${readme}" | head -1)"
+lib_head="$(git ls-remote https://github.com/hzeller/rpi-rgb-led-matrix HEAD 2>/dev/null | cut -c1-7)"
+report "hzeller/rpi-rgb-led-matrix" "${lib_pinned:0:7}" "${lib_head}" \
+  "compare: https://github.com/hzeller/rpi-rgb-led-matrix/compare/${lib_pinned:0:7}...HEAD"
+echo "  the pin is the README's; CLAUDE.md and git log say when it was last moved"
+
+if [ "${1:-}" = "--all" ]; then
+  echo
+  echo "== go list -m -u (direct requires with an update; vendor/ is not consulted)"
+  (cd "${ROOT}" && go list -mod=mod -m -u -f '{{if and (not .Indirect) .Update}}{{.Path}} {{.Version}} -> {{.Update.Version}}{{end}}' all) \
+    || echo "  go list failed; it needs Go >= ${gomod_go} and the network"
+  echo
+  echo "== npm outdated (web/)"
+  if [ -d "${ROOT}/web/node_modules" ]; then
+    (cd "${ROOT}/web" && npm outdated) || true
+  else
+    echo "  web/node_modules is missing, so npm can't say what is installed; npm ci first"
+  fi
+fi

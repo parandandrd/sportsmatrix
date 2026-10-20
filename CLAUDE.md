@@ -35,7 +35,9 @@ Things that will waste your time if you don't know them:
   setup-go resolves to the newest patch release. `GO_VERSION` in
   `script/common` and `GOVERSION` in `Dockerfile.pibuilder` only feed the
   cross-build image and `script/build.local`. `script/update-go` moves all
-  three.
+  three. `script/check-updates` reports what is behind that Dependabot can't
+  see (those pins, `.nvmrc`, the vendored matrix library); `--all` adds the Go
+  modules and npm packages. Dependabot itself is `.github/dependabot.yml`, weekly.
 - **`script/test` rebuilds the vendored C library** from
   `internal/rgbmatrix-rpi/lib/rpi-rgb-led-matrix.BASE` on every run, and
   removes it afterwards. First run takes a few minutes. Don't commit the

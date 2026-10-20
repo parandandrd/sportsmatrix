@@ -1,38 +1,60 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
-# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
-
+# Dependabot version updates, weekly, one grouped PR per ecosystem for minor and
+# patch releases. A major release is left out of the group on purpose: it opens
+# its own PR so it gets a look of its own (react-router 8, jest-dom 7).
+#
+# Dependabot opens PRs, which is the only thing that runs CI here; it is a
+# GitHub service, not a scheduled workflow. Security updates ignore this
+# schedule. Reference:
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# What it cannot see, because no manifest names it: the Go toolchain and
+# golangci-lint pins in script/common and Dockerfile.pibuilder, .nvmrc, and the
+# vendored matrix library. script/check-updates reports those.
 version: 2
 updates:
-  - package-ecosystem: "gomod" # See documentation for possible values
-    directory: "/" # Location of package manifests
-    schedule:
-      interval: "daily"
-    groups:
-      minor:
-        applies-to: "version-updates"
-        update-types:
-          - patch
-          - minor
-  - package-ecosystem: "github-actions"
+  # vendor/ is committed; Dependabot runs `go mod vendor` for these PRs.
+  - package-ecosystem: "gomod"
     directory: "/"
     schedule:
-      interval: "daily"
-  - package-ecosystem: "npm"
-    directory: "/web"
-    schedule:
-      interval: "daily"
+      interval: "weekly"
+      day: "monday"
     groups:
-      react:
+      go-minor-patch:
         applies-to: "version-updates"
         patterns:
-          - "@react*"
+          - "*"
         update-types:
           - "minor"
           - "patch"
-      minor:
+
+  - package-ecosystem: "npm"
+    directory: "/web"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      npm-minor-patch:
         applies-to: "version-updates"
+        patterns:
+          - "*"
         update-types:
-          - patch
-          - minor
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      actions:
+        applies-to: "version-updates"
+        patterns:
+          - "*"
+
+  # The base image of the aarch64 cross-build, in Dockerfile.pibuilder.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"

@@ -145,7 +145,9 @@ Things that will waste your time if you don't know them:
   input (plus tag push). It runs on `ubuntu-24.04-arm` so the aarch64 build is
   native -- that took the build step from ~12 minutes under QEMU to ~17
   seconds. There is no scheduled workflow anywhere, and the repo owner has
-  asked that there never be one.
+  asked that there never be one. Dependabot (`.github/dependabot.yml`, weekly)
+  is not a workflow file and the owner chose it on 2026-10-20; it only opens
+  PRs. It has to be switched on in the repo's Settings > Advanced Security.
 - Work happens on a branch, not on master.
 
 ## State of things

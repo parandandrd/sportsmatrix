@@ -38,7 +38,8 @@ latest_go="$(fetch "${PROXY}/golang.org/toolchain/@v/list" \
   | grep -E '^[0-9]+\.[0-9]+(\.[0-9]+)?$' | sort -V | tail -1)"
 dockerfile_go="$(sed -n 's/^ARG GOVERSION=//p' "${ROOT}/Dockerfile.pibuilder")"
 
-report "Go (script/common)" "${GO_VERSION}" "${latest_go}"
+report "Go (script/common)" "${GO_VERSION}" "${latest_go}" \
+  "(feeds script/build.local and the cross-build image only)"
 report "Go (Dockerfile.pibuilder)" "${dockerfile_go}" "${latest_go}"
 if [ "${GO_VERSION}" != "${dockerfile_go}" ]; then
   echo "  the two Go pins disagree; script/update-go moves both"
@@ -46,7 +47,7 @@ fi
 
 # go.mod's go line is the minimum, and CI takes the newest patch of it.
 gomod_go="$(sed -n 's/^go //p' "${ROOT}/go.mod")"
-echo "  go.mod needs Go ${gomod_go}; CI builds with the newest patch of it"
+echo "  go.mod needs Go ${gomod_go}; CI and releases build with the newest patch of it regardless"
 
 latest_lint="$(fetch "${PROXY}/github.com/golangci/golangci-lint/v2/@latest" \
   | sed -n 's/.*"Version":"v\([^"]*\)".*/\1/p')"

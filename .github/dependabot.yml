@@ -1,18 +1,20 @@
-# Dependabot version updates, weekly, one grouped PR per ecosystem for minor and
-# patch releases. A major release is left out of the group on purpose: it opens
-# its own PR so it gets a look of its own (react-router 8, jest-dom 7).
-#
-# Dependabot opens PRs, which is the only thing that runs CI here; it is a
-# GitHub service, not a scheduled workflow. Security updates ignore this
+# Dependabot version updates, weekly. It is a GitHub service, not a workflow
+# file, so it does not break the "no scheduled workflow" rule in CLAUDE.md: it
+# only opens PRs, and the PRs run the normal pull_request CI (go.yml), which
+# also builds the arm64 .deb to try on the Pi. Security updates ignore this
 # schedule. Reference:
 # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 #
-# What it cannot see, because no manifest names it: the Go toolchain and
-# golangci-lint pins in script/common and Dockerfile.pibuilder, .nvmrc, and the
-# vendored matrix library. script/check-updates reports those.
+# Not covered, because no manifest Dependabot reads names it: the Go and
+# golangci-lint pins (script/common, Dockerfile.pibuilder), .nvmrc, and the
+# vendored matrix library. script/check-updates reports those. There is no
+# docker entry on purpose: nothing CI or the release runs uses
+# Dockerfile.pibuilder, and its base tag, debian:trixie-slim, has no version for
+# Dependabot to move.
 version: 2
 updates:
-  # vendor/ is committed; Dependabot runs `go mod vendor` for these PRs.
+  # vendor/ is committed; Dependabot runs `go mod vendor` for these PRs. One PR
+  # for minor and patch releases. A major version gets its own.
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
@@ -27,6 +29,7 @@ updates:
           - "minor"
           - "patch"
 
+  # Same split. react-router 8 and jest-dom 7 arrive as their own PRs.
   - package-ecosystem: "npm"
     directory: "/web"
     schedule:
@@ -41,6 +44,9 @@ updates:
           - "minor"
           - "patch"
 
+  # The workflows pin a major tag (actions/checkout@v7), so the only update
+  # Dependabot ever sees is the next major: this group must not filter on
+  # update-types, or it would match nothing.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -51,10 +57,3 @@ updates:
         applies-to: "version-updates"
         patterns:
           - "*"
-
-  # The base image of the aarch64 cross-build, in Dockerfile.pibuilder.
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"

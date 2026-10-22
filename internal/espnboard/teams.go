@@ -52,6 +52,9 @@ type Logo struct {
 	Href  string `json:"href"`
 	Width int    `json:"width"`
 	Heigh int    `json:"height"`
+	// Rel says which version of the logo this is, such as
+	// ["full", "scoreboard", "dark"].
+	Rel []string `json:"rel"`
 }
 
 type teamData struct {

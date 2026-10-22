@@ -107,6 +107,13 @@ Things that will waste your time if you don't know them:
   in kiosk mode on a display attached to the Pi (`launchWebBoard`, "Start web
   board", `/api/webboardon`), and the Pi runs Lite with no desktop, no browser
   and nothing on its HDMI port. `Status.webboard_on` is reserved in the proto.
+- **Team logos** on the sport boards come from ESPN in the version drawn for
+  dark backgrounds where there is one (`bestLogo` in `internal/espnboard`).
+  They have their transparent margins trimmed and are shrunk in linear light
+  to fit their side of the score (`logo.Fit`, `placeLogo`): 28x28 on a 64x32
+  panel with the gradient on. The source PNG cached on disk has
+  `sourceCacheVersion` in its name; bump it when the choice of logo changes,
+  or the Pi keeps showing the old ones.
 - Boards implement `board.Board`, canvases implement `board.Canvas`. Board
   enable/disable goes through `board.Enabler`, whose `SetStateChangeCallback`
   wakes the serve loop when every board is off.

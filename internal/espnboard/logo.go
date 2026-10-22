@@ -7,6 +7,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 
@@ -18,9 +19,10 @@ import (
 	"github.com/parandandrd/sportsmatrix/internal/util"
 )
 
-const (
-	dark = "dark"
-)
+// sourceCacheVersion is part of each cached source logo's file name. Bump it
+// when the choice of logo changes, so the Pi fetches the new one instead of
+// keeping the old.
+const sourceCacheVersion = 2
 
 func (e *ESPNBoard) getLogoCache(logoKey string) (*logo.Logo, error) {
 	e.logoLock.RLock()
@@ -81,7 +83,7 @@ func (e *ESPNBoard) GetLogo(ctx context.Context, logoKey string, logoConf *logo.
 	defer e.setLogoCache(logoKey, l)
 
 	logoGetter := func(ctx context.Context) (image.Image, error) {
-		return e.GetLogoSource(ctx, teamID, logoSearch(e.leaguer, teamID))
+		return e.GetLogoSource(ctx, teamID)
 	}
 
 	if logoConf != nil {
@@ -131,39 +133,39 @@ func (e *ESPNBoard) loadDefaultLogoConfigs(bounds image.Rectangle) error {
 	return nil
 }
 
-func logoSearch(leaguer Leaguer, teamID string) string {
-	switch leaguer.(type) {
-	case *ncaaf:
-		switch teamID {
-		// IOWA, CIN
-		case "2294", "2132", "194":
-			return dark
+// logoRank says how well one of ESPN's versions of a logo suits the panel;
+// higher is better. ESPN draws a "dark" version of most logos for dark
+// backgrounds, with light outlines where the default has navy or black ones
+// that vanish on the unlit panel. Its "scoreboard" versions are simplified
+// for small sizes. Both together is best, then dark alone.
+func logoRank(l Logo) int {
+	rank := 0
+	if slices.Contains(l.Rel, "dark") || strings.Contains(l.Href, "-dark/") {
+		rank += 2
+	}
+	if slices.Contains(l.Rel, "scoreboard") || strings.Contains(l.Href, "/scoreboard/") {
+		rank++
+	}
+	return rank
+}
+
+// bestLogo picks the href of the version of a team's logo that suits the
+// panel best, the first listed among equals. It is empty if there are none.
+func bestLogo(logos []*Logo) string {
+	best, href := -1, ""
+	for _, l := range logos {
+		if l == nil || l.Href == "" {
+			continue
 		}
-	case *ncaam:
-		switch teamID {
-		// IOWA, CIN
-		case "2294", "2132", "194":
-			return dark
-		}
-	case *nba:
-		switch teamID {
-		// Utah Jazz
-		case "26":
-			return dark
-		}
-	case *mlb:
-		switch teamID {
-		// Pirates, Rockies
-		case "23", "27":
-			return dark
+		if r := logoRank(*l); r > best {
+			best, href = r, l.Href
 		}
 	}
-
-	return "scoreboard"
+	return href
 }
 
 // GetLogoSource ...
-func (e *ESPNBoard) GetLogoSource(ctx context.Context, teamID string, logoURLSearch string) (image.Image, error) {
+func (e *ESPNBoard) GetLogoSource(ctx context.Context, teamID string) (image.Image, error) {
 	e.Lock()
 	l, ok := e.logoLockers[teamID]
 	if !ok {
@@ -179,7 +181,7 @@ func (e *ESPNBoard) GetLogoSource(ctx context.Context, teamID string, logoURLSea
 		return nil, err
 	}
 
-	cacheFile := filepath.Join(cacheDir, fmt.Sprintf("%s_%s.png", e.leaguer.HTTPPathPrefix(), teamID))
+	cacheFile := filepath.Join(cacheDir, fmt.Sprintf("%s_%s_v%d.png", e.leaguer.HTTPPathPrefix(), teamID, sourceCacheVersion))
 
 	if _, err := os.Stat(cacheFile); err != nil {
 		if !os.IsNotExist(err) {
@@ -209,10 +211,9 @@ func (e *ESPNBoard) GetLogoSource(ctx context.Context, teamID string, logoURLSea
 
 	var i image.Image
 	foundSource := false
-OUTER:
 	for _, team := range teams {
 		if team.ID != teamID {
-			continue OUTER
+			continue
 		}
 
 		e.log.Debug("looking for logo source",
@@ -221,33 +222,9 @@ OUTER:
 			zap.Int("num logos", len(team.Logos)),
 		)
 
-		var defaultHref sync.Once
-		href := ""
-		dHref := ""
-		foundStr := false
-
-		for _, logo := range team.Logos {
-			defaultHref.Do(func() {
-				e.log.Debug("logo default ONCE",
-					zap.String("href", logo.Href),
-				)
-				dHref = logo.Href
-			})
-			href = logo.Href
-			if logoURLSearch != "" {
-				if strings.Contains(logo.Href, logoURLSearch) {
-					foundStr = true
-					break
-				}
-				continue
-			} else {
-				foundStr = true
-				break
-			}
-		}
-
-		if !foundStr {
-			href = dHref
+		href := bestLogo(team.Logos)
+		if href == "" {
+			return nil, fmt.Errorf("team %s has no logo", teamID)
 		}
 
 		e.log.Debug("pulling logo from API",

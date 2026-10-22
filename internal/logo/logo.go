@@ -7,6 +7,7 @@ import (
 	"image/draw"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"go.uber.org/zap"
 
@@ -26,13 +27,16 @@ const MaxSourceSize = 256
 
 // ShrinkSource scales a source logo down to fit MaxSourceSize, keeping its
 // shape, for keeping in a cache. A logo already that small is returned as it
-// is. The original can be dropped once this has returned.
+// is. The original can be dropped once this has returned. It averages in
+// linear light, as Fit does, so a cached logo is not already darkened at its
+// fine lines before Fit ever sees it.
 func ShrinkSource(img image.Image) image.Image {
 	b := img.Bounds()
 	if b.Dx() <= MaxSourceSize && b.Dy() <= MaxSourceSize {
 		return img
 	}
-	return imaging.Fit(img, MaxSourceSize, MaxSourceSize, imaging.Lanczos)
+	w, h := fitSize(b.Dx(), b.Dy(), MaxSourceSize, MaxSourceSize)
+	return toNRGBA(resizeLinear(img, b, w, h), w, h, false)
 }
 
 // Logo is used to manage logo rendering
@@ -44,6 +48,10 @@ type Logo struct {
 	config           *Config
 	thumbnail        image.Image
 	log              *zap.Logger
+
+	// fitLock guards fitted, Fit's results by the size asked for.
+	fitLock sync.Mutex
+	fitted  map[image.Point]image.Image
 }
 
 // Config ...

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"image/draw"
+	"math"
 
 	"go.uber.org/zap"
 
@@ -20,12 +22,6 @@ func (s *SportBoard) logoConfig(logoKey string, bounds image.Rectangle) *logo.Co
 
 	s.log.Debug("no logo config defined, defaults will be used", zap.String("logo key", logoKey))
 
-	zoom := float64(1)
-
-	if bounds.Dx() == bounds.Dy() {
-		zoom = 0.8
-	}
-
 	return &logo.Config{
 		Abbrev: logoKey,
 		XSize:  bounds.Dx(),
@@ -33,7 +29,7 @@ func (s *SportBoard) logoConfig(logoKey string, bounds image.Rectangle) *logo.Co
 		Pt: &logo.Pt{
 			X:    0,
 			Y:    0,
-			Zoom: zoom,
+			Zoom: 1,
 		},
 	}
 }
@@ -157,38 +153,10 @@ func (s *SportBoard) RenderLeftLogo(ctx context.Context, canvasBounds image.Rect
 		return nil, fmt.Errorf("logo %s was nil", logoKey)
 	}
 
-	textWidth := s.textAreaWidth(bounds)
-	logoEndX := (bounds.Dx() - textWidth) / 2
-	s.log.Debug("starting logoWidth",
-		zap.Int("logoWidth", logoEndX),
-	)
-
-	setCache := true
-
-	if s.config.ShowRecord.Load() {
-		w, err := s.getTeamInfoWidth(s.api.League(), teamID)
-		if err != nil {
-			w = defaultTeamInfoArea
-			setCache = false
-			s.log.Error("failed to get team info width",
-				zap.Error(err),
-			)
-		}
-		logoEndX -= w
-	}
-
-	s.log.Debug("scroll mode added width",
-		zap.String("side", "left"),
-		zap.Int("textWidth", textWidth),
-		zap.Int("logoEndX", logoEndX),
-	)
-
-	var renderErr error
-	var renderedLogo image.Image
-	renderedLogo, renderErr = l.RenderRightAlignedWithEnd(ctx, bounds, logoEndX)
-	if renderErr != nil {
-		s.log.Error("failed to render left logo", zap.Error(renderErr))
-		return nil, fmt.Errorf("failed to render left logo: %w", renderErr)
+	renderedLogo, setCache, err := s.placeLogo(ctx, l, logoKey, bounds, teamID, false)
+	if err != nil {
+		s.log.Error("failed to render left logo", zap.Error(err))
+		return nil, fmt.Errorf("failed to render left logo: %w", err)
 	}
 	if setCache {
 		s.setLogoDrawCache(logoKey, renderedLogo)
@@ -239,46 +207,102 @@ func (s *SportBoard) RenderRightLogo(ctx context.Context, canvasBounds image.Rec
 		return nil, fmt.Errorf("logo %s was nil", logoKey)
 	}
 
-	textWidth := s.textAreaWidth(bounds)
-	logoWidth := (bounds.Dx() - textWidth) / 2
-	s.log.Debug("starting logoWidth",
-		zap.Int("logoWidth", logoWidth),
-	)
-	recordAdder := 0
-
-	setCache := true
-
-	if s.config.ShowRecord.Load() {
-		recordAdder, err = s.getTeamInfoWidth(s.api.League(), teamID)
-		if err != nil {
-			s.log.Error("failed to get team info width",
-				zap.Error(err),
-			)
-			recordAdder = defaultTeamInfoArea
-			setCache = false
-		}
-	}
-
-	startX := textWidth + logoWidth + recordAdder
-
-	s.log.Debug("scroll mode added width",
-		zap.String("side", "right"),
-		zap.Int("logoWidth", logoWidth),
-		zap.Int("textWidth", textWidth),
-		zap.Int("recordAdder", recordAdder),
-		zap.Int("total", startX),
-	)
-
-	var renderErr error
-	var renderedLogo image.Image
-
-	renderedLogo, renderErr = l.RenderLeftAlignedWithStart(ctx, bounds, startX)
-	if renderErr != nil {
-		s.log.Error("failed to render right logo", zap.Error(renderErr))
+	renderedLogo, setCache, err := s.placeLogo(ctx, l, logoKey, bounds, teamID, true)
+	if err != nil {
+		s.log.Error("failed to render right logo", zap.Error(err))
 		return nil, fmt.Errorf("failed to render right logo: %w", err)
 	}
 	if setCache {
 		s.setLogoDrawCache(logoKey, renderedLogo)
 	}
 	return renderedLogo, nil
+}
+
+// logoArea is how wide a team's logo may be, from the panel's outer edge
+// towards the score. ok is false if that depends on a record width that could
+// not be worked out, so the result should not be cached.
+func (s *SportBoard) logoArea(bounds image.Rectangle, teamID string) (int, bool) {
+	width := (bounds.Dx() - s.textAreaWidth(bounds)) / 2
+	ok := true
+
+	if s.config.ShowRecord.Load() {
+		w, err := s.getTeamInfoWidth(s.api.League(), teamID)
+		if err != nil {
+			s.log.Error("failed to get team info width", zap.Error(err))
+			w = defaultTeamInfoArea
+			ok = false
+		}
+		return width - w, ok
+	}
+
+	// The gradient darkens what is under the score so it stays readable, so
+	// a logo can run a pixel under its edge. On a 64x32 panel that makes the
+	// area 28 wide, as tall as the logo is allowed to be.
+	if s.config.UseGradient.Load() {
+		width++
+	}
+	return width, ok
+}
+
+// placeLogo draws a team's logo for one side of the score: trimmed of its
+// transparent margins, as large as fits in its side's area and the panel's
+// height less a margin top and bottom, centred in both. The image it returns
+// is in panel coordinates.
+//
+// A logo config's zoom scales that area, and its shifts move the logo after
+// it is placed. A zoom over 1 can make a logo wider than its area; it then
+// runs off the panel's outer edge rather than under the score.
+func (s *SportBoard) placeLogo(ctx context.Context, l *logo.Logo, logoKey string, bounds image.Rectangle, teamID string, right bool) (image.Image, bool, error) {
+	conf := s.logoConfig(logoKey, bounds)
+
+	area, cacheable := s.logoArea(bounds, teamID)
+	maxW := area
+	maxH := bounds.Dy() - 2*(bounds.Dy()/16)
+	if conf.Pt != nil && conf.Pt.Zoom > 0 {
+		maxW = int(math.Round(float64(maxW) * conf.Pt.Zoom))
+		maxH = int(math.Round(float64(maxH) * conf.Pt.Zoom))
+	}
+	if maxW < 1 || maxH < 1 {
+		return nil, false, fmt.Errorf("no room for logo %s: %dx%d", logoKey, maxW, maxH)
+	}
+
+	thumb, err := l.Fit(ctx, maxW, maxH)
+	if err != nil {
+		return nil, false, err
+	}
+	w, h := thumb.Bounds().Dx(), thumb.Bounds().Dy()
+
+	x, y := logoPos(bounds, area, w, h, right)
+	if conf.Pt != nil {
+		x += conf.Pt.X
+		y += conf.Pt.Y
+	}
+
+	s.log.Debug("place logo",
+		zap.String("logo key", logoKey),
+		zap.Int("area", area),
+		zap.Int("x", x),
+		zap.Int("y", y),
+		zap.Int("width", w),
+		zap.Int("height", h),
+	)
+
+	i := image.NewRGBA(image.Rect(x, y, x+w, y+h))
+	draw.Draw(i, i.Bounds(), thumb, thumb.Bounds().Min, draw.Src)
+
+	return i, cacheable, nil
+}
+
+// logoPos is where a w x h logo goes on a panel of the given bounds: centred
+// in the area wide strip along the left edge, or the right one, and centred
+// top to bottom. One wider than its strip runs off the panel's outer edge.
+func logoPos(bounds image.Rectangle, area, w, h int, right bool) (int, int) {
+	x := (area - w) / 2
+	if w > area {
+		x = area - w
+	}
+	if right {
+		x = bounds.Dx() - x - w
+	}
+	return x, (bounds.Dy() - h) / 2
 }
